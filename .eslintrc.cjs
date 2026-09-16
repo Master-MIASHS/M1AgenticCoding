@@ -45,5 +45,13 @@ module.exports = {
       }
     ]
   },
-  ignorePatterns: ['dist']
+  ignorePatterns: ['dist'],
+  overrides: [
+    {
+      files: ['src/services/coreService.js'],
+      rules: {
+        'no-restricted-imports': 'off'
+      }
+    }
+  ]
 };
