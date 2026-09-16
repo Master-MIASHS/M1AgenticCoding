@@ -105,3 +105,28 @@ export function tirageAvecPoids(elements, poids) {
   // Filet de sécurité pour les erreurs d'arrondi flottant.
   return elements[elements.length - 1];
 }
+
+/**
+ * Mélange générique et non biaisé d'une liste (algorithme de Fisher-Yates).
+ *
+ * Sert pour tout besoin de "paquet mélangé" (ex. un paquet de cartes 0-51) :
+ * l'appelant est propriétaire du sens de chaque élément, cette fonction ne
+ * fait que renvoyer une permutation aléatoire. Ne modifie pas la liste
+ * d'origine ; chaque élément est conservé exactement une fois (aucune perte,
+ * aucun doublon).
+ *
+ * @param {Array<*>} liste - la liste à mélanger.
+ * @returns {Array<*>} un nouveau tableau contenant les mêmes éléments,
+ *   dans un ordre aléatoire.
+ */
+export function melanger(liste) {
+  if (!Array.isArray(liste)) {
+    throw new Error('melanger : liste doit être un tableau');
+  }
+  const resultat = liste.slice();
+  for (let i = resultat.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(hasardActuel() * (i + 1));
+    [resultat[i], resultat[j]] = [resultat[j], resultat[i]];
+  }
+  return resultat;
+}
