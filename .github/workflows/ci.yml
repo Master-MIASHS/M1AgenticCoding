@@ -18,7 +18,7 @@ jobs:
 
           echo "Branche : $BRANCH"
 
-          # Branches protégées/de base, exemptées de la convention gX-feature
+          # Branches protégées/de base, exemptées de la convention groupX-feature
           case "$BRANCH" in
             main|develop|skills)
               echo "Branche protégée, convention non appliquée."
@@ -26,10 +26,10 @@ jobs:
               ;;
           esac
 
-          PATTERN='^g[1-5]-[a-z0-9]+(-[a-z0-9]+)*$'
+          PATTERN='^group[1-5]-[a-z0-9]+(-[a-z0-9]+)*$'
           if ! echo "$BRANCH" | grep -Eq "$PATTERN"; then
             echo "::error::Nom de branche invalide : '$BRANCH'"
-            echo "::error::Convention attendue : g<1-5>-<feature-travaillee> (kebab-case, minuscules), ex. g2-blackjack"
+            echo "::error::Convention attendue : group<1-5>-<feature-travaillee> (kebab-case, minuscules), ex. group2-blackjack"
             echo "Voir skills/naming-convention-linter/SKILL.md pour corriger le nom de la branche."
             exit 1
           fi
