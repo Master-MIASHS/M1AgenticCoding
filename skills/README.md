@@ -1,0 +1,5 @@
+# Documentation des skills
+
+| Skill | Fichier | Description |
+| --- | --- | --- |
+| `branch-creator` | [branch-creator/branch-creator.md](./branch-creator/branch-creator.md) | Création obligatoire d'une branche `GroupX-feature(nomgithub)` avant tout développement de feature (`X` = variable `SKOTCKER` du `.env`, `nomgithub` = `git config user.name`). |
