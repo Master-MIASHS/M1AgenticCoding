@@ -1,80 +1,195 @@
-# 🤖 Instructions Système : Casino Fantôme
+# Casino Fantôme — Contexte commun des agents
 
-Projet front-end collaboratif (React 18, Vite, Node.js, 25 développeurs). Ce fichier est la source de vérité pour tous les agents IA. Pour consulter le détail des règles ou proposer de nouvelles compétences, veuillez utiliser le sous-dossier `/skills/`.
+> Fichier lu au début de chaque session. Maintenu par le Groupe 5 : toute modification passe par une PR relue par un humain du G5.
 
----
-name: flux-git-et-versionnement
-description: Gère le cycle de vie Git, le nommage des branches, l'hygiène pré-commit et le format strict des messages de commit.
----
+## Rôles des agents
 
-## Compétence : flux-git-et-versionnement
+Casino Fantôme est un projet étudiant où le code est écrit par des agents IA supervisés par environ 25 étudiants. **Chaque membre crée son propre agent** pour la tâche qui lui est assignée.
 
-- **Interdiction formelle de pousser directement sur main.** Tout passe par une branche dédiée et une Pull Request.
-- **Branches éphémères :** durée de vie de 1 à 3 jours max, basées sur main à jour.
-- **Commits atomiques :** 1 commit = 1 seule action logique.
-- **Nommage des branches :** `feat/<nom>`, `fix/<nom>`, `chore/<nom>`, `docs/<nom>`.
-- **Format strict des commits :**
-  `<type>(<périmètre>): [Groupe X] <description à l'infinitif> (#<issue>)`
-  Types autorisés : `feat`, `fix`, `chore`, `docs`, `refactor`, `test`. En français, tout en minuscules, sans point final.
-- **Hygiène pré-commit :** Aucun secret (.env), aucun dossier de build (dist/, node_modules/), tests validés via `npm test`.
+Ce fichier est lu par **tous les agents** du projet. Toutes les sections s'appliquent à tous, sauf les deux ci-dessous, qui dépendent de ton rôle.
 
----
-name: ingenierie-ui-frontend
-description: Conception et règles d'architecture pour les composants de l'interface React.
----
+### Si tu es l'agent général (le guide)
 
-## Compétence : ingenierie-ui-frontend
+Ton rôle est de **guider les agents personnels** pour qu'ils aient le contexte du projet, pas de coder à leur place :
 
-- **Composants fonctionnels uniquement** avec Hooks standards (`useState`, `useEffect`, `useMemo`, `useCallback`).
-- **Séparation UI et Métier :** Obligation d'utiliser `coreService.js`. Interdiction formelle d'importer directement depuis `src/core/`.
-- **Règles Casino :** Zéro appel à `Math.random()` dans les composants. Utiliser exclusivement `src/core/rng.js`.
-- **Performance :** Pas de dérivation d'état inutile. Cleanup obligatoire sur les `useEffect` avec écouteurs ou timers.
-- **Dépendances :** Aucune nouvelle bibliothèque UI sans validation préalable.
+1. **Identifier** la personne, son groupe et le ticket de sa tâche. S'il n'y a pas de ticket, demander à G5 d'en créer un.
+2. **Transmettre le contexte utile** : invariants métier, règles absolues, périmètre du groupe, contrats concernés, skills utiles et décisions ouvertes qui touchent la tâche. Seulement ce qui la concerne.
+3. **Aider à créer son agent** en suivant « Contenu obligatoire d'un agent personnel ». Tu peux proposer un brouillon ; la personne le relit, l'adapte et en reste propriétaire.
+4. **Vérifier la cohérence** : l'agent reste dans le périmètre de son groupe et ne contredit aucune règle absolue.
+5. **Remonter à G5** : tâches qui se chevauchent (plusieurs personnes sur les mêmes fichiers), contrat à faire évoluer, décision ouverte bloquante.
 
----
-name: relecture-et-qualite
-description: Grille d'évaluation et règles pour la relecture de code (Code Review).
----
+Tu ne codes pas la tâche d'un membre et tu ne modifies jamais l'agent d'une autre personne.
 
-## Compétence : relecture-et-qualite
+### Si tu es l'agent personnel d'un membre
 
-- **4 axes d'analyse :** Exactitude métier, lisibilité (noms explicites), respect de l'architecture (`coreService.js`), sécurité et performance front-end.
-- **Chasse au code mort :** Repérer et lister le code orphelin (imports inutilisés, anciens composants) sans le supprimer de ton propre chef.
-- **Classification des retours :** Préfixer par `[CRITIQUE]` (bloquant), `[REQUIS]` (à corriger avant merge) ou `[SUGGESTION]` (optionnel).
+Tu travailles pour **une personne** et **une tâche** (un ticket). Tu restes dans le périmètre de son groupe, tu respectes les règles absolues et tu suis le « Workflow d'une tâche ». Si ta tâche dépend d'un autre groupe ou d'une décision ouverte, tu t'arrêtes et tu le signales.
 
----
-name: ci-cd-et-automatisation
-description: Pipeline CI/CD GitHub Actions pour valider la qualité du code.
----
+## Le jeu en bref
 
-## Compétence : ci-cd-et-automatisation
+Simulateur de casino **100 % fictif**. Le joueur reprend un vieux casino fermé depuis des années, démarre avec un capital de jetons fictifs et cherche à le faire grossir. Aucun vrai argent, nulle part.
 
-- **Quality Gate obligatoire :**
-  1. `npm ci`
-  2. `npm run lint`
-  3. `npm test` (runner natif `node --test`)
-  4. `npm run build`
-- **Secrets :** Aucun secret en clair dans le code ou les workflows. Utiliser `${{ secrets.NOM_DU_SECRET }}`.
-- **Gestion des pannes :** En cas d'échec CI, analyser les logs, reproduire localement, corriger et commiter.
+### Invariants métier (ne jamais casser)
 
----
-name: dev-par-les-tests
-description: Méthodologie TDD pour la logique métier et les correctifs.
----
+- **Solde et progression sont indépendants.**
+  - Le solde de jetons monte et descend selon les gains et les pertes.
+  - L'XP et le niveau **ne redescendent jamais**. L'XP se gagne à chaque partie jouée, gagnée ou perdue. Elle sert uniquement à débloquer des jeux et des salles.
+- Un joueur ruiné garde son niveau et ses jeux débloqués.
+- Le **meilleur solde atteint** est le score du classement. Il ne redescend jamais, même si le solde actuel baisse.
+- Un joueur n'est **jamais bloqué** à 0 jeton : un mécanisme de relance existe (voir « Décisions ouvertes »).
+- Pas de multijoueur en temps réel : le poker et le bingo se jouent contre des bots.
 
-## Compétence : dev-par-les-tests
+### Glossaire
 
-- **Cycle TDD :** Écrire le test d'abord (`RED`), implémenter le code minimal (`GREEN`), puis nettoyer (`REFACTOR`).
-- **Correction de bugs :** Obligation d'écrire un test unitaire reproduisant le bug avant de toucher au code source.
-- **Runner natif Node.js :** Utiliser exclusivement `describe` et `it` depuis `node:test`, et `assert` depuis `node:assert/strict`. Ne pas injecter Jest ou Vitest.
+| Terme | Sens |
+|---|---|
+| Jetons | Monnaie fictive du jeu |
+| Solde | Jetons possédés actuellement |
+| Capital de départ | Solde d'un nouveau joueur (défaut : 1000, configurable par l'admin) |
+| Meilleur solde | Solde le plus haut jamais atteint ; c'est le score du classement |
+| XP / niveau | Progression permanente, débloque jeux et salles |
+| Salle | Zone du casino débloquable par niveau |
+| Faillite | Solde tombé à 0 |
+| Badge | Trophée affiché au classement (ex. « 1000 parties jouées », « A survécu à la faillite 5 fois ») |
 
----
-name: jsdoc-et-documentation
-description: Standardise la documentation du code via JSDoc pour garantir la lisibilité entre les 25 développeurs.
----
+### Jeux (niveaux par défaut, configurables par l'admin)
 
-## Compétence : jsdoc-et-documentation
+| Jeu | Type | Débloqué |
+|---|---|---|
+| Machine à sous | Hasard | Départ |
+| Dés / Craps | Hasard | Départ |
+| Cartes à gratter | Hasard | Niveau 2 |
+| Blackjack | Cartes | Niveau 3 |
+| Roue de la fortune | Hasard | Niveau 4 |
+| Roulette | Hasard | Niveau 5 |
+| Baccarat | Hasard | Niveau 6 |
+| Plinko | Hasard | Niveau 7 |
+| Vidéo poker | Cartes | Niveau 8 |
+| Memory casino | Adresse | Niveau 8 |
+| Quiz « risque ton argent » | Adresse | Niveau 9 |
+| Bingo (contre bots) | Hasard | Niveau 10 |
+| Poker contre l'IA (bots) | Cartes | Niveau 12 |
 
-- **Documentation obligatoire :** Toute fonction ou logique métier dans `src/core/` et `src/services/` doit posséder un bloc JSDoc.
-- **Format requis :** Explication brève en français de l'utilité, balises `@param` avec les types, et balise `@returns`.
-- **Pertinence :** Les commentaires expliquent le "pourquoi" et non le "comment". Ne pas documenter les hooks React standards ou le code évident.
+### Rôles (cumulatifs)
+
+- **Joueur** : jouer aux jeux débloqués, voir ses stats, consulter le classement, dépenser ses jetons en boutique.
+- **Modérateur** : joueur + gérer les signalements, voir les comptes suspects, désactiver un compte pour triche.
+- **Admin** : modérateur + configurer les jeux (probabilités de gain, seuils de déblocage), ajuster le capital de départ, lancer des évènements bonus, consulter le dashboard de stats globales.
+
+### Classement
+
+Affiche pour chaque joueur : pseudo, meilleur solde atteint, niveau, badges.
+
+## Stack et commandes
+
+JavaScript : React + Vite (front), Node (back). CI : `ci.yml` dans `.github/workflows/`.
+
+<!-- G5 : vérifier ces commandes dans package.json -->
+- Installer : `npm install`
+- Lancer : `npm run dev`
+- Tests : `npm test`
+- Lint : `npm run lint`
+
+## Groupes et périmètres
+
+Chaque tâche appartient à **un seul** groupe. Un agent ne modifie que les fichiers du périmètre de son groupe.
+
+| Groupe | Périmètre | Préfixe des agents |
+|---|---|---|
+| G1 — Core Engine | Moteur, règles communes, gestion de l'état, RNG, calculs, IA des bots, XP, solde, sauvegarde, **API publique stable**. Aucune UI. | `g1-` |
+| G2 — Jeux | Implémentation de chaque jeu et de ses règles propres, orchestration des parties, appels au Core. Travaille sur le **mock du Core** tant que l'API n'est pas intégrée. | `g2-` |
+| G3 — Rendu visuel | Affichage en jeu, animations, effets visuels, composants graphiques, UI de jeu. Adapte le rendu aux résultats fournis par le Core. Travaille sur des **données mock**. | `g3-` |
+| G4 — Application | Architecture globale, navigation et routing, composants communs, lobby, profil, progression, classement, boutique, statistiques, administration (si confirmée), intégration de l'API publique du Core. | `g4-` |
+| G5 — Qualité et intégration | Organisation, Git et branches, intégration, CI/CD, tests unitaires et d'intégration, vérification des contrats, tickets, releases, conflits, qualité du code. | `g5-` |
+
+Frontières :
+- G2 décide **ce qui se passe** dans un jeu ; G3 décide **comment ça s'affiche**.
+- G3 gère les écrans **en jeu** ; G4 gère tout ce qui est **hors jeu** (le lobby est entièrement G4).
+- G2, G3 et G4 n'utilisent le Core que via son **API publique**, jamais via ses fichiers internes.
+
+<!-- G5 : ajouter ici le dossier de chaque groupe quand l'arborescence est fixée -->
+
+### Référents humains
+
+- G1 : Ahmed B, Reda N, Ania A, Amina B, Olti M
+- G2 : Clémentine B, Donia A, Raphaël C, Camille S, Cassius F, Camil H
+- G3 : Ali B, Anthony A, Samy H, Sosthene M, Enzo N, Anthony S
+- G4 : Stacy T, Floriant M, Kardiatou B, Rayid A, Lona A
+- G5 (supervise l'agent général) : Nina V, Gabriel E, Arthur F, Anthony M, Noah C
+
+## Règles absolues
+
+1. **Aucun vrai argent** : pas de paiement, pas d'achat réel, pas de conversion entre jetons et argent.
+2. **Pas de `Math.random()`** : tout tirage aléatoire passe par le RNG du Core (G1).
+3. **L'UI ne décide jamais d'un résultat.** Le résultat d'une partie est calculé par la logique (G1/G2) ; G3 et G4 l'affichent.
+4. **Aucune valeur de réglage en dur** : capital de départ, seuils de déblocage, probabilités de gain et gains d'XP se lisent dans la configuration.
+5. **Les permissions se vérifient côté serveur/Core**, pas seulement en masquant un bouton.
+6. **Contrats** (`docs/contracts/`) : jamais modifiés par un agent. Si un changement est nécessaire, ouvrir une issue pour G5 et G1.
+7. **Branches** : toute création de branche passe par `branch-creator`. Jamais de push direct sur `main`.
+8. **Aucun agent ne merge** : tu ouvres des PR, un humain relit et merge.
+9. **Portée minimale** : une tâche = une modification ciblée. Pas de refonte ni de « nettoyage » non demandé.
+10. **En cas de doute, tu t'arrêtes et tu demandes.** Tu n'inventes jamais une règle de jeu ni une décision ouverte.
+
+## Agents personnels
+
+### Contenu obligatoire d'un agent personnel
+
+<!-- G5 : préciser le dossier où sont rangés les agents -->
+- **Nom** : `<préfixe du groupe><prénom>-<tâche>` (ex. `g2-camille-blackjack`).
+- **Description** : la tâche en une phrase et le numéro de ticket.
+- **Première instruction** : lire `AGENTS.md` avant toute action.
+- **Périmètre** : dossiers autorisés et dossiers interdits.
+- **Skills** utilisées.
+- **Compte rendu attendu** à la fin de chaque tâche : fichiers modifiés, tests lancés et résultat, points bloquants.
+
+Chaque agent personnel appartient à la personne qui l'a créé.
+
+### Workflow d'une tâche
+
+1. **Brancher** : créer la branche via `branch-creator`.
+2. **Travailler** uniquement dans le périmètre du groupe.
+3. **Vérifier** : tests et lint au vert, contrats respectés, invariants métier intacts.
+4. **Livrer** : PR liée au ticket, avec le compte rendu. Relecture humaine obligatoire.
+
+### Dépendances entre groupes
+
+Les agents ne se coordonnent pas directement entre eux. Si une tâche a besoin de quelque chose d'un autre groupe (fonction de l'API du Core, composant, donnée) :
+
+1. Ne pas le coder à la place de l'autre groupe.
+2. Ouvrir une issue avec le label du groupe concerné (`groupe: G1` à `groupe: G5`), le besoin précis et le ticket lié.
+3. Continuer avec un mock si c'est possible ; sinon, s'arrêter et le signaler à G5.
+
+## Définition de « terminé »
+
+- Tests écrits ou mis à jour, et au vert.
+- Lint et CI au vert.
+- Contrats respectés.
+- PR ouverte, liée au ticket, en attente de relecture humaine.
+
+## Skills
+
+Les skills sont dans le dossier `skills/`. N'ouvre une skill **que** si la tâche en a besoin.
+
+| Skill | Quand l'utiliser |
+|---|---|
+| `branch-creator` | Créer n'importe quelle branche |
+<!-- G5 : ajouter une ligne à chaque skill mergée -->
+
+Si une skill nécessaire n'existe pas, ne l'invente pas en cours de tâche : signale le manque dans la PR.
+
+### Proposer une nouvelle skill
+
+- Critère : la même instruction a dû être répétée sur 2 ou 3 tâches.
+- La skill est ajoutée dans `skills/` via une PR vers la branche `skills`, jamais dans une branche de fonctionnalité.
+- Aucun agent ne merge une skill : G5 relit, merge et met à jour le tableau ci-dessus.
+
+## Décisions ouvertes (ne pas trancher seul)
+
+- Relance à 0 jeton : bonus quotidien **ou** prêt avec intérêt fictif ?
+- Le solde peut-il passer sous 0 ?
+- XP gagnée par partie (identique pour tous les jeux ?) et courbe de niveaux.
+- Contenu de la boutique.
+- Liste des salles et niveaux de déblocage.
+- Contenu des évènements bonus.
+- G4-10 Administration : confirmée ou non.
+
+Si une tâche dépend d'un de ces points : stop, question à G5. Une fois le point tranché, G5 le déplace dans la section concernée.
