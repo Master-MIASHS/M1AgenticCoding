@@ -9,8 +9,8 @@ description: Gère le cycle de vie Git, le nommage des branches, l'hygiène pré
 
 ## Compétence : flux-git-et-versionnement
 
-- **Interdiction formelle de pousser directement sur main.** Tout passe par une branche dédiée et une Pull Request.
-- **Branches éphémères :** durée de vie de 1 à 3 jours max, basées sur main à jour.
+- **Interdiction formelle de pousser directement sur main.** Tout passe par une branche dédiée poussée vers l'origine, puis une Pull Request vers `develop`.
+- **Branches éphémères :** durée de vie de 1 à 3 jours max, basées sur `develop` à jour.
 - **Commits atomiques :** 1 commit = 1 seule action logique.
 - **Nommage des branches :** `feat/<nom>`, `fix/<nom>`, `chore/<nom>`, `docs/<nom>`.
 - **Format strict des commits :**
