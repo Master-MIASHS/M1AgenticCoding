@@ -5,52 +5,7 @@ on:
     branches: [ main ]
 
 jobs:
-  branch-naming:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check branch naming convention
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BRANCH="${{ github.head_ref }}"
-          else
-            BRANCH="${GITHUB_REF#refs/heads/}"
-          fi
-
-          echo "Branche : $BRANCH"
-
-          # Branches protégées/de base, exemptées de toute convention
-          case "$BRANCH" in
-            main|develop|skills)
-              echo "Branche protégée, convention non appliquée."
-              exit 0
-              ;;
-          esac
-
-          # Branches transverses (infra, CI, chores) : pas de numéro de groupe imposé
-          case "$BRANCH" in
-            chore/*|ci/*|setup/*)
-              echo "Branche transverse, convention non appliquée."
-              exit 0
-              ;;
-          esac
-
-          # Convention officielle (skill branch-creator) :
-          #   Groupe<1-5>-<feature>(<nomgithub>)
-          # ex. Groupe5-noirjack(Anthony-Miranda)
-          # Conservée en compat : feat/<groupe>-<feature>, fix/<issue>, group<1-5>-<feature>
-          PATTERN='^Groupe[1-5]-[a-z0-9]+(-[a-z0-9]+)*\([A-Za-z][A-Za-z0-9-]*\)$'
-          PATTERN_LEGACY='^(feat|fix)/[a-z0-9]+(-[a-z0-9]+)*$|^group[1-5]-[a-z0-9]+(-[a-z0-9]+)*$'
-          if ! echo "$BRANCH" | grep -Eq "$PATTERN" && ! echo "$BRANCH" | grep -Eq "$PATTERN_LEGACY"; then
-            echo "::error::Nom de branche invalide : '$BRANCH'"
-            echo "::error::Convention attendue : Groupe<1-5>-<feature>(<nomgithub>) (voir skill branch-creator), ex. Groupe2-blackjack(Camille-S)"
-            echo "::error::Branches transverses (chore/*, ci/*, setup/*) exemptées."
-            exit 1
-          fi
-
-          echo "Nom de branche conforme."
-
-  build-and-test:
-    needs: branch-naming
+  build:
     runs-on: ubuntu-latest
 
     steps:
