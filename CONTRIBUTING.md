@@ -29,15 +29,18 @@ bruts de `roll()`.
 
 ## Stratégie de branches
 
-- `main` : branche stable, ne reçoit que des merges via Pull Request.
+- `main` : branche stable, ne reçoit que des merges depuis `develop`
+  via Pull Request.
+- `develop` : branche d'intégration, reçoit les merges des branches de
+  feature via Pull Request. Jamais de push direct.
 - `setup/*` : branches d'infrastructure / architecture
   (ex. `setup/architecture-initiale`).
-- `feat/<groupe>-<feature>` : branches de fonction, créées depuis `main`.
-- `fix/<issue>` : branches de correction.
+- `feat/<groupe>-<feature>` : branches de fonction, créées depuis `develop`.
+- `fix/<issue>` : branches de correction, créées depuis `develop`.
 
 ## Pull Requests
 
-- Chaque PR cible `main` et décrit : ce qui change, quel groupe / dossier,
+- Chaque PR cible `develop` et décrit : ce qui change, quel groupe / dossier,
   et quel contrat est impacté (le cas échéant).
 - Une PR ne doit **pas** modifier un dossier appartenant à un autre groupe
   (sauf via un contrat convenu).
@@ -54,7 +57,7 @@ bruts de `roll()`.
 
 ## Gestion des conflits
 
-- Rebase (ou merge) la branche sur le `main` à jour avant de demander une PR.
+- Rebase (ou merge) la branche sur le `develop` à jour avant de demander une PR.
 - Conflit dans son propre dossier : le résoudre soi-même.
 - Conflit sur un fichier partagé (ex. `coreService.js`, `core/core.js`) :
   coordonner avec le groupe responsable. Ces fichiers sont des fichiers de
