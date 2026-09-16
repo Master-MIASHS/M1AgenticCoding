@@ -70,3 +70,38 @@ export function tirageEntier(min, max) {
   }
   return min + Math.floor(hasardActuel() * (max - min + 1));
 }
+
+/**
+ * Tirage aléatoire pondéré parmi une liste d'éléments.
+ *
+ * IMPORTANT : ceci tire seulement un élément selon les poids donnés. Aucune
+ * signification de gain/perte ; c'est le jeu qui décide ce que représente
+ * l'élément tiré.
+ *
+ * @param {Array<*>} elements - éléments candidats.
+ * @param {number[]} poids - tableau parallèle de poids positifs (même
+ *   longueur que elements). Les poids n'ont pas besoin de sommer à 1.
+ * @returns {*} un élément de `elements`.
+ */
+export function tirageAvecPoids(elements, poids) {
+  if (!Array.isArray(elements) || !Array.isArray(poids) || elements.length === 0) {
+    throw new Error('tirageAvecPoids : elements et poids doivent être des tableaux non vides');
+  }
+  if (elements.length !== poids.length) {
+    throw new Error('tirageAvecPoids : elements et poids doivent avoir la même longueur');
+  }
+  const total = poids.reduce((somme, p) => somme + p, 0);
+  if (!(total > 0) || poids.some((p) => p < 0)) {
+    throw new Error('tirageAvecPoids : les poids doivent être positifs ou nuls et leur somme > 0');
+  }
+
+  let r = hasardActuel() * total;
+  for (let i = 0; i < elements.length; i += 1) {
+    r -= poids[i];
+    if (r <= 0) {
+      return elements[i];
+    }
+  }
+  // Filet de sécurité pour les erreurs d'arrondi flottant.
+  return elements[elements.length - 1];
+}
