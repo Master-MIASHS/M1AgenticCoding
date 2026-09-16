@@ -53,3 +53,20 @@ export function roll(gameId, params = {}) {
     nonce: Math.floor(hasardActuel() * 1000000),
   };
 }
+
+/**
+ * Tirage entier aléatoire uniforme, bornes incluses.
+ *
+ * IMPORTANT : tirage brut uniquement, aucune signification de gain/perte.
+ * Ce sont les jeux qui interprètent la valeur retournée.
+ *
+ * @param {number} min - borne inférieure incluse (entier).
+ * @param {number} max - borne supérieure incluse (entier), doit être >= min.
+ * @returns {number} un entier compris entre min et max (inclus).
+ */
+export function tirageEntier(min, max) {
+  if (!Number.isInteger(min) || !Number.isInteger(max) || max < min) {
+    throw new Error(`tirageEntier : bornes invalides [${min}, ${max}]`);
+  }
+  return min + Math.floor(hasardActuel() * (max - min + 1));
+}
