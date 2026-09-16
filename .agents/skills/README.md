@@ -9,6 +9,11 @@ Skills disponibles pour les agents du projet Casino Fantôme. Chaque skill vit d
 | `flaky-test-detector` | Isole les tests instables et propose correctif ou quarantaine tracée |
 | `pr-checklist` | Vérifie la "Définition de terminé" avant l'ouverture d'une PR |
 | `test-coverage-report` | État des lieux de la couverture de tests par groupe |
+| `unit-test-scaffolder` | Génère le squelette d'un test `node:test` pour un fichier source non testé |
+| `core-invariant-tests` | Vérifie qu'il existe un test dédié pour chaque invariant métier du jeu |
+| `mock-coreservice-validator` | Vérifie que les mocks de `coreService.js` dans les tests collent à la vraie API |
+| `test-naming-convention` | Vérifie l'emplacement/nommage des fichiers de test (miroir de `src/` sous `tests/unit/`) |
+| `assertion-strength-checker` | Détecte les tests creux (assertions toujours vraies, aucune assertion) |
 
 | `branch-creator` | Crée la branche `Groupe<X>-<feature>(<nomgithub>)` obligatoire avant toute feature (source de vérité pour la convention de nommage) |
 | `expert-javascript`, `expert-react`, `expert-securite-frontend`, `expert-tests-node`, `expert-vite` | Expertise technique par domaine |
