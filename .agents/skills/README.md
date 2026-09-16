@@ -10,4 +10,7 @@ Skills disponibles pour les agents du projet Casino Fantôme. Chaque skill vit d
 | `pr-checklist` | Vérifie la "Définition de terminé" avant l'ouverture d'une PR |
 | `test-coverage-report` | État des lieux de la couverture de tests par groupe |
 
-Voir aussi les autres skills déjà présentes dans ce dossier (`branch-creator`, `expert-*`, `skills-structure-validator`, `audit-activite-projet`).
+| `branch-creator` | Crée la branche `Groupe<X>-<feature>(<nomgithub>)` obligatoire avant toute feature (source de vérité pour la convention de nommage) |
+| `expert-javascript`, `expert-react`, `expert-securite-frontend`, `expert-tests-node`, `expert-vite` | Expertise technique par domaine |
+| `skills-structure-validator` | Linter de conformité des dossiers de skills (attention : décrit encore `skills/` comme racine, à mettre à jour suite à la migration vers `.agents/skills/`) |
+| `audit-activite-projet` | Scripts d'agrégation de l'activité GitHub du projet (commits, PR, issues) |
