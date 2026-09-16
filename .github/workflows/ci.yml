@@ -5,7 +5,39 @@ on:
   pull_request:
 
 jobs:
+  branch-naming:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch naming convention
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BRANCH="${{ github.head_ref }}"
+          else
+            BRANCH="${GITHUB_REF#refs/heads/}"
+          fi
+
+          echo "Branche : $BRANCH"
+
+          # Branches protégées/de base, exemptées de la convention gX-feature
+          case "$BRANCH" in
+            main|develop|skills)
+              echo "Branche protégée, convention non appliquée."
+              exit 0
+              ;;
+          esac
+
+          PATTERN='^g[1-5]-[a-z0-9]+(-[a-z0-9]+)*$'
+          if ! echo "$BRANCH" | grep -Eq "$PATTERN"; then
+            echo "::error::Nom de branche invalide : '$BRANCH'"
+            echo "::error::Convention attendue : g<1-5>-<feature-travaillee> (kebab-case, minuscules), ex. g2-blackjack"
+            echo "Voir skills/naming-convention-linter/SKILL.md pour corriger le nom de la branche."
+            exit 1
+          fi
+
+          echo "Nom de branche conforme."
+
   build-and-test:
+    needs: branch-naming
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
