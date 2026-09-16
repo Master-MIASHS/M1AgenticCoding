@@ -10,7 +10,29 @@
 //  * math.js is the only randomness helper used and stays encapsulated here.
 // ---------------------------------------------------------------------------
 
-import { random } from 'mathjs';
+import { random as hasardParDefaut, create, randomDependencies } from 'mathjs';
+
+// Source de hasard interne, utilisée par toutes les fonctions du fichier.
+// Remplaçable via semer() pour obtenir des séquences reproductibles dans les
+// tests, sans jamais passer par Math.random().
+let hasardActuel = hasardParDefaut;
+
+/**
+ * Rend le générateur déterministe (ou lui redonne un vrai hasard).
+ *
+ * Réservé aux tests / vérifications de reproductibilité : le code de
+ * production ne doit jamais s'appuyer sur une graine fixe.
+ *
+ * @param {string|number|null} valeur - la graine, ou null/undefined pour
+ *   revenir au hasard non déterministe par défaut.
+ */
+export function semer(valeur) {
+  if (valeur === null || valeur === undefined) {
+    hasardActuel = hasardParDefaut;
+    return;
+  }
+  hasardActuel = create(randomDependencies, { randomSeed: String(valeur) }).random;
+}
 
 /**
  * Produces a raw random result for a given game.
@@ -27,7 +49,7 @@ import { random } from 'mathjs';
 export function roll(gameId, params = {}) {
   return {
     gameId,
-    value: random(),
-    nonce: Math.floor(random() * 1000000),
+    value: hasardActuel(),
+    nonce: Math.floor(hasardActuel() * 1000000),
   };
 }
