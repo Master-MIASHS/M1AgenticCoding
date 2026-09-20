@@ -1,0 +1,252 @@
+/* Admin screen — styles scoped to .page-admin / .admin__*.
+   Uses the shared design tokens from src/styles/variables.css. */
+
+.page-admin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 60rem;
+}
+
+.admin__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.admin__title {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.admin__refresh {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.admin__refresh:hover {
+  border-color: var(--color-primary);
+}
+
+/* --------------------------------------------------------------------- */
+/* Sections                                                               */
+/* --------------------------------------------------------------------- */
+
+.admin__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin__section-title {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.admin__section-hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+/* --------------------------------------------------------------------- */
+/* Global stats                                                           */
+/* --------------------------------------------------------------------- */
+
+.admin__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.admin__stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin__stat-label {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin__stat-value {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+/* --------------------------------------------------------------------- */
+/* Game configuration                                                     */
+/* --------------------------------------------------------------------- */
+
+.admin__games {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin__game {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin__game-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.admin__game-name {
+  font-weight: 600;
+}
+
+.admin__game-id {
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.admin__game-level {
+  margin-left: auto;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 209, 102, 0.12);
+  color: var(--color-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.admin__game-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.admin__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.admin__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.admin__field-label {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.admin__textarea {
+  min-height: 4.5rem;
+  padding: var(--space-2);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.8125rem;
+  resize: vertical;
+}
+
+.admin__textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.admin__submit {
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.admin__submit:hover {
+  filter: brightness(1.1);
+}
+
+.admin__feedback {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.admin__feedback--success {
+  color: var(--color-success);
+}
+
+.admin__feedback--error {
+  color: var(--color-danger);
+}
+
+/* --------------------------------------------------------------------- */
+/* Empty / error states                                                   */
+/* --------------------------------------------------------------------- */
+
+.admin__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.admin__error {
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  color: var(--color-danger);
+}
+
+.admin__error p {
+  margin: 0 0 var(--space-2);
+}
+
+.admin__error-detail {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-3);
+}
+
+.admin__retry {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.admin__retry:hover {
+  filter: brightness(1.1);
+}
