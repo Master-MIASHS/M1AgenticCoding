@@ -24,6 +24,7 @@ Skills disponibles pour les agents du projet Casino Fantôme. Chaque skill vit d
 | [ci-cd-et-automatisation](ci-cd-et-automatisation/SKILL.md) | Pipeline CI/CD GitHub Actions et Quality Gate. |
 | [dev-par-les-tests](dev-par-les-tests/SKILL.md) | Méthodologie TDD, runner natif `node --test`. |
 | [jsdoc-et-documentation](jsdoc-et-documentation/SKILL.md) | Standard de documentation JSDoc. |
+| [issue-watcher](issue-watcher/SKILL.md) | Valide qu'une issue labellisée `To code` est prête à être codée avant la création de branche (ticket lié, label de groupe, absence de doute). |
 
 ## Skills adoptées depuis GitHub
 
