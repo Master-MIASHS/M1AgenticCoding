@@ -95,15 +95,23 @@ export function tirageAvecPoids(elements, poids) {
     throw new Error('tirageAvecPoids : les poids doivent être positifs ou nuls et leur somme > 0');
   }
 
+  // r est dans [0, total) : la comparaison stricte r < poids[i] et le saut des
+  // poids nuls garantissent qu'un élément de poids 0 n'est jamais tiré, même
+  // si le hasard renvoie exactement 0.
   let r = hasardActuel() * total;
+  let dernierTirable = -1;
   for (let i = 0; i < elements.length; i += 1) {
-    r -= poids[i];
-    if (r <= 0) {
-      return elements[i];
+    if (poids[i] > 0) {
+      dernierTirable = i;
+      if (r < poids[i]) {
+        return elements[i];
+      }
+      r -= poids[i];
     }
   }
-  // Filet de sécurité pour les erreurs d'arrondi flottant.
-  return elements[elements.length - 1];
+  // Filet de sécurité pour les erreurs d'arrondi flottant : dernier élément
+  // de poids strictement positif (jamais un élément de poids nul).
+  return elements[dernierTirable];
 }
 
 /**

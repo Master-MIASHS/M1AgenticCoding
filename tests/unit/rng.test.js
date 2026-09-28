@@ -20,7 +20,7 @@ test('semer() rend roll() reproductible', () => {
   );
 });
 
-test('semer(null) redonne un hasard non deterministe', () => {
+test('semer() avec la meme graine apres semer(null) redonne la meme sequence', () => {
   semer('meme-graine');
   const premier = roll('x').value;
   semer(null);
@@ -52,6 +52,16 @@ test('tirageAvecPoids() ne renvoie que des elements de la liste donnee', () => {
   const poids = [1, 0, 9];
   for (let i = 0; i < 100; i += 1) {
     assert.ok(elements.includes(tirageAvecPoids(elements, poids)));
+  }
+  semer(null);
+});
+
+test('tirageAvecPoids() ne renvoie jamais un element de poids nul', () => {
+  // Poids nuls en premiere ET en derniere position : ce sont les deux cas
+  // limites (hasard exactement egal a 0, et filet de securite des arrondis).
+  semer('graine-poids-nul');
+  for (let i = 0; i < 500; i += 1) {
+    assert.equal(tirageAvecPoids(['a', 'b', 'c'], [0, 1, 0]), 'b');
   }
   semer(null);
 });
