@@ -1,0 +1,232 @@
+/* Progression page — styles scoped to .page-progression.
+   Uses the shared design tokens from src/styles/variables.css. */
+
+.page-progression {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 60rem;
+}
+
+.progression__title {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+/* --------------------------------------------------------------------- */
+/* Header: detailed level + XP breakdown + XP bar                         */
+/* --------------------------------------------------------------------- */
+
+.progression__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.progression__level {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.progression__level-label {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.progression__level-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.progression__xp-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+}
+
+.progression__xp-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.progression__xp-detail dt {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.progression__xp-detail dd {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+/* XP bar (placeholder until the shared XPBar component ships — G4-03) */
+
+.progression__xp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.progression__xp-bar {
+  width: 100%;
+  height: 0.75rem;
+  overflow: hidden;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.progression__xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.progression__xp-label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.progression__xp-value {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------- */
+/* Games sections                                                         */
+/* --------------------------------------------------------------------- */
+
+.progression__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.progression__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.progression__section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 var(--space-1);
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.progression__games {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progression__game {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.progression__game--locked {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+.progression__game-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.progression__game-name {
+  font-weight: 600;
+}
+
+.progression__game-category {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.progression__game-level {
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 92, 122, 0.12);
+  color: var(--color-danger);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------- */
+/* Empty / error states                                                   */
+/* --------------------------------------------------------------------- */
+
+.progression__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.progression__error {
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  color: var(--color-danger);
+}
+
+.progression__error p {
+  margin: 0 0 var(--space-2);
+}
+
+.progression__error-detail {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-3);
+}
+
+.progression__retry {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-primary);
+  color: var(--color-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.progression__retry:hover {
+  filter: brightness(1.1);
+}
