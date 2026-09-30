@@ -37,14 +37,15 @@ const PAYTABLE = {
 };
 
 /**
- * Builds a config.
+ * Builds a config. The wheel layout is NOT part of it: the rules never need
+ * to know it, and requiring it would force an identity rule against the Core's
+ * `raw`.
  *
- * @param {WheelSegment[]} [segments]
  * @param {Record<string, object>} [bets]
  * @returns {object}
  */
-function makeConfig(segments = SEGMENTS, bets = PAYTABLE) {
-  return { segments, bets };
+function makeConfig(bets = PAYTABLE) {
+  return { bets };
 }
 
 /**
@@ -75,7 +76,7 @@ describe('wheel resolve - happy path', () => {
 
   it('returns a push when a matched bet returns exactly the stake', () => {
     const paytable = { even: { match: {}, multiplier: 1 } };
-    const result = resolve(SEGMENTS[0], { bets: makeBets('even'), config: makeConfig(SEGMENTS, paytable) });
+    const result = resolve(SEGMENTS[0], { bets: makeBets('even'), config: makeConfig(paytable) });
 
     assert.equal(result.outcome, 'push');
     assert.equal(result.multiplier, 1);
@@ -232,7 +233,7 @@ describe('wheel resolve - invalid input', () => {
   it('rejects a paytable entry without a match object', () => {
     const paytable = { broken: { multiplier: 2 } };
     assert.throws(
-      () => resolve(SEGMENTS[0], { bets: makeBets('broken'), config: makeConfig(SEGMENTS, paytable) }),
+      () => resolve(SEGMENTS[0], { bets: makeBets('broken'), config: makeConfig(paytable) }),
       /has no 'match' object/
     );
   });
@@ -240,12 +241,19 @@ describe('wheel resolve - invalid input', () => {
   it('rejects a paytable entry without a numeric multiplier', () => {
     const paytable = { broken: { match: {} } };
     assert.throws(
-      () => resolve(SEGMENTS[0], { bets: makeBets('broken'), config: makeConfig(SEGMENTS, paytable) }),
+      () => resolve(SEGMENTS[0], { bets: makeBets('broken'), config: makeConfig(paytable) }),
       /has no numeric 'multiplier'/
     );
   });
 
-  it('refuses to settle without a layout rather than inventing one', () => {
-    assert.throws(() => resolve(SEGMENTS[0], { bets: makeBets() }), /config\.segments is required/);
+  it('refuses to settle without a paytable rather than inventing one', () => {
+    assert.throws(() => resolve(SEGMENTS[0], { bets: makeBets() }), /config is required/);
+  });
+
+  it('refuses to settle without a paytable even if a layout is supplied', () => {
+    assert.throws(
+      () => resolve(SEGMENTS[0], { bets: makeBets(), config: { segments: SEGMENTS } }),
+      /config\.bets/
+    );
   });
 });

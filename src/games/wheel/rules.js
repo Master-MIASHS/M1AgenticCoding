@@ -7,8 +7,9 @@
 // ABSOLUTE RULES honored by this module:
 //  * Zero imports: no Core, no coreService, no Math.random().
 //  * Pure function: `raw` and every argument are never mutated.
-//  * No tuning value is hardcoded: segments and paytable come from `config`,
-//    which the admin fills through the Core (AGENTS.md rule 4).
+//  * No tuning value is hardcoded: the paytable comes from `config`, which the
+//    admin fills through the Core (AGENTS.md rule 4). The wheel layout stays
+//    with the Core, so the rules never carry a second copy of it.
 //
 // DRAW SHAPE - follows the G1 proposal in issue #27: `raw` is the segment
 // element itself, because `tirageAvecPoids(elements, poids)` returns the
@@ -54,12 +55,19 @@
 /**
  * Runtime configuration for the Wheel of Fortune.
  *
+ * Only the paytable is required. The wheel layout itself (how many segments,
+ * their colours, labels and weights) belongs to the Core and the admin
+ * configuration, NOT to the rules: the rules never need to know the layout,
+ * they only need to know which segment field a bet type matches and what it
+ * returns. Keeping the layout out of here also avoids forcing an identity rule
+ * between the Core's `raw` and a second copy of the layout, which would break
+ * as soon as the two drift apart.
+ *
  * CONTRACT NOTE - OPEN (contract G2 v0.3, section 6): how the rules receive
  * the admin configuration is not settled yet. The shape below is a PROPOSITION
  * and may change once G1 exposes `getGameConfig` through `coreService`.
  *
  * @typedef {object} WheelConfig
- * @property {WheelSegment[]} segments - every segment of the wheel.
  * @property {Record<string, WheelBetRule>} bets - paytable, keyed by bet type.
  */
 export const WHEEL_BET_TYPE_MATCH = 'match';
@@ -131,7 +139,7 @@ function outcomeFor(multiplier) {
  * @param {WheelSegment} raw - the segment drawn by the Core.
  * @param {object} [options]
  * @param {Bet[]} [options.bets] - always an array, even for a single bet.
- * @param {WheelConfig} [options.config] - must provide `segments` and `bets`.
+ * @param {WheelConfig} [options.config] - must provide `bets`, the paytable.
  * @returns {{ outcome: 'win' | 'loss' | 'push', multiplier: number, details: object }}
  * @throws {Error} when the draw, the bets or the config are unusable.
  */
@@ -150,10 +158,8 @@ export function resolve(raw, { bets, config } = {}) {
     throw new Error('wheel: every bet must look like { type: <string>, amount: <positive> }');
   }
 
-  if (typeof config !== 'object' || config === null || !Array.isArray(config.segments)) {
-    throw new Error(
-      'wheel: config.segments is required. The wheel layout is admin data and must never be hardcoded.'
-    );
+  if (typeof config !== 'object' || config === null) {
+    throw new Error('wheel: config is required. The paytable is admin data and must never be hardcoded.');
   }
   if (typeof config.bets !== 'object' || config.bets === null) {
     throw new Error('wheel: config.bets (the paytable) is required');
