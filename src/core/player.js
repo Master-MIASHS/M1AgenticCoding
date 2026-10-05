@@ -10,6 +10,11 @@
 //  * Conception détaillée : docs/design/nouveau-joueur.md
 // ---------------------------------------------------------------------------
 
+import { GAMES } from './config/games.config.js';
+
+// Un nouveau joueur commence toujours au niveau 1 (schéma de casino_state).
+const NIVEAU_DE_DEPART = 1;
+
 /**
  * Valide le pseudo d'un nouveau joueur.
  *
@@ -71,4 +76,29 @@ export function validerDateNaissance(dateNaissance, maintenant = new Date()) {
     throw new Error('validerDateNaissance : la date de naissance ne peut pas être dans le futur');
   }
   return dateNaissance;
+}
+
+/**
+ * Détermine les jeux accessibles à un nouveau joueur.
+ *
+ * Les jeux de départ sont déduits des niveaux de déblocage plutôt qu'écrits
+ * en dur : si l'admin modifie ces niveaux, les jeux de départ suivent.
+ *
+ * @param {Object<string, { id: string, unlockLevel: number }>} [jeux] - Jeux
+ *   indexés par identifiant (GAMES par défaut).
+ * @returns {string[]} Identifiants des jeux débloqués au niveau 1, dans
+ *   l'ordre de la liste fournie (nouveau tableau à chaque appel).
+ * @throws {Error} Si la liste des jeux est invalide.
+ */
+export function jeuxDeDepart(jeux = GAMES) {
+  if (jeux === null || typeof jeux !== 'object' || Array.isArray(jeux)) {
+    throw new Error('jeuxDeDepart : les jeux doivent être un objet indexé par identifiant');
+  }
+  const liste = Object.values(jeux);
+  for (const jeu of liste) {
+    if (!jeu || typeof jeu.id !== 'string' || !Number.isFinite(jeu.unlockLevel)) {
+      throw new Error('jeuxDeDepart : chaque jeu doit avoir un id et un unlockLevel');
+    }
+  }
+  return liste.filter((jeu) => jeu.unlockLevel <= NIVEAU_DE_DEPART).map((jeu) => jeu.id);
 }

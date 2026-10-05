@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { PLAYER_CONFIG } from '../../src/core/config/player.config.js';
-import { validerPseudo, validerDateNaissance } from '../../src/core/player.js';
+import { validerPseudo, validerDateNaissance, jeuxDeDepart } from '../../src/core/player.js';
 
 describe('player.config', () => {
   it('fournit un capital de départ de 1000 par défaut', () => {
@@ -64,5 +64,33 @@ describe('validerDateNaissance', () => {
 
   it('rejette une date dans le futur', () => {
     assert.throws(() => validerDateNaissance('2026-10-06', maintenant), /date/);
+  });
+});
+
+describe('jeuxDeDepart', () => {
+  it('renvoie les jeux débloqués au niveau 1, dans l\'ordre de GAMES', () => {
+    assert.deepStrictEqual(jeuxDeDepart(), ['slots', 'dice']);
+  });
+
+  it('suit une liste de jeux injectée (niveaux de déblocage réglables)', () => {
+    const jeux = {
+      a: { id: 'a', unlockLevel: 1 },
+      b: { id: 'b', unlockLevel: 2 },
+      c: { id: 'c', unlockLevel: 1 },
+    };
+    assert.deepStrictEqual(jeuxDeDepart(jeux), ['a', 'c']);
+  });
+
+  it('renvoie un nouveau tableau à chaque appel', () => {
+    const premier = jeuxDeDepart();
+    premier.push('modifie');
+    assert.deepStrictEqual(jeuxDeDepart(), ['slots', 'dice']);
+  });
+
+  it('rejette une liste de jeux invalide', () => {
+    const invalides = [null, [], 'slots', { a: { id: 'a' } }, { a: { unlockLevel: 1 } }];
+    for (const jeux of invalides) {
+      assert.throws(() => jeuxDeDepart(jeux), /jeux/);
+    }
   });
 });
