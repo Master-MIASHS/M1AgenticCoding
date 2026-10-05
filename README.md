@@ -166,6 +166,9 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | maximiliense | maximiliense | Servajean, Maximilien | teacher |
 
 ### Groupe 1 — Core Engine / Logiques / IA
+
+Le Groupe 1 développe le **Core Engine**, le moteur du casino, en JavaScript pur et sans aucune interface. Il gère l'état du joueur et sa persistance (`state.js`, clé `casino_state`), la seule source de hasard du projet (`rng.js`), l'économie et le solde (`economy.js` : mises, règlements, bonus, prêts), la progression (`progression.js` : XP qui ne redescend jamais, niveaux, jeux débloqués, historique, meilleur solde, classement), la configuration des jeux (`config/`), la sauvegarde avec contrôle d'intégrité (`storage.js`) et l'IA des bots (`ai/`). Il expose une **API publique stable** (`core.js`), accessible au reste de l'application uniquement via `coreService.js`. Le Core ne décide jamais du résultat d'un jeu : il fournit le hasard brut, puis applique les conséquences (solde, XP) du résultat calculé par le Groupe 2.
+
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | Itloow | Itloow, MJEKU OLTI | MJEKU, Olti | RNG et mélange (`rng.js` : tirages simples et pondérés, mélange, reproductibilité), contrat des cartes G1 ↔ G2 (#70) |
