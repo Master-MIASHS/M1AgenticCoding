@@ -1,0 +1,36 @@
+﻿name: Auto-Link Issues
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  link-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Lier l'issue a la PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [[ "$PR_TITLE" =~ #([0-9]+) ]]; then
+            ISSUE_NUM="${BASH_REMATCH[1]}"
+            if ! grep -iqE "(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved) #$ISSUE_NUM" <<< "$PR_BODY"; then
+              echo "Ajout du lien automatique vers l'issue #$ISSUE_NUM"
+              NEW_BODY=$(printf "%s\n\nCloses #%s" "$PR_BODY" "$ISSUE_NUM")
+              gh pr edit "$PR_NUMBER" --body "$NEW_BODY"
+            else
+              echo "Lien deja present."
+            fi
+          else
+            echo "Aucun numero d'issue dans le titre."
+          fi

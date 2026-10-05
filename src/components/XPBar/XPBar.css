@@ -1,0 +1,41 @@
+﻿.xp-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+  width: 100%;
+  min-width: 0;
+  color: var(--color-text, #eee);
+}
+
+.xp-bar__label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2, 0.5rem);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.xp-bar__track {
+  height: 0.75rem;
+  overflow: hidden;
+  background: var(--color-bg, #151522);
+  border: 1px solid var(--color-border, #444);
+  border-radius: 999px;
+}
+
+.xp-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary, #7c5cff);
+  transition: width 0.3s ease;
+}
+
+.xp-bar__status {
+  color: var(--color-text-muted, #aaa);
+  font-size: 0.875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-bar__fill { transition: none; }
+}
