@@ -28,12 +28,10 @@ Et **jamais** : `UI ──────────────► Core interne`.
 bruts de `roll()`.
 
 ## Stratégie de branches
-
-- `main` : branche stable, ne reçoit que des merges via Pull Request.
-- `setup/*` : branches d'infrastructure / architecture
-  (ex. `setup/architecture-initiale`).
-- `feat/<groupe>-<feature>` : branches de fonction, créées depuis `main`.
-- `fix/<issue>` : branches de correction.
+- **Création :** Le skill `branch-creator` génère la branche de travail basée sur la dernière version de `main`.
+- **Développement :** Travail restreint uniquement au dossier assigné à votre groupe.
+- **Pull Request :** Une PR est ouverte vers `main` pour chaque fonctionnalité terminée.
+- **Validation :** La CI doit être verte (tests et build validés) et la PR approuvée avant que le merge vers `main` ne soit autorisé.
 
 ## Pull Requests
 
@@ -52,13 +50,13 @@ bruts de `roll()`.
 - Si le contrat manque ou est insuffisant, **ne pas** importer des modules
   internes : ouvrir une discussion / issue pour faire évoluer le contrat.
 
+
+
 ## Gestion des conflits
 
-- Rebase (ou merge) la branche sur le `main` à jour avant de demander une PR.
+- **Règle d'or avant PR :** Mettez toujours à jour votre branche localement avec les dernières modifications de `main` (via rebase ou merge) avant d'ouvrir la Pull Request.
 - Conflit dans son propre dossier : le résoudre soi-même.
-- Conflit sur un fichier partagé (ex. `coreService.js`, `core/core.js`) :
-  coordonner avec le groupe responsable. Ces fichiers sont des fichiers de
-  **contrat** : toute modification y est soumise à validation.
+- Conflit sur un fichier partagé (ex. `coreService.js`, `core/core.js`) : coordonner avec le groupe responsable. Ces fichiers sont des **contrats** : toute modification y est soumise à validation.
 
 ## Règles minimales avant merge
 

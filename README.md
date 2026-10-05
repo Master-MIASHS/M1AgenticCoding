@@ -82,7 +82,7 @@ des valeurs cohérentes mais fictives :
 | Module | Fonctions publiques |
 | --- | --- |
 | `core/state.js` | `getState()` |
-| `core/rng.js` | `roll(gameId, params)` — **seule source de hasard** |
+| `core/rng.js` | **Seule source de hasard** : `roll(gameId, params)`, `tirageEntier(min, max)`, `tirageAvecPoids(elements, poids)`, `melanger(liste)`. `semer(graine)` est interne, réservé aux tests (séquences reproductibles). Mélange du paquet : `docs/contracts/cards-contract.md` |
 | `core/economy.js` | `play()`, `getBalance()`, `claimDailyBonus()`, `requestLoan()` |
 | `core/progression.js` | `addXP()`, `getLevel()`, `getUnlockedGames()`, `getLeaderboard()`, `getHistory()` |
 | `core/config/games.config.js` | 10 jeux + niveaux de déblocage, `setGameConfig()`, `getGlobalStats()` |
@@ -90,8 +90,8 @@ des valeurs cohérentes mais fictives :
 | `core/core.js` | **API publique** du Core (ré-exports) |
 
 **Règle absolue du RNG :** `rng.js` est la seule source de hasard. Aucun fichier
-de jeu n'utilise `Math.random()` directement. `roll()` ne produit que des
-résultats **bruts** : elle ne détermine jamais si le joueur gagne ou perd.
+de jeu n'utilise `Math.random()` directement. Ses fonctions ne produisent que
+des résultats **bruts** : elles ne déterminent jamais si le joueur gagne ou perd.
 
 ### Persistance locale
 
