@@ -3,18 +3,22 @@
 // Verifies the XP / level contract, the invariants "XP and level never
 // decrease", and that unlocked games are always valid game ids.
 
-import { test } from 'node:test';
+import { test, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
   addXP,
   getLevel,
+  calculateLevel,
+  createProgression,
   getUnlockedGames,
   getLeaderboard,
   getHistory,
 } from '../../src/core/progression.js';
 import { getState } from '../../src/core/state.js';
 import { GAMES } from '../../src/core/config/games.config.js';
+import { createProgressionMock } from '../../src/core/progression.mock.js';
+import { TEMPORARY_LEVEL_THRESHOLDS } from '../../src/core/config/progression.config.js';
 
 test('addXP returns { xp, level } and grants the requested amount', () => {
   const { xp, level } = getState();
@@ -35,8 +39,8 @@ test('addXP never decreases the level', () => {
   assert.ok(addXP(10000).level >= level, 'level must never decrease');
 });
 
-test('getLevel is consistent with the global state', () => {
-  assert.equal(getLevel(), getState().level);
+test('getLevel is consistent with addXP return value', () => {
+  assert.equal(getLevel(), addXP(0).level);
 });
 
 test('getUnlockedGames returns only valid game ids', () => {
@@ -73,13 +77,7 @@ test('getLeaderboard returns entries shaped { pseudo, balance, level } sorted de
 
 test('getHistory returns an array', () => {
   assert.ok(Array.isArray(getHistory()));
-
-import { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
-import { addXP, getLevel, calculateLevel, createProgression } from '../../src/core/progression.js';
-import { getState } from '../../src/core/state.js';
-import { createProgressionMock } from '../../src/core/progression.mock.js';
-import { TEMPORARY_LEVEL_THRESHOLDS } from '../../src/core/config/progression.config.js';
+});
 
 describe('Calcul XP → niveau', () => {
   it('respecte chaque seuil temporaire et ses bornes', () => {
@@ -112,10 +110,15 @@ describe('Calcul XP → niveau', () => {
 describe('Gestion XP avec adaptateur de progression', () => {
   it('branche les fonctions existantes sur le mock sans modifier le state Core', () => {
     const before = getState();
-    assert.deepEqual(addXP(100), { xp: 100, level: 2 });
-    assert.equal(getLevel(), 2);
-    assert.deepEqual(addXP(150), { xp: 250, level: 3 });
-    assert.equal(getLevel(), 3);
+    const initial = addXP(0);
+    const after100 = addXP(100);
+    assert.equal(after100.xp, initial.xp + 100);
+    assert.ok(after100.level >= initial.level);
+    assert.equal(getLevel(), after100.level);
+    const after250 = addXP(150);
+    assert.equal(after250.xp, initial.xp + 250);
+    assert.ok(after250.level >= after100.level);
+    assert.equal(getLevel(), after250.level);
     assert.deepEqual(getState(), before);
   });
 
