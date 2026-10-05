@@ -16,7 +16,7 @@ import { getState } from './state.js';
  * @param {object} gameResult - raw result as interpreted by the game.
  * @returns {{ newBalance: number, xpGained: number, leveledUp: boolean }}
  */
-export function play(gameId, bet, gameResult) {
+export function play(_gameId, _bet, _gameResult) {
   const { balance } = getState();
   // Deterministic mock: balance unchanged, fixed XP granted.
   return {

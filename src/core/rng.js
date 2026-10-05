@@ -24,7 +24,7 @@ import { random } from 'mathjs';
  *   value : a raw float in [0, 1).
  *   nonce : a raw integer, useful for tie-breaking / auditing.
  */
-export function roll(gameId, params = {}) {
+export function roll(gameId, _params = {}) {
   return {
     gameId,
     value: random(),
