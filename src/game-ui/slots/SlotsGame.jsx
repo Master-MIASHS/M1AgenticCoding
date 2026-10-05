@@ -15,13 +15,16 @@ const symbolOf = (id) => SYMBOLS[id] ?? '\u2754';
 const EMPTY_REELS = [Array(3).fill(null), Array(3).fill(null), Array(3).fill(null)];
 
 // status : "playing" (prêt à jouer) | "loading" | "terminal" | "error"
+// renderResult(gameResult, bet) : gain affiché = bet × gameResult.multiplier
 export default function SlotsGame({ balance, start = mockStart, renderResult }) {
   const [status, setStatus] = useState('playing');
   const [payload, setPayload] = useState(null);
   const [gameResult, setGameResult] = useState(null);
+  const [lastBet, setLastBet] = useState(null);
 
   const handlePlay = async (bet) => {
     setStatus('loading');
+    setLastBet(bet);
     try {
       const res = await start(bet);
       setPayload(res.renderPayload);
@@ -59,7 +62,7 @@ export default function SlotsGame({ balance, start = mockStart, renderResult }) 
         </p>
       )}
 
-      {status === 'terminal' && renderResult ? renderResult(gameResult) : null}
+      {status === 'terminal' && renderResult ? renderResult(gameResult, lastBet) : null}
 
       <BetPanel balance={balance} onPlay={handlePlay} disabled={loading} />
     </section>
