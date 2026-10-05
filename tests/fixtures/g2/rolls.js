@@ -5,10 +5,11 @@
 // Math.random(), aucun appel au vrai RNG. Chaque appel renvoie le tirage
 // suivant de la séquence, au format public actuel de roll() :
 //   roll(gameId, params) -> { gameId, value, nonce }, value dans [0, 1)
-// (contrat G2 v0.3, § 4.1).
+// (contrat G2 v0.4, § 4.1).
 //
-// Quand G1 exposera tirageEntier / tirageAvecPoids / melanger (PR #28),
-// ajouter ici les fixtures correspondantes (ex. 2 dés, paquet mélangé).
+// Quand G1 exposera tirageEntier / tirageAvecPoids / melanger (PR #115),
+// ajouter ici les fixtures correspondantes (ex. 2 dés, segment de roue,
+// case plinko, paquet mélangé).
 // ---------------------------------------------------------------------------
 
 /** Séquences de valeurs brutes réutilisables. */

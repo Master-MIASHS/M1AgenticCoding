@@ -1,10 +1,11 @@
 // ---------------------------------------------------------------------------
 // Tests d'intégration G2 - orchestrateur + règles + mock du Core (issue #68)
 // ---------------------------------------------------------------------------
-// Ces tests sont écrits à partir du CONTRAT G2 v0.3 (issue #68), pas du code
-// actuel de l'orchestrateur. Ils servent de tests d'acceptation pour la
-// prochaine PR de createGame() (#22) : ils échouent sur l'ancienne version
-// (PR #81, fermée) et doivent passer une fois les écarts du § 8 corrigés.
+// Ces tests sont écrits à partir du CONTRAT G2 v0.4 (issue #68), pas du code
+// actuel de l'orchestrateur. Ils servent de tests d'acceptation pour
+// createGame() (#22) : ils échouent sur la version fusionnée par la PR #91,
+// qui n'expose encore que playRound(), et doivent passer une fois les écarts
+// n°1 (start / action) et n°2 (step(session, action, raw)) du § 8 corrigés.
 //
 // Core utilisé : le VRAI mock exposé par src/services/coreService.js
 // (notamment play() de core/economy.js), avec une seule exception :
@@ -103,7 +104,7 @@ const CONFIG = { multipliers: { win: 2 }, probabilities: {} };
 
 // --- Tests ------------------------------------------------------------------
 
-describe('G2 - contrat orchestrateur (v0.3)', () => {
+describe('G2 - contrat orchestrateur (v0.4)', () => {
   test('§ 5.1 - createGame expose start() et action()', () => {
     const { core } = makeTestCore(ROLLS.single);
     const game = createGame({ id: 'dice', rules: makeInstantRules(), config: CONFIG, core });
