@@ -5,17 +5,28 @@
 // the Core Engine to each game's rules. It is coded once and reused by all 10
 // games; a game only provides its own `rules` object (and, later, its config).
 //
+// Public interface for G3, identical for the 10 games (contrat G2 § 5.1, #68):
+//   start(bets)                     -> { sessionId, renderPayload,
+//                                        availableActions, terminal, gameResult? }
+//   action(sessionId, playerAction) -> same shape
+//   - instant games    : start() is already terminal, action() is never called;
+//   - multi-step games : start() returns terminal: false, then G3 calls
+//                        action() until terminal: true.
+// The full session (cards, deck, pending bets...) stays HERE, inside G2; G3
+// only keeps the sessionId (contrat § 5.1, confirmed by G3 on 29/09).
+//
 // Responsibilities of the orchestrator (and ONLY these):
 //   1. draw the raw result through coreService.roll(gameId, params)
 //   2. hand the raw result to the injected rules, together with the bets and
 //      the game config:
 //        - single-step games : rules.resolve(raw, { bets, config })
-//        - multi-step games  : rules.start(raw, { bets, config }) then
-//                              rules.step(raw, state, { bets, config })
-//   3. follow the rules' `needsDraw` signal for multi-step games (blackjack
-//      "hit", community draws, ...) WITHOUT ever generating randomness itself
+//        - multi-step games  : rules.start(raw, { bets, config }) then, for
+//                              each player action,
+//                              rules.step(session, action, raw)    (§ 3.2)
+//   3. keep a multi-step game going while the rules return a session carrying
+//      `needsDraw: true`; an object WITHOUT `needsDraw` is terminal (§ 3.2)
 //   4. call coreService.play(gameId, totalBet, gameResult) exactly ONCE, on
-//      the terminal step only (a result without `needsDraw` is terminal)
+//      the terminal step only (§ 4.3)
 //
 // `bets` is ALWAYS normalized to an array of { type, amount }, even for a
 // single bet; rules receive the normalized array.
@@ -25,13 +36,20 @@
 // the rules decide what to do when it is missing. Its value will come from
 // the Core once `getGameConfig` is exposed; only its SHAPE is fixed here.
 //
+// Still OPEN in the contract (#68), so kept minimal here:
+//   - the content of renderPayload (§ 5.2): the shape proposed in #8 is used,
+//     but nothing beyond the raw draw and the result details is filled in;
+//   - the opening of a multi-step round on the rules side (§ 3.2): the
+//     existing form rules.start(raw, { bets, config }) is kept;
+//   - where availableActions come from: read from session.availableActions.
+//
 // ABSOLUTE RULE: this file never calls Math.random(); the only source of
 // randomness is coreService.roll().
 // ---------------------------------------------------------------------------
 
 import * as coreService from '../../services/coreService.js';
 
-// Safety valve: a rules object stuck on needsDraw must not loop forever.
+// Safety valve: a multi-step session that never ends must not grow forever.
 const MAX_STEPS = 100;
 
 /**
@@ -66,22 +84,28 @@ function sumBets(bets) {
 }
 
 /**
+ * A multi-step session is still running while it carries `needsDraw: true`.
+ *
+ * @param {unknown} result
+ * @returns {boolean}
+ */
+function isPending(result) {
+  return result !== null && typeof result === 'object' && result.needsDraw === true;
+}
+
+/**
  * Creates a playable game from an id and a rules object.
  *
  * `rules` must expose either:
- *   - resolve(raw, { bets, config }) -> gameResult                        (single-step)
- *   - start(raw, { bets, config }) -> state AND
- *     step(raw, state, { bets, config }) -> state | gameResult            (multi-step)
- *
- * An intermediate state / result carrying `needsDraw: true` tells the
- * orchestrator to draw again and call rules.step(); the loop ends when the
- * returned object no longer carries `needsDraw` (terminal step).
+ *   - resolve(raw, { bets, config }) -> gameResult                 (single-step)
+ *   - start(raw, { bets, config }) -> session AND
+ *     step(session, action, raw) -> session | gameResult            (multi-step)
  *
  * @param {{ id: string, rules: object, config?: object, core?: object }} options
  *   `config` is forwarded as-is to the rules (undefined when not provided).
  *   `core` is injectable for testing; it defaults to the official
  *   coreService facade.
- * @returns {{ id: string, playRound: Function }}
+ * @returns {{ id: string, start: Function, action: Function, playRound: Function }}
  */
 export function createGame({ id, rules, config, core = coreService }) {
   if (typeof id !== 'string' || id.length === 0) {
@@ -98,47 +122,123 @@ export function createGame({ id, rules, config, core = coreService }) {
     );
   }
 
+  // Running multi-step sessions, kept inside G2 (G3 only holds the id).
+  const sessions = new Map();
+  // Deterministic ids: no randomness is needed to tell sessions apart.
+  let sessionCount = 0;
+
   /**
-   * Plays one full round of the game.
+   * Builds the answer sent back to G3 for one step.
+   *
+   * @param {string} sessionId
+   * @param {{ raw: unknown, session?: object, gameResult?: object, economy?: object }} step
+   */
+  function respond(sessionId, { raw, session, gameResult, economy }) {
+    const terminal = gameResult !== undefined;
+    const renderPayload = {
+      gameId: id,
+      phase: terminal ? 'result' : 'playing',
+      raw,
+    };
+    if (terminal) {
+      renderPayload.interpretation = gameResult.details;
+      renderPayload.economy = economy;
+    }
+    const response = {
+      sessionId,
+      renderPayload,
+      availableActions:
+        !terminal && Array.isArray(session.availableActions) ? [...session.availableActions] : [],
+      terminal,
+    };
+    if (terminal) response.gameResult = gameResult;
+    return response;
+  }
+
+  /**
+   * Terminal step: the economy is settled exactly once per round.
+   * core.play() expects the TOTAL bet (a number), not the bets array.
+   */
+  function settle(sessionId, bets, raw, gameResult) {
+    sessions.delete(sessionId);
+    const economy = core.play(id, sumBets(bets), gameResult);
+    return respond(sessionId, { raw, gameResult, economy });
+  }
+
+  /**
+   * Opens a round. Instant games are settled immediately.
    *
    * @param {object | object[]} bets - one { type, amount } or an array of them.
    * @param {object} [params] - optional parameters forwarded to core.roll().
-   * @returns {{ id: string, gameResult: object, economy: object, draws: number }}
-   *   gameResult : the terminal result returned by the rules
-   *   economy    : the result of the single core.play() call
-   *   draws      : number of core.roll() calls performed for this round
    */
-  function playRound(bets, params = {}) {
+  function start(bets, params = {}) {
     const normalizedBets = normalizeBets(bets);
     const context = { bets: normalizedBets, config };
+    sessionCount += 1;
+    const sessionId = `${id}-${sessionCount}`;
 
-    let result;
-    let draws = 0;
+    // The ONLY place randomness enters the game.
+    const raw = core.roll(id, params);
 
-    do {
-      // The ONLY place randomness enters the game.
-      const raw = core.roll(id, params);
-      if (draws === 0) {
-        result = singleStep
-          ? rules.resolve(raw, context)
-          : rules.start(raw, context);
-      } else {
-        result = rules.step(raw, result, context);
-      }
-      draws += 1;
-      if (draws > MAX_STEPS) {
-        throw new Error(
-          `createGame(${id}): rules kept asking for draws beyond ${MAX_STEPS} steps`
-        );
-      }
-    } while (result !== null && result !== undefined && result.needsDraw === true);
+    if (singleStep) {
+      return settle(sessionId, normalizedBets, raw, rules.resolve(raw, context));
+    }
 
-    // Terminal step: the economy is settled exactly once per round.
-    // core.play() expects the TOTAL bet (a number), not the bets array.
-    const economy = core.play(id, sumBets(normalizedBets), result);
-
-    return { id, gameResult: result, economy, draws };
+    const session = rules.start(raw, context);
+    if (!isPending(session)) {
+      return settle(sessionId, normalizedBets, raw, session);
+    }
+    sessions.set(sessionId, { session, bets: normalizedBets, params, steps: 0 });
+    return respond(sessionId, { raw, session });
   }
 
-  return { id, playRound };
+  /**
+   * Plays one player action ('hit', 'stand', 'hold'...) on a running session.
+   *
+   * @param {string} sessionId - the id returned by start().
+   * @param {string} playerAction
+   */
+  function action(sessionId, playerAction) {
+    const entry = sessions.get(sessionId);
+    if (entry === undefined) {
+      throw new Error(`createGame(${id}): unknown or finished session '${sessionId}'`);
+    }
+    if (typeof playerAction !== 'string' || playerAction.length === 0) {
+      throw new TypeError('createGame: playerAction must be a non-empty string');
+    }
+    entry.steps += 1;
+    if (entry.steps > MAX_STEPS) {
+      sessions.delete(sessionId);
+      throw new Error(`createGame(${id}): session kept running beyond ${MAX_STEPS} steps`);
+    }
+
+    const raw = core.roll(id, entry.params);
+    const result = rules.step(entry.session, playerAction, raw);
+    if (!isPending(result)) {
+      return settle(sessionId, entry.bets, raw, result);
+    }
+    entry.session = result;
+    return respond(sessionId, { raw, session: result });
+  }
+
+  /**
+   * Plays one full round of an INSTANT game in a single call (kept for the
+   * existing callers; G3 uses start()). Multi-step games need player actions
+   * and therefore go through start() / action().
+   *
+   * @param {object | object[]} bets
+   * @param {object} [params]
+   * @returns {{ id: string, gameResult: object, economy: object, draws: number }}
+   */
+  function playRound(bets, params = {}) {
+    if (!singleStep) {
+      throw new TypeError(
+        `createGame(${id}): multi-step games are played with start() / action(), not playRound()`
+      );
+    }
+    const { gameResult, renderPayload } = start(bets, params);
+    return { id, gameResult, economy: renderPayload.economy, draws: 1 };
+  }
+
+  return { id, start, action, playRound };
 }
