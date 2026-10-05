@@ -10,6 +10,12 @@ le **Core en mocks** qui valide les contrats d'architecture, la façade
 > (pas de jeux, pas d'économie réelle, pas de XP, pas d'IA, pas de backend).
 > L'objectif est de préparer le terrain pour les différents groupes.
 
+## Membres du projet
+
+| Nom | Pseudo | Rôle |
+| :--- | :--- | :--- |
+| Estev Meyer | @GEstevezMeyer | Tests unitaires et Workflow |
+
 ## Stack
 
 - **React** + **Vite** (JavaScript, sans TypeScript)
