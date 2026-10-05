@@ -157,3 +157,11 @@ Pas de jeux, pas de règles de blackjack / roulette / slots / poker, pas
 d'économie réelle, pas de système XP complet, pas d'IA, pas d'API externe,
 pas de backend, pas de base de données, pas d'authentification, pas
 d'interface graphique avancée, pas de bibliothèques inutiles.
+
+## Membres du projet
+
+### Groupe 3 — Rendu visuel
+
+- **Pseudos** : `Anthony253400`, `@Anthony253400`
+- **Nom, prénom** : Anthony Miranda
+- **Rôle(s)** : Membre du Groupe 3 (rendu visuel)
