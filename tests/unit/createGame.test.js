@@ -62,16 +62,16 @@ test('single-step: one roll, one play, rules interpret the raw draw', () => {
   assert.equal(gameResult.rawValue, 0.1);
 });
 
-test('bets are always normalized to an array of { type, amount }, even a single one', () => {
-  // Single bet given as a plain object (NOT an array) -> play() receives a
-  // one-element array.
+test('bets are always normalized to an array for the rules; play() gets the total bet', () => {
+  // Single bet given as a plain object (NOT an array) -> play() receives the
+  // total bet as a number (contract: economy.play(gameId, bet, gameResult)).
   const core = makeRecordingCore([0.9]);
   createGame({ id: 'mock-single', rules: singleStepRules, core }).playRound({
     type: 'red',
     amount: 10,
   });
   assert.equal(core.playCalls.length, 1);
-  assert.deepEqual(core.playCalls[0].bets, [{ type: 'red', amount: 10 }]);
+  assert.equal(core.playCalls[0].bets, 10);
 
   // Rules receive the normalized array too.
   const spy = {
@@ -88,16 +88,23 @@ test('bets are always normalized to an array of { type, amount }, even a single 
   assert.ok(Array.isArray(spy.receivedBets));
   assert.deepEqual(spy.receivedBets, [{ type: 'red', amount: 10 }]);
 
-  // Multiple bets stay an array.
+  // Multiple bets: rules get the array, play() gets the sum.
+  const spy2 = {
+    resolve(raw, { bets }) {
+      spy2.receivedBets = bets;
+      return singleStepRules.resolve(raw, { bets });
+    },
+  };
   const core2 = makeRecordingCore([0.9]);
-  createGame({ id: 'mock-single', rules: singleStepRules, core: core2 }).playRound([
+  createGame({ id: 'mock-single', rules: spy2, core: core2 }).playRound([
     { type: 'red', amount: 10 },
     { type: 'black', amount: 5 },
   ]);
-  assert.deepEqual(core2.playCalls[0].bets, [
+  assert.deepEqual(spy2.receivedBets, [
     { type: 'red', amount: 10 },
     { type: 'black', amount: 5 },
   ]);
+  assert.equal(core2.playCalls[0].bets, 15);
 });
 
 test('multi-step: needsDraw loop draws again, play() only once at terminal: true', () => {
@@ -173,4 +180,58 @@ test('invalid bets are rejected before any roll or play', () => {
   assert.throws(() => game.playRound([]), TypeError);
   assert.throws(() => game.playRound({ type: 'red' }), TypeError);
   assert.deepEqual(core.log, []);
+});
+
+test('config is forwarded as-is to resolve(), start() and step()', () => {
+  const config = { paytable: { red: 2 } };
+
+  // Multi-step: start() and step() both receive the same config reference.
+  const seen = [];
+  const spy = {
+    start(raw, ctx) {
+      seen.push(ctx.config);
+      return { needsDraw: true };
+    },
+    step(raw, state, ctx) {
+      seen.push(ctx.config);
+      return { terminal: true };
+    },
+  };
+  createGame({ id: 'mock-multi', rules: spy, config, core: makeRecordingCore([0.5]) }).playRound({
+    type: 'red',
+    amount: 1,
+  });
+  assert.equal(seen.length, 2);
+  assert.ok(seen.every((c) => c === config)); // same reference
+
+  // Single-step: resolve() receives bets AND config.
+  let single;
+  createGame({
+    id: 'mock-single',
+    rules: {
+      resolve(raw, ctx) {
+        single = ctx;
+        return { terminal: true };
+      },
+    },
+    config,
+    core: makeRecordingCore([0.5]),
+  }).playRound({ type: 'red', amount: 1 });
+  assert.equal(single.config, config);
+  assert.deepEqual(single.bets, [{ type: 'red', amount: 1 }]);
+});
+
+test('config stays undefined when not provided (no default value invented)', () => {
+  let ctxSeen;
+  createGame({
+    id: 'mock-single',
+    rules: {
+      resolve(raw, ctx) {
+        ctxSeen = ctx;
+        return { terminal: true };
+      },
+    },
+    core: makeRecordingCore([0.5]),
+  }).playRound({ type: 'red', amount: 1 });
+  assert.equal(ctxSeen.config, undefined);
 });
