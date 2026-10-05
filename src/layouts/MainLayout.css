@@ -1,0 +1,4 @@
+.main-layout { min-height: 100dvh; }
+.main-layout > .main-layout__content { width: 100%; max-width: 1440px; margin-inline: auto; padding: clamp(1rem, 4vw, 3rem); }
+.skip-link { position: fixed; top: -100px; left: 1rem; z-index: 100; padding: 1rem; background: var(--color-surface); color: var(--color-text); }
+.skip-link:focus { top: 1rem; }
