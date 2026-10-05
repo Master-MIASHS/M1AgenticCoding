@@ -12,6 +12,7 @@ import { useCallback, useState } from 'react';
 import { getState, getLevel, getUnlockedGames } from '../../services/coreService.js';
 import { GAME_REGISTRY } from '../../config/gameRegistry.js';
 import { formatNumber, getLevelProgress, splitGamesByUnlock } from './progression.utils.js';
+import XPBar from '../../components/XPBar/XPBar';
 import './progression.css';
 
 function loadProgression() {
@@ -38,37 +39,6 @@ function useProgressionData() {
   return { data: result.data, error: result.error, retry };
 }
 
-// TODO: remplacer par le composant XPBar commun une fois disponible — voir issue G4-03
-// (attendu : props niveau actuel, XP actuel et XP requis pour le niveau suivant,
-// valeurs fournies par coreService.js, sans recalcul côté UI).
-function XPBarPlaceholder({ level, xp, xpForNextLevel }) {
-  const { percent, threshold } = getLevelProgress({ xp, xpForNextLevel });
-
-  return (
-    <div className="progression__xp">
-      <div
-        className="progression__xp-bar"
-        role="progressbar"
-        aria-label="Progression d'expérience vers le niveau suivant"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={percent}
-      >
-        {percent !== null && (
-          <div className="progression__xp-fill" style={{ width: `${percent}%` }} />
-        )}
-      </div>
-      <span className="progression__xp-label">
-        <span className="progression__xp-value">{formatNumber(xp)}</span> XP
-        {threshold !== null && <span className="progression__xp-separator"> / {formatNumber(threshold)}</span>}
-        <span className="progression__xp-percent" aria-hidden="true">
-          {percent !== null ? ` · Niv. ${formatNumber(level)}` : ''}
-        </span>
-      </span>
-    </div>
-  );
-}
-
 function ProgressionHeader({ state, level }) {
   return (
     <header className="progression__header">
@@ -90,7 +60,7 @@ function ProgressionHeader({ state, level }) {
           </dd>
         </div>
       </dl>
-      <XPBarPlaceholder level={level} xp={state.xp} xpForNextLevel={state.xpForNextLevel} />
+      <XPBar level={level} xp={state.xp} xpForNextLevel={state.xpForNextLevel} />
     </header>
   );
 }
