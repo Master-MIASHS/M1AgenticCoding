@@ -438,9 +438,33 @@ describe('hasPair', () => {
   });
 });
 
+describe('RANKS and SUITS', () => {
+  it('lists the 13 ranks in ascending order, as strings', () => {
+    assert.deepStrictEqual(
+      [...cardUtils.RANKS],
+      ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'],
+    );
+  });
+
+  it('lists the 4 suits', () => {
+    assert.deepStrictEqual([...cardUtils.SUITS], ['hearts', 'diamonds', 'clubs', 'spades']);
+  });
+
+  it('cannot be modified by a consumer', () => {
+    assert.ok(Array.isArray(cardUtils.RANKS));
+    assert.ok(Array.isArray(cardUtils.SUITS));
+    assert.ok(Object.isFrozen(cardUtils.RANKS));
+    assert.ok(Object.isFrozen(cardUtils.SUITS));
+    assert.throws(() => cardUtils.RANKS.push('1'), TypeError);
+    assert.throws(() => cardUtils.SUITS.push('stars'), TypeError);
+  });
+});
+
 describe('module contract', () => {
-  it('exports exactly the five public functions', () => {
+  it('exports exactly the five public functions and the RANKS / SUITS constants', () => {
     assert.deepStrictEqual(Object.keys(cardUtils).sort(), [
+      'RANKS',
+      'SUITS',
       'baccaratTotal',
       'blackjackTotal',
       'evaluatePokerHand',
