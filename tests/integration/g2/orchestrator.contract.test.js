@@ -87,8 +87,10 @@ function makeMultiStepRules() {
     stepCalls,
     // Forme de start() côté règles encore OUVERTE (§ 3.2) : on accepte
     // n'importe quelle signature et on ne fait aucune assertion dessus.
+    // La session renvoyée porte needsDraw: true, sinon elle serait terminale
+    // (§ 3.2 : « un objet sans needsDraw est terminal »).
     start() {
-      return { cards: 1, availableActions: ['hit', 'stand'] };
+      return { cards: 1, needsDraw: true, availableActions: ['hit', 'stand'] };
     },
     step(session, action, raw) {
       stepCalls.push({ session, action, raw });
