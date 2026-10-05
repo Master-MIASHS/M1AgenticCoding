@@ -70,6 +70,14 @@ describe('validerDateNaissance', () => {
   it('rejette une date dans le futur', () => {
     assert.throws(() => validerDateNaissance('2026-10-06', maintenant), /date/);
   });
+
+  it('traite correctement les années antérieures à 100', () => {
+    assert.strictEqual(validerDateNaissance('0050-01-01', maintenant), '0050-01-01');
+  });
+
+  it('rejette une date du jour invalide avec un message clair', () => {
+    assert.throws(() => validerDateNaissance('2000-01-01', new Date('invalide')), /date du jour/);
+  });
 });
 
 describe('jeuxDeDepart', () => {
@@ -138,6 +146,7 @@ describe('creerJoueur', () => {
 
   it('rejette des informations invalides', () => {
     assert.throws(() => creerJoueur(null, { maintenant }), /informations/);
+    assert.throws(() => creerJoueur([], { maintenant }), /informations/);
     assert.throws(() => creerJoueur({ pseudo: '  ' }, { maintenant }), /pseudo/);
     assert.throws(() => creerJoueur({ pseudo: 'bob', dateNaissance: '2099-01-01' }, { maintenant }), /date/);
   });

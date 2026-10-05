@@ -59,10 +59,16 @@ export function validerDateNaissance(dateNaissance, maintenant = new Date()) {
     throw new Error('validerDateNaissance : la date doit être au format AAAA-MM-JJ');
   }
 
+  if (!(maintenant instanceof Date) || Number.isNaN(maintenant.getTime())) {
+    throw new Error('validerDateNaissance : la date du jour est invalide');
+  }
+
   // Une date inexistante (31 avril, 29 février d'une année non bissextile)
   // est décalée par Date : on la détecte en relisant ses composants.
+  // setUTCFullYear plutôt que Date.UTC, qui lit les années 0 à 99 comme 1900+.
   const [annee, mois, jour] = dateNaissance.split('-').map(Number);
-  const date = new Date(Date.UTC(annee, mois - 1, jour));
+  const date = new Date(0);
+  date.setUTCFullYear(annee, mois - 1, jour);
   if (
     date.getUTCFullYear() !== annee ||
     date.getUTCMonth() !== mois - 1 ||
@@ -128,7 +134,7 @@ export function creerJoueur(
   infos,
   { config = PLAYER_CONFIG, jeux = GAMES, maintenant = new Date() } = {},
 ) {
-  if (infos === null || typeof infos !== 'object') {
+  if (infos === null || typeof infos !== 'object' || Array.isArray(infos)) {
     throw new Error('creerJoueur : les informations du joueur doivent être un objet');
   }
   // Un capital nul ou négatif bloquerait le joueur dès le départ, ce
