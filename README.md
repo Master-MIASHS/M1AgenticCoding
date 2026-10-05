@@ -182,7 +182,8 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 
 ### Groupe 3 — Rendu visuel
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
-| Zozote | Enzo Nguyen | Nguyen Enzo | UI / composants communs / review |
+| :--- | :--- | :--- | :--- |
+| Zozote | Enzo Nguyen | Nguyen Enzo | UI, composants communs, review |
 | | | | |
 
 ### Groupe 4 — Architecture de l'application et composants annexes / Navigation
