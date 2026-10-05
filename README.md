@@ -160,6 +160,11 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 
 ## Membres par groupe
 
+### Groupe Enseignant — Encadrement et Suivi Pédagogique
+| Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
+| :--- | :--- | :--- | :--- |
+| maximiliense | maximiliense | Servajean, Maximilien | teacher |
+
 ### Groupe 1 — Core Engine / Logiques / IA
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
