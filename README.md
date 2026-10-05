@@ -161,26 +161,26 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 ## Membres par groupe
 
 ### Groupe 1 — Core Engine / Logiques / IA
-| Pseudos utilisés | Nom, prénom | Rôle(s) |
-| :--- | :--- | :--- |
-| | | |
+| Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
+| :--- | :--- | :--- | :--- |
+| | | | |
 
 ### Groupe 2 — Jeu et règles du jeu
-| Pseudos utilisés | Nom, prénom | Rôle(s) |
-| :--- | :--- | :--- |
-| | | |
+| Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
+| :--- | :--- | :--- | :--- |
+| | | | |
 
 ### Groupe 3 — Rendu visuel
-| Pseudos utilisés | Nom, prénom | Rôle(s) |
-| :--- | :--- | :--- |
-| | | |
+| Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
+| :--- | :--- | :--- | :--- |
+| | | | |
 
 ### Groupe 4 — Architecture de l'application et composants annexes / Navigation
-| Pseudos utilisés | Nom, prénom | Rôle(s) |
-| :--- | :--- | :--- |
-| | | |
+| Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
+| :--- | :--- | :--- | :--- |
+| | | | |
 
 ### Groupe 5 — Gestion de projet, tests unitaires et intégration
-| Pseudos utilisés | Nom, prénom | Rôle(s) |
-| :--- | :--- | :--- |
-| Anthony Miranda |Miranda Anthony | Git manager|
+| Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
+| :--- | :--- | :--- | :--- |
+| Anthony253400 | Anthony Miranda | Miranda Anthony | Git manager|
