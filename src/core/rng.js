@@ -46,7 +46,7 @@ export function semer(valeur) {
  *   value : a raw float in [0, 1).
  *   nonce : a raw integer, useful for tie-breaking / auditing.
  */
-export function roll(gameId, _params = {}) {
+export function roll(gameId, params = {}) {
   return {
     gameId,
     value: hasardActuel(),
