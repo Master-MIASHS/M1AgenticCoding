@@ -180,7 +180,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 ### Groupe 3 — Rendu visuel
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
-| | | | |
+| Bahar487 | Bahar | ALI BAHAR ALI | Responsable du groupe 3 (rendu visuel), composants communs et jeux (BetPanel, slots, roulette) |
 
 ### Groupe 4 — Architecture de l'application et composants annexes / Navigation
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
