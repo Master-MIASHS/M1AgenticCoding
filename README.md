@@ -200,3 +200,4 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | Nina253 | Nina | Valentin Nina | mise en place de la CI, configuration du linter (ESLint/Prettier) et validation des règles d'architecture et des PR |
 | noahchrgs | noahchrgs | Chayrigues Noah | Skills agent developers|
 | ArthY07 | Arthur Feschet | Feschet Arthur | Lead G5, CI/CD, Qualité & Automatisation |
+| GEstevezMeyer | GEstevezMeyer | Estevez Gabriel | Test unitaire et worflows |
