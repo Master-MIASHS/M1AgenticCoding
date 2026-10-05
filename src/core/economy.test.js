@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateSettlement, getBalance } from './economy.js';
+import { calculateSettlement, getBalance, play } from './economy.js';
 
 describe('calculateSettlement', () => {
   it('settles losses, returned stakes and wins with the stake included in payout', () => {
@@ -55,6 +55,29 @@ describe('calculateSettlement', () => {
     const result = Object.freeze({ outcome: 'win', multiplier: 2,
       get details() { throw new Error('details must stay opaque'); } });
     assert.equal(calculateSettlement(100, 10, result).newBalance, 110);
+    assert.equal(getBalance(), before);
+  });
+});
+
+describe('play', () => {
+  it('returns the settled balance for a loss, a push and a win', () => {
+    assert.deepEqual(play('slots', 100, { outcome: 'loss', multiplier: 0 }),
+      { newBalance: 900, xpGained: 10, leveledUp: false });
+    assert.deepEqual(play('slots', 100, { outcome: 'push', multiplier: 1 }),
+      { newBalance: 1000, xpGained: 10, leveledUp: false });
+    assert.deepEqual(play('slots', 100, { outcome: 'win', multiplier: 2 }),
+      { newBalance: 1100, xpGained: 10, leveledUp: false });
+  });
+
+  it('validates the bet and result through the settlement calculation', () => {
+    assert.throws(() => play('slots', 0, { outcome: 'loss', multiplier: 0 }), RangeError);
+    assert.throws(() => play('slots', 1001, { outcome: 'win', multiplier: 2 }), RangeError);
+    assert.throws(() => play('slots', 100, { outcome: 'unknown', multiplier: 2 }), TypeError);
+  });
+
+  it('does not mutate the shared balance before the state contract is available', () => {
+    const before = getBalance();
+    play('slots', 100, { outcome: 'win', multiplier: 2 });
     assert.equal(getBalance(), before);
   });
 });

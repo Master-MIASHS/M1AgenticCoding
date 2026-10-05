@@ -59,7 +59,8 @@ export function calculateSettlement(balance, bet, gameResult) {
 }
 
 /**
- * Simule le bilan d'une partie sans appliquer de règlement à l'état partagé.
+ * Calcule le bilan économique d'une partie sans modifier l'état partagé.
+ * L'XP reste fictive tant que le contrat de progression n'est pas intégré.
  *
  * @param {string} gameId - Identifiant du jeu.
  * @param {number} bet - Mise annoncée.
@@ -68,9 +69,10 @@ export function calculateSettlement(balance, bet, gameResult) {
  */
 export function play(gameId, bet, gameResult) {
   const { balance } = getState();
-  // Deterministic mock: balance unchanged, fixed XP granted.
+  const { newBalance } = calculateSettlement(balance, bet, gameResult);
+
   return {
-    newBalance: balance,
+    newBalance,
     xpGained: 10,
     leveledUp: false,
   };
