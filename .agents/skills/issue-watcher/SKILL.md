@@ -1,6 +1,6 @@
 ---
 name: issue-watcher
-description: À utiliser pour détecter et valider qu'une issue est prête à être codée, avant toute création de branche. Déclenchée par le label « To code » : lecture du fil complet, vérification du ticket lié, du label de groupe et de l'absence de doute. En cas de doute : arrêt et remontée à G5, jamais d'interprétation.
+description: À utiliser pour détecter et valider qu'une issue est prête à être codée, avant toute création de branche. Déclenchée par le label « To code » : lecture du fil complet, vérification du ticket lié, du label de groupe et de l'absence de doute. En cas de doute : arrêt et remontée à G5, jamais d'interprétation. Le numéro d'issue validé est transmis à branch-creator, qui lie la branche créée à l'issue sur GitHub.
 ---
 
 # Issue Watcher
@@ -12,7 +12,7 @@ description: À utiliser pour détecter et valider qu'une issue est prête à ê
 
 ## Ce que fait cette skill
 
-Valide qu'une issue labellisée `To code` est prête à être codée, puis livre un résumé court du besoin compris. Elle ne crée pas de branche (c'est le rôle de `branch-creator`) et n'écrit aucun code.
+Valide qu'une issue labellisée `To code` est prête à être codée, puis livre un résumé court du besoin compris. Elle ne crée pas de branche (c'est le rôle de `branch-creator`) et n'écrit aucun code. Le numéro d'issue validé est l'entrée obligatoire de `branch-creator`, qui lie la branche créée à l'issue sur GitHub : c'est ce qui lie l'issue à sa branche.
 
 ## Étapes
 
@@ -30,15 +30,15 @@ Valide qu'une issue labellisée `To code` est prête à être codée, puis livre
 
 ## Sortie attendue
 
-Un résumé court (2-3 lignes) du besoin compris, servant de base à l'étape « Brancher » (`branch-creator`) :
+Un résumé court (2-3 lignes) du besoin compris, servant de base d'entrée à l'étape « Brancher » (`branch-creator`). Quand l'issue est prête à brancher, l'agent passe à `branch-creator` en lui transmettant le numéro d'issue `#<n>` : `branch-creator` crée la branche `<SKOTCKER>-<feature>(<nomgithub>)` et la lie à l'issue sur GitHub via les commits et la PR qui référencent `#<n>`.
 
 > **Issue #<n> — <titre>**
 > Besoin : <1 ligne>
-> Périmètre : <1 ligne> | Ticket : <n°> | Groupe : <Gx> → prête à brancher / bloquée (raison + issue G5 ouverte)
+> Périmètre : <1 ligne> | Ticket : <n°> | Groupe : <Gx> → prête à brancher (passer à `branch-creator` avec l'issue #<n>) / bloquée (raison + issue G5 ouverte)
 
 ## Ce que cette skill ne fait PAS
 
-- Ne crée pas de branche, ne code pas, ne modifie pas de label, ne ferme pas l'issue.
+- Ne crée pas de branche : c'est `branch-creator` qui la crée et qui la lie à l'issue sur GitHub. Ne code pas, ne modifie pas de label, ne ferme pas l'issue.
 - Ne répond pas à la place de G5 dans le fil de discussion.
 - N'interprète pas l'ambiguïté : doute = arrêt.
 
@@ -46,5 +46,6 @@ Un résumé court (2-3 lignes) du besoin compris, servant de base à l'étape «
 
 - **Issue labellisée `To code` mais fermée** : s'arrêter, l'issue n'est plus active.
 - **Plusieurs labels `groupe: Gx`** : s'arrêter, remonter à G5 (chevauchement de périmètre).
+- **Besoin sans issue GitHub** : s'arrêter, demander à G5 d'ouvrir l'issue ; une branche ne peut pas être créée sans issue (voir `branch-creator`).
 - **Un commentaire récent modifie la demande initiale** : relire le fil complet et s'appuyer sur la version la plus récente du besoin ; si cela laisse un doute → s'arrêter (étape 5).
 - **Ticket lié mais issue d'un autre groupe** : s'arrêter, c'est au groupe ciblé par le label de traiter l'issue.
