@@ -157,3 +157,30 @@ Pas de jeux, pas de règles de blackjack / roulette / slots / poker, pas
 d'économie réelle, pas de système XP complet, pas d'IA, pas d'API externe,
 pas de backend, pas de base de données, pas d'authentification, pas
 d'interface graphique avancée, pas de bibliothèques inutiles.
+
+## Membres par groupe
+
+### Groupe 1 — Core Engine / Logiques / IA
+| Pseudos utilisés | Nom, prénom | Rôle(s) |
+| :--- | :--- | :--- |
+| | | |
+
+### Groupe 2 — Jeu et règles du jeu
+| Pseudos utilisés | Nom, prénom | Rôle(s) |
+| :--- | :--- | :--- |
+| | | |
+
+### Groupe 3 — Rendu visuel
+| Pseudos utilisés | Nom, prénom | Rôle(s) |
+| :--- | :--- | :--- |
+| | | |
+
+### Groupe 4 — Architecture de l'application et composants annexes / Navigation
+| Pseudos utilisés | Nom, prénom | Rôle(s) |
+| :--- | :--- | :--- |
+| | | |
+
+### Groupe 5 — Gestion de projet, tests unitaires et intégration
+| Pseudos utilisés | Nom, prénom | Rôle(s) |
+| :--- | :--- | :--- |
+| Anthony Miranda |Miranda Anthony | Git manager|
