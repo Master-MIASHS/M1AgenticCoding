@@ -18,6 +18,31 @@ describe('calculateSettlement', () => {
       { newBalance: 90, payout: 10, netGain: -10 });
   });
 
+  it('settles multiple bets from their total stake and aggregate multiplier', () => {
+    assert.deepEqual(calculateSettlement(100, 15,
+      { outcome: 'win', multiplier: 20 / 15, details: { bets: [] } }),
+    { newBalance: 105, payout: 20, netGain: 5 });
+    assert.deepEqual(calculateSettlement(100, 15,
+      { outcome: 'win', multiplier: 180 / 15, details: { bets: [] } }),
+    { newBalance: 265, payout: 180, netGain: 165 });
+  });
+
+  it('rounds the aggregate payout once to the nearest whole token', () => {
+    assert.deepEqual(calculateSettlement(100, 10, { outcome: 'win', multiplier: 1.25 }),
+      { newBalance: 103, payout: 13, netGain: 3 });
+    assert.deepEqual(calculateSettlement(100, 10, { outcome: 'loss', multiplier: 0.25 }),
+      { newBalance: 93, payout: 3, netGain: -7 });
+  });
+
+  it('rejects an outcome inconsistent with the rounded aggregate payout', () => {
+    assert.throws(() => calculateSettlement(100, 10,
+      { outcome: 'loss', multiplier: 2 }), RangeError);
+    assert.throws(() => calculateSettlement(100, 10,
+      { outcome: 'win', multiplier: 0.5 }), RangeError);
+    assert.throws(() => calculateSettlement(100, 10,
+      { outcome: 'push', multiplier: 1.1 }), RangeError);
+  });
+
   it('rejects invalid stakes without changing the shared balance', () => {
     const before = getBalance();
     for (const bet of [NaN, Infinity, -Infinity, '10', null, undefined]) {

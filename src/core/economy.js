@@ -12,8 +12,9 @@ import { getState } from './state.js';
  * Calcule un règlement sans modifier l'état partagé, en préparation de play().
  * Cette fonction interne n'est pas réexportée par l'API publique du Core.
  * Le multiplicateur inclut la mise et peut être fractionnaire pour des mises agrégées.
+ * Le montant total reversé est arrondi une seule fois au jeton entier le plus proche.
  * Le contenu de details reste opaque pour préserver les règles des jeux côté G2.
- * La cohérence outcome/multiplier et les arrondis restent à convenir avec le groupe.
+ * L'issue #73 définit outcome à partir du montant arrondi comparé à la mise totale.
  *
  * @param {number} balance - Solde disponible avant règlement.
  * @param {number} bet - Mise totale, qui n'a pas encore été débitée.
@@ -50,12 +51,21 @@ export function calculateSettlement(balance, bet, gameResult) {
   if (multiplier < 0) {
     throw new RangeError('economy: multiplier must be non-negative.');
   }
-  const payout = bet * multiplier;
-  const newBalance = balance - bet + payout;
-  if (!Number.isFinite(payout) || !Number.isFinite(newBalance)) {
+  const rawPayout = bet * multiplier;
+  if (!Number.isFinite(rawPayout)) {
     throw new RangeError('economy: settlement exceeds the supported numeric range.');
   }
-  return { newBalance, payout, netGain: payout - bet };
+  const payout = Math.round(rawPayout);
+  const netGain = payout - bet;
+  const expectedOutcome = netGain > 0 ? 'win' : netGain < 0 ? 'loss' : 'push';
+  if (gameResult.outcome !== expectedOutcome) {
+    throw new RangeError('economy: outcome does not match the rounded payout.');
+  }
+  const newBalance = balance + netGain;
+  if (!Number.isFinite(newBalance)) {
+    throw new RangeError('economy: settlement exceeds the supported numeric range.');
+  }
+  return { newBalance, payout, netGain };
 }
 
 /**
