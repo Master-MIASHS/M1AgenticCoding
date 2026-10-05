@@ -27,14 +27,21 @@ describe('calculateSettlement', () => {
     { newBalance: 265, payout: 180, netGain: 165 });
   });
 
-  it('rounds the aggregate payout once to the nearest whole token', () => {
-    assert.deepEqual(calculateSettlement(100, 10, { outcome: 'win', multiplier: 1.25 }),
-      { newBalance: 103, payout: 13, netGain: 3 });
-    assert.deepEqual(calculateSettlement(100, 10, { outcome: 'loss', multiplier: 0.25 }),
-      { newBalance: 93, payout: 3, netGain: -7 });
+  it('rounds the aggregate payout once to two decimal places', () => {
+    assert.deepEqual(calculateSettlement(100, 10, { outcome: 'win', multiplier: 1.2345 }),
+      { newBalance: 102.35, payout: 12.35, netGain: 2.35 });
+    assert.deepEqual(calculateSettlement(100, 10, { outcome: 'loss', multiplier: 0.2345 }),
+      { newBalance: 92.35, payout: 2.35, netGain: -7.65 });
   });
 
-  it('rejects an outcome inconsistent with the rounded aggregate payout', () => {
+  it('keeps the outcome semantics used by the G2 rules before rounding', () => {
+    assert.deepEqual(calculateSettlement(100, 1, { outcome: 'loss', multiplier: 0.5 }),
+      { newBalance: 99.5, payout: 0.5, netGain: -0.5 });
+    assert.deepEqual(calculateSettlement(100, 3, { outcome: 'win', multiplier: 1.1 }),
+      { newBalance: 100.3, payout: 3.3, netGain: 0.3 });
+  });
+
+  it('rejects an outcome inconsistent with the aggregate multiplier', () => {
     assert.throws(() => calculateSettlement(100, 10,
       { outcome: 'loss', multiplier: 2 }), RangeError);
     assert.throws(() => calculateSettlement(100, 10,
