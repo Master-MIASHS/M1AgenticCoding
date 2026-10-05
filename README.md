@@ -180,6 +180,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | raphoulefoufou | raphoulefoufou | Capristo,Raphaël | création jeu de dés,test sur ces derniers |
 | camilhamdach5-byte | camilhamdach5-byte, Camil-Hamdach | Hamdach,Camil | Création de la logique des jeux Blackjack, Slots et Scratch.|
 | camseveyrat | camseveyrat - Camille | Seveyrat, Camille | règles et jeux : wheel + plinko |
+| fcassius | fcassius, Cassius FELIHO | FELIHO, Cassius | référent intégration / documentation du G2 : contrats G2 ↔ G1 / G3 / G4, cohérence des formats, mocks et fixtures, tests d'intégration |
 
 
 ### Groupe 3 — Rendu visuel
