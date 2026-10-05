@@ -196,6 +196,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | rayidahamada | rayidahamada | Rayid, Ahamada Rachid | Écran Statistiques (#21), intégration avec le Core (#69) |
 | Mamadoudahirousy | Mamadoudahirousy | Sy, Mamadou Dahirou | Écran Boutique G4-08 (#20, PR #103) : catalogue responsive temporaire, solde via `coreService`, états des articles et gestion du chargement, des erreurs et du catalogue vide. Proposition de contrat Core documentée ; achats en attente du raccordement Core. |
 | Kardiatou102 | Kardiatou.102 | BA Kardiatou | Intégration de l’architecture sur Git, développement de l’écran Progression, développement de l’écran Admin. |
+| LonaAdell | LonaAdell | ADELL, Lona | Lobby (écran hors jeu) G4-04 |
 
 ### Groupe 5 — Gestion de projet, tests unitaires et intégration
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
