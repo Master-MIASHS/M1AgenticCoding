@@ -169,6 +169,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | Itloow | Itloow, MJEKU OLTI | MJEKU, Olti | RNG et mélange (`rng.js` : tirages simples et pondérés, mélange, reproductibilité), contrat des cartes G1 ↔ G2 (#70) |
+| ahmed-abc73 | ahmed-abc73, Ahmed Bekakria | Bekakria, Ahmed | État partagé et API du Core (`state.js`, `core.js`, coordination de `coreService.js`), tests d’isolation de l’état et coordination des interfaces G1 |
 
 ### Groupe 2 — Jeu et règles du jeu
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
