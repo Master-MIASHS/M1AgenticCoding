@@ -191,7 +191,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 ### Groupe 4 — Architecture de l'application et composants annexes / Navigation
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
-| FlorientMarchal | FlorientMarchal, Florient Marchal | Marchal, Florient | Prompt d'initialisation de l'architecture (avec le groupe 4), écran Profil joueur (#18), écran Classement (#35) |
+| FlorientMarchal | FlorientMarchal, Florient Marchal | Marchal, Florient | Prompt d'initialisation de l'architecture (avec le groupe 4), écran Profil joueur (#18), écran Classement (#35), composants communs LevelBadge (#108), BalanceDisplay (#109) et GameCard (#110) |
 | rayidahamada | rayidahamada | Rayid, Ahamada Rachid | Écran Statistiques (#21), intégration avec le Core (#69) |
 
 ### Groupe 5 — Gestion de projet, tests unitaires et intégration
