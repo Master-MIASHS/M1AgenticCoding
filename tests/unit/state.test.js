@@ -87,5 +87,3 @@ describe('lecture de l’état du Core', () => {
     assert.deepStrictEqual(expected.history, []);
   });
 });
-
-});

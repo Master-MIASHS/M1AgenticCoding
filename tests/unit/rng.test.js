@@ -148,4 +148,3 @@ test('melanger() est reproductible avec la meme graine', () => {
 test('melanger() rejette une entree qui n\'est pas un tableau', () => {
   assert.throws(() => melanger('pas-un-tableau'));
 });
-});
