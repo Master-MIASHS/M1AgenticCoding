@@ -192,6 +192,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | FlorientMarchal | FlorientMarchal, Florient Marchal | Marchal, Florient | Prompt d'initialisation de l'architecture (avec le groupe 4), écran Profil joueur (#18), écran Classement (#35) |
+| rayidahamada | rayidahamada | Rayid, Ahamada Rachid | Écran Statistiques (#21), intégration avec le Core (#69) |
 
 ### Groupe 5 — Gestion de projet, tests unitaires et intégration
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
