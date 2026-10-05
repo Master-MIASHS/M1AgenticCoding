@@ -168,13 +168,14 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 ### Groupe 2 — Jeu et règles du jeu
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
-| | | | |
+| raphoulefoufou | raphoulefoufou | Capristo,Raphaël | création jeu de dés,test sur ces derniers |
 
 ### Groupe 3 — Rendu visuel
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | Donia-alfonsi | Alfonsi Donia | Alfonsi Donia | moteur de cartes partagé, constructeur de paquet |
 | Zelyx21 | Clem, Zelyx21 | Beaulieu, Clémentine | créer le socle commun, se coordiner avec les autres groupes |
+
 
 ### Groupe 4 — Architecture de l'application et composants annexes / Navigation
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
