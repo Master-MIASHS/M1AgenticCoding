@@ -28,19 +28,14 @@ Et **jamais** : `UI ──────────────► Core interne`.
 bruts de `roll()`.
 
 ## Stratégie de branches
-
-- `main` : branche stable, ne reçoit que des merges depuis `develop`
-  via Pull Request.
-- `develop` : branche d'intégration, reçoit les merges des branches de
-  feature via Pull Request. Jamais de push direct.
-- `setup/*` : branches d'infrastructure / architecture
-  (ex. `setup/architecture-initiale`).
-- `feat/<groupe>-<feature>` : branches de fonction, créées depuis `develop`.
-- `fix/<issue>` : branches de correction, créées depuis `develop`.
+- **Création :** Le skill `branch-creator` génère la branche de travail basée sur la dernière version de `main`.
+- **Développement :** Travail restreint uniquement au dossier assigné à votre groupe.
+- **Pull Request :** Une PR est ouverte vers `main` pour chaque fonctionnalité terminée.
+- **Validation :** La CI doit être verte (tests et build validés) et la PR approuvée avant que le merge vers `main` ne soit autorisé.
 
 ## Pull Requests
 
-- Chaque PR cible `develop` et décrit : ce qui change, quel groupe / dossier,
+- Chaque PR cible `main` et décrit : ce qui change, quel groupe / dossier,
   et quel contrat est impacté (le cas échéant).
 - Une PR ne doit **pas** modifier un dossier appartenant à un autre groupe
   (sauf via un contrat convenu).
@@ -55,13 +50,13 @@ bruts de `roll()`.
 - Si le contrat manque ou est insuffisant, **ne pas** importer des modules
   internes : ouvrir une discussion / issue pour faire évoluer le contrat.
 
+
+
 ## Gestion des conflits
 
-- Rebase (ou merge) la branche sur le `develop` à jour avant de demander une PR.
+- **Règle d'or avant PR :** Mettez toujours à jour votre branche localement avec les dernières modifications de `main` (via rebase ou merge) avant d'ouvrir la Pull Request.
 - Conflit dans son propre dossier : le résoudre soi-même.
-- Conflit sur un fichier partagé (ex. `coreService.js`, `core/core.js`) :
-  coordonner avec le groupe responsable. Ces fichiers sont des fichiers de
-  **contrat** : toute modification y est soumise à validation.
+- Conflit sur un fichier partagé (ex. `coreService.js`, `core/core.js`) : coordonner avec le groupe responsable. Ces fichiers sont des **contrats** : toute modification y est soumise à validation.
 
 ## Règles minimales avant merge
 

@@ -1,0 +1,83 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { calculateSettlement, getBalance, play } from './economy.js';
+
+describe('calculateSettlement', () => {
+  it('settles losses, returned stakes and wins with the stake included in payout', () => {
+    assert.deepEqual(calculateSettlement(100, 10, { outcome: 'loss', multiplier: 0 }),
+      { newBalance: 90, payout: 0, netGain: -10 });
+    assert.deepEqual(calculateSettlement(100, 10, { outcome: 'push', multiplier: 1 }),
+      { newBalance: 100, payout: 10, netGain: 0 });
+    assert.deepEqual(calculateSettlement(100, 10, { outcome: 'win', multiplier: 2 }),
+      { newBalance: 110, payout: 20, netGain: 10 });
+  });
+
+  it('supports a full-balance stake and fractional aggregate multipliers', () => {
+    assert.equal(calculateSettlement(100, 100, { outcome: 'loss', multiplier: 0 }).newBalance, 0);
+    assert.deepEqual(calculateSettlement(100, 20, { outcome: 'loss', multiplier: 0.5 }),
+      { newBalance: 90, payout: 10, netGain: -10 });
+  });
+
+  it('rejects invalid stakes without changing the shared balance', () => {
+    const before = getBalance();
+    for (const bet of [NaN, Infinity, -Infinity, '10', null, undefined]) {
+      assert.throws(() => calculateSettlement(100, bet, { outcome: 'win', multiplier: 2 }), TypeError);
+    }
+    for (const bet of [0, -1, 101]) {
+      assert.throws(() => calculateSettlement(100, bet, { outcome: 'win', multiplier: 2 }), RangeError);
+    }
+    assert.equal(getBalance(), before);
+  });
+
+  it('rejects invalid balances, results and multipliers', () => {
+    for (const balance of [NaN, Infinity, '100', null]) {
+      assert.throws(() => calculateSettlement(balance, 10, { outcome: 'win', multiplier: 2 }), TypeError);
+    }
+    assert.throws(() => calculateSettlement(-1, 10, { outcome: 'win', multiplier: 2 }), RangeError);
+    for (const result of [null, undefined, [], 'win', {}, { outcome: 'unknown', multiplier: 2 }]) {
+      assert.throws(() => calculateSettlement(100, 10, result), TypeError);
+    }
+    for (const multiplier of [NaN, Infinity, -Infinity, '2', null, undefined]) {
+      assert.throws(() => calculateSettlement(100, 10, { outcome: 'win', multiplier }), TypeError);
+    }
+    assert.throws(() => calculateSettlement(100, 10, { outcome: 'loss', multiplier: -1 }), RangeError);
+  });
+
+  it('rejects numeric overflow in payout and final balance', () => {
+    assert.throws(() => calculateSettlement(Number.MAX_VALUE, Number.MAX_VALUE,
+      { outcome: 'win', multiplier: 2 }), RangeError);
+    assert.throws(() => calculateSettlement(Number.MAX_VALUE, Number.MAX_VALUE / 2,
+      { outcome: 'win', multiplier: 2 }), RangeError);
+  });
+
+  it('does not inspect details or mutate inputs or shared state', () => {
+    const before = getBalance();
+    const result = Object.freeze({ outcome: 'win', multiplier: 2,
+      get details() { throw new Error('details must stay opaque'); } });
+    assert.equal(calculateSettlement(100, 10, result).newBalance, 110);
+    assert.equal(getBalance(), before);
+  });
+});
+
+describe('play', () => {
+  it('returns the settled balance for a loss, a push and a win', () => {
+    assert.deepEqual(play('slots', 100, { outcome: 'loss', multiplier: 0 }),
+      { newBalance: 900, xpGained: 10, leveledUp: false });
+    assert.deepEqual(play('slots', 100, { outcome: 'push', multiplier: 1 }),
+      { newBalance: 1000, xpGained: 10, leveledUp: false });
+    assert.deepEqual(play('slots', 100, { outcome: 'win', multiplier: 2 }),
+      { newBalance: 1100, xpGained: 10, leveledUp: false });
+  });
+
+  it('validates the bet and result through the settlement calculation', () => {
+    assert.throws(() => play('slots', 0, { outcome: 'loss', multiplier: 0 }), RangeError);
+    assert.throws(() => play('slots', 1001, { outcome: 'win', multiplier: 2 }), RangeError);
+    assert.throws(() => play('slots', 100, { outcome: 'unknown', multiplier: 2 }), TypeError);
+  });
+
+  it('does not mutate the shared balance before the state contract is available', () => {
+    const before = getBalance();
+    play('slots', 100, { outcome: 'win', multiplier: 2 });
+    assert.equal(getBalance(), before);
+  });
+});

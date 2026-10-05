@@ -1,16 +1,17 @@
-// Minimal main layout (skeleton). No business logic.
-function MainLayout({ children }) {
+import Navbar from '../components/Navbar/Navbar.jsx';
+import './MainLayout.css';
+
+// Shared G4 shell. The application supplies player data.
+function MainLayout({ children, player, currentPath = '/' }) {
   return (
     <div className="main-layout">
-      <header className="main-layout__header">
-        <span>Casino Fantôme</span>
-      </header>
-      <main className="main-layout__content">{children}</main>
-      <footer className="main-layout__footer">
-        <span>Front-end only - React + Vite + localStorage</span>
-      </footer>
+      <a className="skip-link" href="#main-content" onClick={(event) => {
+        event.preventDefault();
+        document.getElementById('main-content')?.focus();
+      }}>Aller au contenu</a>
+      <Navbar player={player} currentPath={currentPath} />
+      <main id="main-content" tabIndex={-1} className="main-layout__content">{children}</main>
     </div>
   );
 }
-
 export default MainLayout;
