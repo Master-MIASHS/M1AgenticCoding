@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  quality-gate:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,5 +20,26 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Lint check
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
       - name: Build project
         run: npm run build
+
+      - name: Check for forbidden patterns
+        run: |
+          echo "Checking for Math.random() outside of rng.js..."
+          # Search for Math.random() excluding files that should have it
+          if grep -r "Math.random()" . --exclude="*rng.js*" --exclude-dir=".github" --exclude-dir="node_modules"; then
+            echo "Error: Math.random() is forbidden. Use the Core RNG instead."
+            exit 1
+          fi
+          echo "Checking for 'var' keyword..."
+          if grep -r "\bvar\b" . --exclude-dir=".github" --exclude-dir="node_modules"; then
+            echo "Error: Use of 'var' is forbidden. Use 'const' or 'let' instead."
+            exit 1
+          fi
+          echo "All checks passed!"
