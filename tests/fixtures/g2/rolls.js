@@ -43,3 +43,31 @@ export function makeFixtureRoll(values) {
 
   return { roll, calls };
 }
+
+/**
+ * Crée un faux roll() qui rejoue des tirages bruts DÉJÀ mis en forme pour un
+ * jeu (segment de roue, index de case plinko...), tels qu'ils sortiront des
+ * primitives tirageAvecPoids / tirageEntier (contrat § 4.1, PR #115).
+ *
+ * Comment l'orchestrateur choisira la primitive d'un jeu est encore OUVERT
+ * (écart 8, #68) : cette fixture ne fait que court-circuiter ce choix.
+ *
+ * @param {unknown[]} draws tirages bruts à renvoyer tels quels, dans l'ordre
+ * @returns {{ roll: Function, calls: Array<{ gameId: string, params: any }> }}
+ */
+export function makeFixtureDraw(draws) {
+  const queue = [...draws];
+  const calls = [];
+
+  function roll(gameId, params) {
+    calls.push({ gameId, params });
+    if (queue.length === 0) {
+      throw new Error(
+        `fixture draw(): plus de tirage disponible (appel n°${calls.length} pour "${gameId}")`
+      );
+    }
+    return queue.shift();
+  }
+
+  return { roll, calls };
+}
