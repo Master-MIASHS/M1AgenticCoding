@@ -115,16 +115,13 @@ describe('G2 - montage plinko (#26) : orchestrateur + règles + Core', () => {
     });
   }
 
-  test(
-    'écart 9 : un multiplicateur fractionnaire se règle en jetons entiers sans erreur',
-    { todo: 'écart 9 (#68, #135) : outcome des règles calculé avant l\'arrondi du Core' },
-    () => {
-      // Mise 1 sur la case 1 (x0,5) : 0,5 jeton reversé. Les règles disent
-      // `loss` ; le Core arrondit à 1 jeton (net 0, donc `push`).
-      const { core } = makeTestCore([1]);
-      const game = createGame({ id: 'plinko', rules: plinkoRules, config: PLINKO_CONFIG, core });
-      const res = game.start([{ type: 'slot', amount: 1 }]);
-      assert.ok(Number.isInteger(res.renderPayload.economy.newBalance), 'solde en jetons entiers');
-    }
-  );
+  test('écart 9 (résolu, #135) : un multiplicateur fractionnaire se règle sans erreur', () => {
+    // Mise 1 sur la case 1 (x0,5) : les règles disent `loss` (multiplier < 1),
+    // ce que le Core accepte ; 0,5 jeton reversé, arrondi au centième (#135).
+    const { core } = makeTestCore([1]);
+    const game = createGame({ id: 'plinko', rules: plinkoRules, config: PLINKO_CONFIG, core });
+    const res = game.start([{ type: 'slot', amount: 1 }]);
+    assert.equal(res.gameResult.outcome, 'loss');
+    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE - 0.5);
+  });
 });
