@@ -11,6 +11,7 @@
 // ---------------------------------------------------------------------------
 
 import { GAMES } from './config/games.config.js';
+import { PLAYER_CONFIG } from './config/player.config.js';
 
 // Un nouveau joueur commence toujours au niveau 1 (schéma de casino_state).
 const NIVEAU_DE_DEPART = 1;
@@ -101,4 +102,50 @@ export function jeuxDeDepart(jeux = GAMES) {
     }
   }
   return liste.filter((jeu) => jeu.unlockLevel <= NIVEAU_DE_DEPART).map((jeu) => jeu.id);
+}
+
+/**
+ * Construit un nouveau joueur prêt à être enregistré dans l'état.
+ *
+ * Fonction pure : elle ne modifie ni l'état ni localStorage. Le joueur a la
+ * forme de `player` dans le schéma de casino_state (voir state.js).
+ *
+ * @param {{ pseudo: string, dateNaissance?: string|null }} infos - Informations
+ *   saisies par le joueur.
+ * @param {object} [options] - Dépendances injectables (tests, réglage admin).
+ * @param {{ capitalDeDepart: number }} [options.config] - Configuration du
+ *   joueur (PLAYER_CONFIG par défaut).
+ * @param {Object<string, { id: string, unlockLevel: number }>} [options.jeux] -
+ *   Jeux et niveaux de déblocage (GAMES par défaut).
+ * @param {Date} [options.maintenant] - Date du jour, pour valider la date de
+ *   naissance.
+ * @returns {{ pseudo: string, birthDate: string|null, balance: number,
+ *   bestBalance: number, xp: number, level: number, unlockedGames: string[],
+ *   role: 'player' }} Le nouveau joueur (nouvel objet à chaque appel).
+ * @throws {Error} Si les informations ou la configuration sont invalides.
+ */
+export function creerJoueur(
+  infos,
+  { config = PLAYER_CONFIG, jeux = GAMES, maintenant = new Date() } = {},
+) {
+  if (infos === null || typeof infos !== 'object') {
+    throw new Error('creerJoueur : les informations du joueur doivent être un objet');
+  }
+  // Un capital nul ou négatif bloquerait le joueur dès le départ, ce
+  // qu'interdit l'invariant « un joueur n'est jamais bloqué » (AGENTS.md).
+  const capital = config?.capitalDeDepart;
+  if (typeof capital !== 'number' || !Number.isFinite(capital) || capital <= 0) {
+    throw new Error('creerJoueur : le capital de départ doit être un nombre fini strictement positif');
+  }
+
+  return {
+    pseudo: validerPseudo(infos.pseudo),
+    birthDate: validerDateNaissance(infos.dateNaissance, maintenant),
+    balance: capital,
+    bestBalance: capital,
+    xp: 0,
+    level: NIVEAU_DE_DEPART,
+    unlockedGames: jeuxDeDepart(jeux),
+    role: 'player',
+  };
 }

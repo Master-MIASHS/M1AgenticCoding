@@ -4,7 +4,12 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { PLAYER_CONFIG } from '../../src/core/config/player.config.js';
-import { validerPseudo, validerDateNaissance, jeuxDeDepart } from '../../src/core/player.js';
+import {
+  validerPseudo,
+  validerDateNaissance,
+  jeuxDeDepart,
+  creerJoueur,
+} from '../../src/core/player.js';
 
 describe('player.config', () => {
   it('fournit un capital de départ de 1000 par défaut', () => {
@@ -92,5 +97,57 @@ describe('jeuxDeDepart', () => {
     for (const jeux of invalides) {
       assert.throws(() => jeuxDeDepart(jeux), /jeux/);
     }
+  });
+});
+
+describe('creerJoueur', () => {
+  const maintenant = new Date('2026-10-05T12:00:00Z');
+
+  it('construit un joueur complet avec le capital de la configuration', () => {
+    const joueur = creerJoueur({ pseudo: '  alice ', dateNaissance: '2000-05-17' }, { maintenant });
+    assert.deepStrictEqual(joueur, {
+      pseudo: 'alice',
+      birthDate: '2000-05-17',
+      balance: 1000,
+      bestBalance: 1000,
+      xp: 0,
+      level: 1,
+      unlockedGames: ['slots', 'dice'],
+      role: 'player',
+    });
+  });
+
+  it('accepte un joueur sans date de naissance', () => {
+    assert.strictEqual(creerJoueur({ pseudo: 'bob' }, { maintenant }).birthDate, null);
+  });
+
+  it('utilise un capital de départ injecté (réglage admin)', () => {
+    const joueur = creerJoueur({ pseudo: 'bob' }, { config: { capitalDeDepart: 500 }, maintenant });
+    assert.strictEqual(joueur.balance, 500);
+    assert.strictEqual(joueur.bestBalance, 500);
+  });
+
+  it('rejette un capital de départ invalide', () => {
+    for (const capitalDeDepart of [0, -10, NaN, Infinity, '1000', undefined]) {
+      assert.throws(
+        () => creerJoueur({ pseudo: 'bob' }, { config: { capitalDeDepart }, maintenant }),
+        /capital/,
+      );
+    }
+  });
+
+  it('rejette des informations invalides', () => {
+    assert.throws(() => creerJoueur(null, { maintenant }), /informations/);
+    assert.throws(() => creerJoueur({ pseudo: '  ' }, { maintenant }), /pseudo/);
+    assert.throws(() => creerJoueur({ pseudo: 'bob', dateNaissance: '2099-01-01' }, { maintenant }), /date/);
+  });
+
+  it('renvoie des objets indépendants à chaque appel', () => {
+    const premier = creerJoueur({ pseudo: 'bob' }, { maintenant });
+    premier.unlockedGames.push('poker');
+    premier.balance = 0;
+    const second = creerJoueur({ pseudo: 'bob' }, { maintenant });
+    assert.deepStrictEqual(second.unlockedGames, ['slots', 'dice']);
+    assert.strictEqual(second.balance, 1000);
   });
 });
