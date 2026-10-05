@@ -15,19 +15,20 @@ const profileLinks = [
 const numberFormat = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
 
 function Navbar({ player, currentPath = '/' }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileOpenPath, setMobileOpenPath] = useState(null);
+  const [profileOpenPath, setProfileOpenPath] = useState(null);
   const headerRef = useRef(null);
   const profileRef = useRef(null);
   const profileButtonRef = useRef(null);
   const mobileButtonRef = useRef(null);
-  const closeMenus = () => { setMobileOpen(false); setProfileOpen(false); };
+  const mobileOpen = mobileOpenPath === currentPath;
+  const profileOpen = profileOpenPath === currentPath;
+  const closeMenus = () => { setMobileOpenPath(null); setProfileOpenPath(null); };
 
-  useEffect(() => { setMobileOpen(false); setProfileOpen(false); }, [currentPath]);
   useEffect(() => {
     function dismiss(event) {
-      if (!profileRef.current?.contains(event.target)) setProfileOpen(false);
-      if (!headerRef.current?.contains(event.target)) setMobileOpen(false);
+      if (!profileRef.current?.contains(event.target)) setProfileOpenPath(null);
+      if (!headerRef.current?.contains(event.target)) setMobileOpenPath(null);
     }
     document.addEventListener('pointerdown', dismiss);
     return () => document.removeEventListener('pointerdown', dismiss);
@@ -36,10 +37,10 @@ function Navbar({ player, currentPath = '/' }) {
   function handleKeyDown(event) {
     if (event.key !== 'Escape') return;
     if (profileOpen) {
-      setProfileOpen(false);
+      setProfileOpenPath(null);
       profileButtonRef.current?.focus();
     } else if (mobileOpen) {
-      setMobileOpen(false);
+      setMobileOpenPath(null);
       mobileButtonRef.current?.focus();
     }
   }
@@ -61,7 +62,10 @@ function Navbar({ player, currentPath = '/' }) {
         <button className="navbar__toggle" type="button" ref={mobileButtonRef}
           aria-expanded={mobileOpen} aria-controls="navbar-navigation"
           aria-label={mobileOpen ? 'Fermer la navigation' : 'Ouvrir la navigation'}
-          onClick={() => { setMobileOpen(!mobileOpen); setProfileOpen(false); }}>
+          onClick={() => {
+            setMobileOpenPath(mobileOpen ? null : currentPath);
+            setProfileOpenPath(null);
+          }}>
           <span aria-hidden="true">{mobileOpen ? '✕' : '☰'}</span>
         </button>
         <div id="navbar-navigation" className={'navbar__navigation' + (mobileOpen ? ' navbar__navigation--open' : '')}>
@@ -72,11 +76,11 @@ function Navbar({ player, currentPath = '/' }) {
               <span aria-hidden="true">⭐</span> Niv. {player?.level ?? '—'}
             </span>
             <div className="navbar__profile" ref={profileRef} onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) setProfileOpen(false);
+              if (!event.currentTarget.contains(event.relatedTarget)) setProfileOpenPath(null);
             }}>
               <button ref={profileButtonRef} className="navbar__profile-button" type="button"
                 aria-expanded={profileOpen} aria-controls="navbar-profile-links"
-                aria-label="Profil du joueur" onClick={() => setProfileOpen(!profileOpen)}>
+                aria-label="Profil du joueur" onClick={() => setProfileOpenPath(profileOpen ? null : currentPath)}>
                 <span aria-hidden="true">👤</span><span>Profil</span><span aria-hidden="true">⌄</span>
               </button>
               <nav id="navbar-profile-links" className="navbar__dropdown" aria-label="Espace joueur" hidden={!profileOpen}>
