@@ -195,6 +195,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | FlorientMarchal | FlorientMarchal, Florient Marchal | Marchal, Florient | Prompt d'initialisation de l'architecture (avec le groupe 4), écran Profil joueur (#18), écran Classement (#35), composants communs LevelBadge (#108), BalanceDisplay (#109) et GameCard (#110) |
 | rayidahamada | rayidahamada | Rayid, Ahamada Rachid | Écran Statistiques (#21), intégration avec le Core (#69) |
 | Mamadoudahirousy | Mamadoudahirousy | Sy, Mamadou Dahirou | Écran Boutique G4-08 (#20, PR #103) : catalogue responsive temporaire, solde via `coreService`, états des articles et gestion du chargement, des erreurs et du catalogue vide. Proposition de contrat Core documentée ; achats en attente du raccordement Core. |
+| Kardiatou102 | Kardiatou.102 | BA Kardiatou | Intégration de l’architecture sur Git, développement de l’écran Progression, développement de l’écran Admin. |
 
 ### Groupe 5 — Gestion de projet, tests unitaires et intégration
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
