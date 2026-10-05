@@ -202,7 +202,27 @@ Le Groupe 1 développe le **Core Engine**, le moteur du casino, en JavaScript pu
 | LonaAdell | LonaAdell | ADELL, Lona | Lobby (écran hors jeu) G4-04 |
 | stacytrocellier48-ux | stacytrocellier48-ux, Stacy Trocellier | Trocellier, Stacy | Prompt d'initialisation de l'architecture (avec le groupe 4), développement de Navbar et MainLayout (#74), du composant XPBar (#77) et des composants Modal, Notification et Loader (#78), avec documentation et tests associés |
 
+
+
+
+
 ### Groupe 5 — Gestion de projet, tests unitaires et intégration
+
+Le Groupe 5 est l'équipe transverse garante de la stabilité du dépôt, de l'alignement architectural et de la qualité du code produit par l'ensemble des groupes.
+
+### Périmètre d'Intervention & Responsabilités
+
+* **Organisation & Pilotage :** Animation transverse, priorisation du Kanban sur GitHub Projects, gestion des labels, Definition of Ready/Done et arbitrage des dépendances inter-groupes.
+* **Gouvernance Git & Releases :** Protection stricte de `main` (pas de push direct, PR avec 2 approbations obligatoires), abandon de `develop`, gestion des conflits, conventions Conventional Commits et gestion des releases (SemVer, tags).
+* **DevOps & CI/CD :** Maintenance du pipeline GitHub Actions (`ci.yml` : lint, tests, build), mise en place des *quality gates* bloquants, correction des workflows défaillants et gestion du déploiement continu.
+* **Gouvernance des Agents & Architecture :** Rédaction et maintenance de `AGENTS.md` et `.agents/skills/`. Contrôle des règles absolues du projet :
+  * Bannissement strict de `Math.random()` au profit exclusif de `src/core/rng.js`.
+  * Accès au Core uniquement via la façade officielle `src/services/coreService.js`.
+  * Immutabilité de l'état partagé et fonctions pures pour les règles de jeux.
+* **Validation des Contrats & Code Review :** Relecture systématique des PRs (gatekeeping), contrôle strict du périmètre (*anti-scope creep*), et vérification de la conformité des interfaces (G1 Core ↔ G2 Moteur ↔ G3 UI ↔ G4 App).
+* **Assurance Qualité (QA) & Tests :** Tests avec `node --test`, tests statiques d'architecture (détection des imports illicites et du faux aléatoire), vérification des contrats via fixtures déterministes, validation de la cohérence mathématique des jeux et recette avant release.
+
+
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | Anthony253400 | Anthony Miranda | Miranda Anthony | Git manager|
