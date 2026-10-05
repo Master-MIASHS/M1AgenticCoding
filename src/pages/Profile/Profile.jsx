@@ -147,7 +147,7 @@ function UnlockedGames({ games }) {
 
 function HistoryList({ history }) {
   if (history.length === 0) {
-    return <p className="profile__empty">Aucune partie jouée pour l'instant.</p>;
+    return <p className="profile__empty">Aucune partie jouée pour l&apos;instant.</p>;
   }
   return (
     <ul className="profile__history">
