@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 
 export { getState } from './state.js';
-export { roll } from './rng.js';
+export { roll, tirageEntier, tirageAvecPoids, melanger } from './rng.js';
 export { play, getBalance, claimDailyBonus, requestLoan } from './economy.js';
 export {
   addXP,
