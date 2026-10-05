@@ -197,6 +197,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | Mamadoudahirousy | Mamadoudahirousy | Sy, Mamadou Dahirou | Écran Boutique G4-08 (#20, PR #103) : catalogue responsive temporaire, solde via `coreService`, états des articles et gestion du chargement, des erreurs et du catalogue vide. Proposition de contrat Core documentée ; achats en attente du raccordement Core. |
 | Kardiatou102 | Kardiatou102 | BA,  Kardiatou | Intégration de l’architecture sur Git, développement de l’écran Progression, développement de l’écran Admin. |
 | LonaAdell | LonaAdell | ADELL, Lona | Lobby (écran hors jeu) G4-04 |
+| stacytrocellier48-ux | stacytrocellier48-ux, Stacy Trocellier | Trocellier, Stacy | Prompt d'initialisation de l'architecture (avec le groupe 4), développement de Navbar et MainLayout (#74), du composant XPBar (#77) et des composants Modal, Notification et Loader (#78), avec documentation et tests associés |
 
 ### Groupe 5 — Gestion de projet, tests unitaires et intégration
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
