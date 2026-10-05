@@ -192,6 +192,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | FlorientMarchal | FlorientMarchal, Florient Marchal | Marchal, Florient | Prompt d'initialisation de l'architecture (avec le groupe 4), écran Profil joueur (#18), écran Classement (#35) |
+| Mamadoudahirousy | Mamadoudahirousy | Sy, Mamadou Dahirou | G4-08 — Boutique, issue #20, PR #103. Écran responsive, catalogue temporaire, solde via `coreService` et gestion des états UI. Proposition de contrat Core documentée ; achats en attente du raccordement Core. |
 
 ### Groupe 5 — Gestion de projet, tests unitaires et intégration
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
