@@ -8,7 +8,6 @@ jobs:
   link-issue:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       pull-requests: write
     steps:
       - name: Checkout repository
@@ -23,8 +22,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          ISSUE_REGEX='#([0-9]+)'
-          if [[ "$PR_TITLE" =~ $ISSUE_REGEX ]]; then
+          if [[ "$PR_TITLE" =~ #([0-9]+) ]]; then
             ISSUE_NUM="${BASH_REMATCH[1]}"
             if ! grep -iqE "(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved) #$ISSUE_NUM" <<< "$PR_BODY"; then
               echo "Ajout du lien automatique vers l'issue #$ISSUE_NUM"
