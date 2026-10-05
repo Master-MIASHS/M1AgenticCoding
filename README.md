@@ -192,3 +192,4 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | :--- | :--- | :--- | :--- |
 | Anthony253400 | Anthony Miranda | Miranda Anthony | Git manager|
 | Nina253 | Nina | Valentin Nina | mise en place de la CI, configuration du linter (ESLint/Prettier) et validation des règles d'architecture et des PR |
+| noahchrgs | noahchrgs | Chayrigues Noah | Skills agent developers|
