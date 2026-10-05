@@ -186,3 +186,4 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | Anthony253400 | Anthony Miranda | Miranda Anthony | Git manager|
+| Nina253 | Nina | Valentin Nina | mise en place de la CI, configuration du linter (ESLint/Prettier) et validation des règles d'architecture et des PR |
