@@ -1,0 +1,9 @@
+﻿.ui-notification { display: flex; align-items: flex-start; gap: 1rem; padding: var(--space-3, 1rem); color: var(--color-text, #eee); background: var(--color-surface, #20202b); border: 1px solid var(--color-border, #555); border-left: 4px solid #86b7ff; border-radius: var(--radius-sm, 0.5rem); }
+.ui-notification--success { border-left-color: #74d99a; }
+.ui-notification--warning { border-left-color: #ffcc66; }
+.ui-notification--error { border-left-color: #ff8b8b; }
+.ui-notification__message { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ui-notification__message strong { display: block; margin-bottom: 0.25rem; }
+.ui-notification__close { flex-shrink: 0; min-width: 2.75rem; min-height: 2.75rem; font: inherit; color: inherit; background: transparent; border: 1px solid var(--color-border, #555); border-radius: 0.25rem; cursor: pointer; }
+.ui-notification__close:focus-visible { outline: 2px solid var(--color-accent, #ffcc66); outline-offset: 3px; }
+
