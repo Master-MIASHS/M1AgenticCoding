@@ -28,3 +28,6 @@ Thumbs.db
 
 # Tests
 coverage/
+
+# Local agent orchestration state (sessions, tracking) — never shared
+.omc/
