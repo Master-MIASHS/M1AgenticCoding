@@ -98,6 +98,12 @@ des résultats **bruts** : elles ne déterminent jamais si le joueur gagne ou pe
 Clé principale : `casino_state`. Le schéma complet est documenté dans
 `src/core/state.js`.
 
+`importSave()` valide la version, la forme des données et le hash avant de
+restaurer l'état en mémoire et dans `casino_state`. Une sauvegarde invalide ou
+une erreur d'écriture laisse l'état en mémoire inchangé. Le hash FNV-1a est le
+standard retenu pour le contrôle d'intégrité non cryptographique : il détecte
+une sauvegarde abîmée, pas la triche.
+
 ### Arborescence
 
 ```
