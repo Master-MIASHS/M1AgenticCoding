@@ -187,7 +187,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | Zozote | Enzo Nguyen | Nguyen Enzo | UI, composants communs, review |
-| | | | |
+| Bahar487 | Bahar487, Bahar | ALI BAHAR, Ali | Responsable du groupe 3 (rendu visuel), composants communs et jeux (BetPanel, slots, roulette) |
 
 ### Groupe 4 — Architecture de l'application et composants annexes / Navigation
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
