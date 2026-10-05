@@ -1,20 +1,17 @@
-﻿# Modal
+# Modal
 
 ```jsx
-import Modal from '../../components/Modal/Modal.jsx';
-
-<Modal isOpen={open} onClose={() => setOpen(false)} title="Confirmer">
-  <p>Votre contenu ici.</p>
-  <button type="button" onClick={confirm}>Confirmer</button>
+<Modal isOpen={open} onClose={() => setOpen(false)} title="Résultat"
+  variant="success" footer={<button type="button" onClick={() => setOpen(false)}>Continuer</button>}>
+  <p>Contenu du résultat.</p>
 </Modal>
 ```
 
-Props : isOpen (boolean), onClose (fonction obligatoire), title (titre obligatoire),
-children (contenu React), closeOnBackdrop (boolean, false par défaut).
-Le parent contrôle l'ouverture et doit passer isOpen à false dans onClose.
-Escape et le bouton de fermeture appellent onClose. Le dialog natif confine le
-focus et le composant restaure le focus précédent à la fermeture.
-Utiliser des boutons type="button" ; éviter form method="dialog" qui contourne
-l'état contrôlé. Pour un focus initial particulier, utiliser autoFocus sur un
-contrôle du contenu. Navigateurs modernes avec HTMLDialogElement requis.
-Aucun service appelé ; hooks : useEffect, useRef, useId.
+Importer Modal depuis `src/components/Modal/Modal.jsx`.
+Props : `isOpen`, `title`, `children`, `onClose`, `footer` facultatif,
+`variant` : neutral (défaut), success ou error ; `closeOnBackdrop` : false par défaut.
+Le parent doit fermer la modale dans onClose. Sans callback valide, les demandes
+fermeture sont ignorées. Escape et bouton demandent la fermeture. Le dialog natif
+confine le focus ; il est restauré à la fermeture. Utiliser des boutons type="button"
+et éviter form method="dialog", qui contourne l'état contrôlé.
+Styles partagés : importer les variables du projet dans l'application.

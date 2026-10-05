@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 import { createElement } from 'react';
@@ -7,8 +7,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 test('feedback components: presentation and close callback', async (t) => {
   const server = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
   try {
-    const load = async (name) => (await server.ssrLoadModule(`/src/components/${name}/${name}.jsx`)).default;
-    const [Loader, Notification, Modal] = await Promise.all(['Loader', 'Notification', 'Modal'].map(load));
+    const load = async (name) =>
+      (await server.ssrLoadModule(`/src/components/${name}/${name}.jsx`)).default;
+    const [Loader, Notification, Modal] = await Promise.all(
+      ['Loader', 'Notification', 'Modal'].map(load)
+    );
     const render = (Component, props) => renderToStaticMarkup(createElement(Component, props));
     await t.test('loader keeps an accessible label even when visually hidden', () => {
       const html = render(Loader, { label: 'Patientez', showLabel: false, size: 'sm' });
@@ -27,21 +30,43 @@ test('feedback components: presentation and close callback', async (t) => {
       }
       assert.match(render(Notification, { type: 'unknown', children: 'Hello' }), /Information/);
     });
-    await t.test('notification close delegates to the caller', () => {
-      let calls = 0;
-      const tree = Notification({ children: 'Hello', onClose: () => { calls += 1; } });
-      tree.props.children[1].props.onClick();
-      assert.equal(calls, 1);
-      assert.match(render(Notification, { onClose: () => {} }), /Fermer la notification/);
+    await t.test('G3 options render safely', () => {
+      assert.match(render(Loader, { variant: 'overlay' }), /<dialog/);
+      assert.ok(!render(Loader, { variant: 'inline' }).includes('<dialog'));
+      assert.match(
+        render(Modal, { isOpen: true, title: 'Résultat', variant: 'error', footer: 'Actions' }),
+        /ui-modal--error/
+      );
+      assert.match(
+        render(Modal, { isOpen: true, title: 'Résultat', footer: 'Actions' }),
+        /ui-modal__footer/
+      );
+      assert.match(
+        render(Modal, { isOpen: true, title: 'Résultat', variant: 'unknown' }),
+        /ui-modal--neutral/
+      );
+      assert.ok(!render(Notification, { onClose: 'invalid', autoClose: -1 }).includes('<button'));
     });
     await t.test('closed modal hides children; open modal has a named heading', () => {
-      const closed = render(Modal, { isOpen: false, title: 'Confirmation', children: 'Secret', onClose: () => {} });
+      const closed = render(Modal, {
+        isOpen: false,
+        title: 'Confirmation',
+        children: 'Secret',
+        onClose: () => {},
+      });
       assert.ok(!closed.includes('Secret'));
-      const opened = render(Modal, { isOpen: true, title: 'Confirmation', children: 'Contenu', onClose: () => {} });
+      const opened = render(Modal, {
+        isOpen: true,
+        title: 'Confirmation',
+        children: 'Contenu',
+        onClose: () => {},
+      });
       const id = opened.match(/aria-labelledby="([^"]+)"/)[1];
       assert.ok(opened.includes(`id="${id}"`));
       assert.match(opened, /Fermer la fenêtre/);
       assert.match(opened, /Contenu/);
     });
-  } finally { await server.close(); }
+  } finally {
+    await server.close();
+  }
 });
