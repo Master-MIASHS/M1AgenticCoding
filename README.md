@@ -178,7 +178,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 | Donia-alfonsi | Alfonsi Donia | Alfonsi Donia | moteur de cartes partagé, constructeur de paquet |
 | Zelyx21 | Clem, Zelyx21 | Beaulieu, Clémentine | créer le socle commun, se coordiner avec les autres groupes |
 | raphoulefoufou | raphoulefoufou | Capristo,Raphaël | création jeu de dés,test sur ces derniers |
-| Camil-Hamdach | camilhamdach5-byte | Hamdach,Camil | Création de la logique des jeux Blackjack, Slots et Scratch.|
+| camilhamdach5-byte | camilhamdach5-byte, Camil-Hamdach | Hamdach,Camil | Création de la logique des jeux Blackjack, Slots et Scratch.|
 
 ### Groupe 3 — Rendu visuel
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
