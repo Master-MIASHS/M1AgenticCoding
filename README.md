@@ -173,7 +173,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 ### Groupe 3 — Rendu visuel
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
-| | | | |
+| Donia-alfonsi | Alfonsi Donia | Alfonsi Donia | moteur de cartes partagé, constructeur de paquet |
 
 ### Groupe 4 — Architecture de l'application et composants annexes / Navigation
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
