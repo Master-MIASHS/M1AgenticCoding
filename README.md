@@ -187,7 +187,7 @@ d'interface graphique avancée, pas de bibliothèques inutiles.
 ### Groupe 4 — Architecture de l'application et composants annexes / Navigation
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
-| | | | |
+| FlorientMarchal | FlorientMarchal, Florient Marchal | Marchal, Florient | Écran Profil joueur (#18), écran Classement (#35) |
 
 ### Groupe 5 — Gestion de projet, tests unitaires et intégration
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
