@@ -22,3 +22,4 @@ export {
 } from './progression.js';
 export { setGameConfig, getGlobalStats } from './config/games.config.js';
 export { exportSave, importSave } from './storage.js';
+export { creerProfil } from './player.js';

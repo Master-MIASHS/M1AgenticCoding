@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { creerProfil } from '../../src/core/player.js';
+import * as coreService from '../../src/services/coreService.js';
 
 const MAINTENANT = new Date('2026-10-06T12:00:00Z');
 
@@ -94,5 +95,15 @@ describe('creerProfil : ne jamais écraser une partie', () => {
       /meilleur solde/,
     );
     assert.strictEqual(stockage.ecritures(), 0);
+  });
+});
+
+describe('creerProfil via coreService (vrai état du Core)', () => {
+  it('crée le profil et rend le pseudo lisible dans getState()', () => {
+    assert.strictEqual(typeof coreService.creerProfil, 'function');
+    const etat = coreService.creerProfil({ pseudo: 'olti' });
+    assert.strictEqual(etat.pseudo, 'olti');
+    assert.strictEqual(coreService.getState().pseudo, 'olti');
+    assert.throws(() => coreService.creerProfil({ pseudo: 'autre' }), /profil existe déjà/);
   });
 });
