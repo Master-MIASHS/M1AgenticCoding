@@ -168,8 +168,40 @@ Les skills sont dans le dossier `.agents/skills/` . N'ouvre une skill **que** si
 
 | Skill | Quand l'utiliser |
 |---|---|
-| `branch-creator` | Créer n'importe quelle branche |
-<!-- G5 : ajouter une ligne à chaque skill mergée -->
+| `branch-creator` | Créer n'importe quelle branche (obligatoire avant de développer une feature) |
+| `flux-git-et-versionnement` | Avant une branche, un commit ou une PR : format strict des commits, hygiène pré-commit |
+| `expert-git-commit-push` | Préparer le staging, le message de commit et le push d'une branche |
+| `ci-cd-et-automatisation` | Quality Gate (`npm ci`, lint, test, build), échec CI, modification d'un workflow |
+| `dev-par-les-tests` | Nouvelle logique métier ou correctif dans `src/core/` ou `src/services/` (TDD) |
+| `expert-tests-node` | Écrire ou revoir des tests unitaires avec le runner natif `node --test` |
+| `flaky-test-detector` | Test instable ou CI intermittente (G5) |
+| `bugfix` | Corriger un bug à partir d'une issue GitHub (reproduire d'abord) |
+| `feat-dev` | Implémenter une feature non triviale (conception, plan de tests, audit) |
+| `expert-javascript` | Logique métier JavaScript pure, asynchrone, refactorisation de modules |
+| `expert-react` | Création ou refactorisation de composants React (UI sans logique métier) |
+| `expert-vite` | Modifier `vite.config.js` ou les variables d'environnement |
+| `expert-securite-frontend` | Revue de sécurité front : XSS, stockage local, validation des entrées |
+| `frontend-design` | Direction visuelle, typographie et refonte d'interface |
+| `composants-communs-g4` | Afficher niveau, solde, XP, carte de jeu, modale, notification, loader, en-tête joueur ou sidebar (G3,G4) |
+| `game-ui` | Interface des jeux dans `src/game-ui/` : affichage, animations, états visuels (G3) |
+| `architecte-integration` | Tâche touchant une frontière entre groupes, l'API publique du Core ou un contrat (avant PR) |
+| `changelog-generator` | Compiler les PR mergées en changelog avant une release (G5) |
+| `audit-activite-projet` | Audit en lecture seule de l'activité GitHub d'un utilisateur ou du projet (G5) |
+| `ingenierie-ui-frontend` | Créer ou modifier un composant React : séparation UI/métier via `coreService.js`, hooks, cleanup |
+| `utiliser-core` | Lire l'état, tirer du hasard (RNG) ou exporter/importer une sauvegarde via coreService (G2, G3, G4) |
+| `jeux-g2` | Lancer une partie, afficher un gameResult/renderPayload, ou brancher un jeu dans `src/games/` |
+| `pages-et-routage-g4` | Ajouter une page ou un lien, pointer vers `/game/:gameId`, lire les données du joueur (G4) |
+| `jsdoc-et-documentation` | Documenter en JSDoc les fonctions de `src/core/` et `src/services/` |
+| `systematic-debugging` | Bug, test en échec ou comportement inattendu : cause racine avant tout correctif |
+| `verification-before-completion` | Avant d'affirmer qu'une tâche est finie ou que les tests passent : exécuter et lire les preuves |
+| `prepare-pr` | Rédiger le titre et le corps de la PR depuis le diff de la branche |
+| `pr-checklist` | Vérifier la « Définition de terminé » juste avant d'ouvrir une PR |
+| `requesting-code-review` | Demander une relecture (fin de tâche, avant merge) via un sous-agent relecteur |
+| `receiving-code-review` | Traiter les retours d'une relecture : vérifier avant d'implémenter, contester si besoin |
+| `relecture-et-qualite` | Relire une PR : 4 axes d'analyse, code mort, classement [CRITIQUE]/[REQUIS]/[SUGGESTION] |
+| `resolving-merge-conflicts` | Résoudre un conflit de merge ou de rebase en cours |
+| `test-coverage-report` | Bilan de couverture de tests par groupe avant une release (G5) |
+| `skills-structure-validator` | Valider l'arborescence et le frontmatter des skills lors d'une PR de skill (G5) |
 
 Si une skill nécessaire n'existe pas, ne l'invente pas en cours de tâche : signale le manque dans la PR.
 
