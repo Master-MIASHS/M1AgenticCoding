@@ -13,6 +13,7 @@
 // ---------------------------------------------------------------------------
 
 import { SHOP_CONFIG } from './config/shop.config.js';
+import { getState, updateState } from './state.js';
 
 const CHAMPS_TEXTE = ['name', 'description', 'category'];
 
@@ -175,4 +176,37 @@ export function createShop(stockage, { catalogue = SHOP_CONFIG.catalogue } = {})
       };
     },
   };
+}
+
+// Boutique du joueur, branchée sur l'état réel du Core : ce sont ces trois
+// opérations qu'exposent core.js et coreService (contrat proposé par le G4,
+// src/pages/Shop/SHOP_CORE_CONTRACT.md).
+const boutiqueDuCore = createShop({ getState, updateState });
+
+/**
+ * Renvoie le catalogue de la boutique (lu dans config/shop.config.js).
+ * @returns {Array<object>} Copie indépendante des articles.
+ */
+export function getShopCatalog() {
+  return boutiqueDuCore.getShopCatalog();
+}
+
+/**
+ * Renvoie l'inventaire du joueur courant.
+ * @returns {{ ownedItemIds: string[] }} Copie indépendante de l'inventaire.
+ * @throws {Error} Si l'inventaire de l'état est corrompu.
+ */
+export function getShopInventory() {
+  return boutiqueDuCore.getShopInventory();
+}
+
+/**
+ * Tente d'acheter un article avec les jetons fictifs du joueur courant.
+ * @param {string} itemId - Identifiant de l'article demandé.
+ * @returns {{ status: string, itemId: *, balance: number, message?: string }}
+ *   Résultat de l'achat (voir createShop).
+ * @throws {Error} Si l'écriture dans l'état échoue (aucun achat annoncé).
+ */
+export function purchaseShopItem(itemId) {
+  return boutiqueDuCore.purchaseShopItem(itemId);
 }
