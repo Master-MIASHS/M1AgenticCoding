@@ -86,7 +86,7 @@ des valeurs cohérentes mais fictives :
 | `core/economy.js` | `play()`, `getBalance()`, `claimDailyBonus()`, `requestLoan()` |
 | `core/progression.js` | `addXP()`, `getLevel()`, `getUnlockedGames()`, `getLeaderboard()`, `getHistory()` |
 | `core/config/games.config.js` | 10 jeux + niveaux de déblocage, `setGameConfig()`, `getGlobalStats()` |
-| `core/storage.js` | `exportSave()`, `importSave()` (hash placeholder documenté) |
+| `core/storage.js` | `exportSave()`, `importSave()` (hash FNV-1a : standard retenu pour le contrôle d'intégrité non cryptographique) |
 | `core/core.js` | **API publique** du Core (ré-exports) |
 
 **Règle absolue du RNG :** `rng.js` est la seule source de hasard. Aucun fichier
@@ -97,6 +97,12 @@ des résultats **bruts** : elles ne déterminent jamais si le joueur gagne ou pe
 
 Clé principale : `casino_state`. Le schéma complet est documenté dans
 `src/core/state.js`.
+
+`importSave()` valide la version, la forme des données et le hash avant de
+restaurer l'état en mémoire et dans `casino_state`. Une sauvegarde invalide ou
+une erreur d'écriture laisse l'état en mémoire inchangé. Le hash FNV-1a est le
+standard retenu pour le contrôle d'intégrité non cryptographique : il détecte
+une sauvegarde abîmée, pas la triche.
 
 ### Arborescence
 
@@ -133,7 +139,6 @@ Ces points sont **volontairement laissés ouverts** et seront tranchés par l'é
   - responsabilités de l'IA
   - éventuelle stratégie locale / offline
 - **Hash de sauvegarde**
-  - algorithme définitif (actuellement un placeholder FNV-1a documenté)
   - gestion de l'intégrité
   - format définitif du fichier de sauvegarde
 - **Routing**
