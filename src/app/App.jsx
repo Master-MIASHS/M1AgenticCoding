@@ -13,6 +13,7 @@ import NotFound from '../pages/NotFound/NotFound.jsx';
 // Temporary hash navigation supports GitHub Pages without server rewrites.
 // Replace this adapter when the team chooses its routing library.
 const getPath = () => window.location.hash.slice(1) || '/';
+const GAME_PREFIX = '/game/';
 const pages = {
   '/': Lobby,
   '/leaderboard': Leaderboard,
@@ -32,7 +33,9 @@ function App() {
 
   const player = getState();
   // Game screens remain outside the G4 shell; their bar will be added later.
-  if (path.startsWith('/game/')) return <GamePage />;
+  if (path.startsWith(GAME_PREFIX)) {
+    return <GamePage gameId={path.slice(GAME_PREFIX.length).split('/')[0]} />;
+  }
 
   const Page = pages[path] ?? NotFound;
   return (
