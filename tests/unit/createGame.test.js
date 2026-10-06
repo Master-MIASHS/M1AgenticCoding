@@ -287,6 +287,63 @@ test('config is forwarded as-is to resolve() and start()', () => {
   assert.deepEqual(single.bets, [{ type: 'red', amount: 1 }]);
 });
 
+test('draw(core, context) replaces roll() and its raw result reaches the rules (écart 8)', () => {
+  const core = makeRecordingCore([0.5]);
+  const drawCalls = [];
+  const segment = { id: 's1', color: 'red' };
+  let rawSeen;
+  const config = { bets: {} };
+  const res = createGame({
+    id: 'wheel',
+    rules: {
+      resolve(raw) {
+        rawSeen = raw;
+        return { outcome: 'win', multiplier: 2, details: {} };
+      },
+    },
+    config,
+    core,
+    draw(c, ctx) {
+      drawCalls.push({ c, ctx });
+      return segment;
+    },
+  }).start({ type: 'red', amount: 10 }, { spin: 1 });
+
+  assert.equal(rawSeen, segment);
+  assert.deepEqual(res.renderPayload.raw, segment);
+  assert.equal(drawCalls.length, 1);
+  assert.equal(drawCalls[0].c, core, 'draw receives the injected core');
+  assert.equal(drawCalls[0].ctx.config, config);
+  assert.deepEqual(drawCalls[0].ctx.bets, [{ type: 'red', amount: 10 }]);
+  assert.deepEqual(drawCalls[0].ctx.params, { spin: 1 });
+  assert.deepEqual(core.log, ['play'], 'the default roll() is not called when draw is given');
+});
+
+test('draw() also feeds action(), with the session and the player action', () => {
+  const contexts = [];
+  const game = createGame({
+    id: 'mock-multi',
+    rules: multiStepRules,
+    core: makeRecordingCore([0.5]),
+    draw(c, ctx) {
+      contexts.push(ctx);
+      return { value: 0.1 };
+    },
+  });
+  const { sessionId } = game.start({ type: 'main', amount: 4 });
+  game.action(sessionId, 'draw');
+
+  assert.equal(contexts.length, 2);
+  assert.equal(contexts[0].session, undefined);
+  assert.equal(contexts[1].action, 'draw');
+  assert.equal(contexts[1].session.firstDraw, 0.1);
+  assert.deepEqual(contexts[1].bets, [{ type: 'main', amount: 4 }]);
+});
+
+test('createGame rejects a draw that is not a function', () => {
+  assert.throws(() => createGame({ id: 'slots', rules: singleStepRules, draw: 42 }), TypeError);
+});
+
 test('config stays undefined when not provided (no default value invented)', () => {
   let ctxSeen;
   createGame({
