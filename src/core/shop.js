@@ -100,8 +100,8 @@ function lireInventaire(etat) {
  * @param {Array<object>} [options.catalogue] - Articles de la boutique
  *   (SHOP_CONFIG.catalogue par défaut).
  * @returns {{ getShopCatalog: function(): Array<object>,
- *   getShopInventory: function(): { ownedItemIds: string[] } }} Opérations de
- *   la boutique.
+ *   getShopInventory: function(): { ownedItemIds: string[] },
+ *   purchaseShopItem: function(string): object }} Opérations de la boutique.
  * @throws {Error} Si le stockage ou le catalogue est invalide.
  */
 export function createShop(stockage, { catalogue = SHOP_CONFIG.catalogue } = {}) {
@@ -127,6 +127,29 @@ export function createShop(stockage, { catalogue = SHOP_CONFIG.catalogue } = {})
      */
     getShopInventory() {
       return { ownedItemIds: lireInventaire(stockage.getState()) };
+    },
+
+    /**
+     * Tente d'acheter un article avec les jetons fictifs du joueur.
+     *
+     * @param {string} itemId - Identifiant de l'article demandé.
+     * @returns {{ status: 'purchased'|'already-owned'|'unavailable'|
+     *   'insufficient-funds'|'rejected', itemId: *, balance: number,
+     *   message?: string }} Résultat de l'achat ; `balance` est le solde après
+     *   l'opération (inchangé si l'achat est refusé).
+     */
+    purchaseShopItem(itemId) {
+      const { balance } = stockage.getState();
+      const refus = (status, message) => ({ status, itemId, balance, message });
+
+      const article = articles.find((candidat) => candidat.id === itemId);
+      if (typeof itemId !== 'string' || article === undefined) {
+        return refus('rejected', "Cet article n'existe pas dans la boutique.");
+      }
+      if (!article.available) {
+        return refus('unavailable', "Cet article n'est pas disponible à l'achat.");
+      }
+      return refus('rejected', "L'achat n'est pas encore pris en charge.");
     },
   };
 }

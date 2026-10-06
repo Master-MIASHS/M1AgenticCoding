@@ -167,3 +167,38 @@ describe('getShopInventory', () => {
     }
   });
 });
+
+/**
+ * Vérifie un achat refusé : statut attendu, solde inchangé, aucune écriture.
+ * @param {object} resultat - Réponse de purchaseShopItem.
+ * @param {string} status - Statut attendu.
+ * @param {*} itemId - Identifiant demandé.
+ * @param {ReturnType<typeof fauxStockage>} stockage - Stockage de test.
+ * @param {number} solde - Solde attendu (inchangé).
+ */
+function verifierRefus(resultat, status, itemId, stockage, solde) {
+  assert.strictEqual(resultat.status, status);
+  assert.strictEqual(resultat.itemId, itemId);
+  assert.strictEqual(resultat.balance, solde);
+  assert.strictEqual(typeof resultat.message, 'string');
+  assert.strictEqual(stockage.ecritures(), 0);
+  assert.strictEqual(stockage.getState().balance, solde);
+}
+
+describe('purchaseShopItem : refus', () => {
+  const catalogue = [article(), article({ id: 'indisponible', available: false })];
+
+  it('rejected pour un article inconnu ou un identifiant invalide, sans écriture', () => {
+    for (const itemId of ['inconnu', '', 42, null, undefined]) {
+      const stockage = fauxStockage();
+      const resultat = createShop(stockage, { catalogue }).purchaseShopItem(itemId);
+      verifierRefus(resultat, 'rejected', itemId, stockage, 1000);
+    }
+  });
+
+  it('unavailable pour un article indisponible, sans écriture', () => {
+    const stockage = fauxStockage();
+    const resultat = createShop(stockage, { catalogue }).purchaseShopItem('indisponible');
+    verifierRefus(resultat, 'unavailable', 'indisponible', stockage, 1000);
+  });
+});
