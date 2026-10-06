@@ -104,4 +104,8 @@ Commande : `npm test` (fichier `tests/unit/shop.test.js`). Le stockage est simul
 | `purchaseShopItem` — `insufficient-funds` si le solde est inférieur au prix, sans écriture | échec | succès |
 | `purchaseShopItem` — `purchased` : débite le solde et ajoute l'article en une seule écriture | échec | succès |
 | `purchaseShopItem` — ne modifie ni le meilleur solde, ni l'XP, ni le niveau | échec | succès |
+| `purchaseShopItem` — vérifie la possession avant le solde | échec | succès |
+| `purchaseShopItem` — accepte un solde égal au prix et un article gratuit | échec | succès |
+| `purchaseShopItem` — refuse un second achat du même article | échec | succès |
 | `purchaseShopItem` — propage une erreur d'écriture | échec | succès |
+| `purchaseShopItem` — fonctionne avec le vrai `getState` / `updateState` de `state.js` (#139) | échec | succès |

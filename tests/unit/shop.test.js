@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 
 import { SHOP_CONFIG } from '../../src/core/config/shop.config.js';
 import { validerCatalogue, createShop } from '../../src/core/shop.js';
+import { getState, updateState } from '../../src/core/state.js';
 
 describe('shop.config', () => {
   it('fournit un catalogue vide par défaut (contenu de la boutique non décidé)', () => {
@@ -220,5 +221,72 @@ describe('purchaseShopItem : déjà possédé ou solde insuffisant', () => {
     const stockage = fauxStockage({ balance: 0, ownedItemIds: ['article-test'] });
     const resultat = createShop(stockage, { catalogue: [article()] }).purchaseShopItem('article-test');
     assert.strictEqual(resultat.status, 'already-owned');
+  });
+});
+
+describe('purchaseShopItem : achat réussi', () => {
+  it('purchased : débite le solde et ajoute l’article en une seule écriture', () => {
+    const stockage = fauxStockage({ ownedItemIds: ['autre'] });
+    const boutique = createShop(stockage, { catalogue: [article()] });
+    const resultat = boutique.purchaseShopItem('article-test');
+    assert.strictEqual(resultat.status, 'purchased');
+    assert.strictEqual(resultat.itemId, 'article-test');
+    assert.strictEqual(resultat.balance, 800);
+    assert.strictEqual(stockage.ecritures(), 1);
+    assert.strictEqual(stockage.getState().balance, 800);
+    assert.deepStrictEqual(boutique.getShopInventory(), { ownedItemIds: ['autre', 'article-test'] });
+  });
+
+  it('accepte un solde égal au prix et un article gratuit', () => {
+    const stockage = fauxStockage({ balance: 200 });
+    const catalogue = [article(), article({ id: 'gratuit', price: 0 })];
+    const boutique = createShop(stockage, { catalogue });
+    assert.strictEqual(boutique.purchaseShopItem('article-test').balance, 0);
+    assert.strictEqual(boutique.purchaseShopItem('gratuit').status, 'purchased');
+    assert.deepStrictEqual(boutique.getShopInventory(), { ownedItemIds: ['article-test', 'gratuit'] });
+  });
+
+  it('ne modifie ni le meilleur solde, ni l’XP, ni le niveau, ni le reste de l’état', () => {
+    const stockage = fauxStockage();
+    const avant = stockage.getState();
+    createShop(stockage, { catalogue: [article()] }).purchaseShopItem('article-test');
+    const { balance, ownedItemIds, ...reste } = stockage.getState();
+    const { balance: soldeAvant, ...resteAvant } = avant;
+    assert.strictEqual(balance, soldeAvant - 200);
+    assert.deepStrictEqual(ownedItemIds, ['article-test']);
+    assert.deepStrictEqual(reste, resteAvant);
+  });
+
+  it('un second achat du même article est refusé', () => {
+    const stockage = fauxStockage();
+    const boutique = createShop(stockage, { catalogue: [article()] });
+    boutique.purchaseShopItem('article-test');
+    assert.strictEqual(boutique.purchaseShopItem('article-test').status, 'already-owned');
+    assert.strictEqual(stockage.getState().balance, 800);
+  });
+
+  it('propage une erreur d’écriture sans annoncer d’achat', () => {
+    const stockage = fauxStockage();
+    const enPanne = {
+      getState: stockage.getState,
+      updateState: () => {
+        throw new Error('state: échec du stockage');
+      },
+    };
+    const boutique = createShop(enPanne, { catalogue: [article()] });
+    assert.throws(() => boutique.purchaseShopItem('article-test'), /échec du stockage/);
+    assert.strictEqual(stockage.getState().balance, 1000);
+  });
+});
+
+describe('purchaseShopItem avec le vrai état du Core', () => {
+  it('fonctionne avec getState / updateState de state.js (#139)', () => {
+    const boutique = createShop({ getState, updateState }, { catalogue: [article()] });
+    const avant = getState();
+    const resultat = boutique.purchaseShopItem('article-test');
+    assert.strictEqual(resultat.status, 'purchased');
+    assert.strictEqual(getState().balance, avant.balance - 200);
+    assert.strictEqual(getState().bestBalance, avant.bestBalance);
+    assert.deepStrictEqual(boutique.getShopInventory(), { ownedItemIds: ['article-test'] });
   });
 });

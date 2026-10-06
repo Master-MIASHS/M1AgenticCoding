@@ -155,9 +155,24 @@ export function createShop(stockage, { catalogue = SHOP_CONFIG.catalogue } = {})
       }
       // Achat seulement si le solde suffit : le solde ne passe jamais sous 0.
       if (balance < article.price) {
-        return refus('insufficient-funds', "Solde insuffisant pour acheter cet article.");
+        return refus('insufficient-funds', 'Solde insuffisant pour acheter cet article.');
       }
-      return refus('rejected', "L'achat n'est pas encore pris en charge.");
+
+      // Une seule écriture : solde débité et article ajouté ensemble, ou rien
+      // (updateState, #139). Le calcul repart de l'état courant transmis par
+      // updateState. Meilleur solde, XP et niveau ne sont pas touchés.
+      // Une erreur d'écriture est propagée : aucun achat n'est annoncé.
+      const etatFinal = stockage.updateState((courant) => ({
+        ...courant,
+        balance: courant.balance - article.price,
+        ownedItemIds: [...lireInventaire(courant), itemId],
+      }));
+      return {
+        status: 'purchased',
+        itemId,
+        balance: etatFinal.balance,
+        message: 'Achat effectué.',
+      };
     },
   };
 }
