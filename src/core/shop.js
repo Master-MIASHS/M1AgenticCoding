@@ -139,7 +139,8 @@ export function createShop(stockage, { catalogue = SHOP_CONFIG.catalogue } = {})
      *   l'opération (inchangé si l'achat est refusé).
      */
     purchaseShopItem(itemId) {
-      const { balance } = stockage.getState();
+      const etat = stockage.getState();
+      const { balance } = etat;
       const refus = (status, message) => ({ status, itemId, balance, message });
 
       const article = articles.find((candidat) => candidat.id === itemId);
@@ -148,6 +149,13 @@ export function createShop(stockage, { catalogue = SHOP_CONFIG.catalogue } = {})
       }
       if (!article.available) {
         return refus('unavailable', "Cet article n'est pas disponible à l'achat.");
+      }
+      if (lireInventaire(etat).includes(itemId)) {
+        return refus('already-owned', 'Vous possédez déjà cet article.');
+      }
+      // Achat seulement si le solde suffit : le solde ne passe jamais sous 0.
+      if (balance < article.price) {
+        return refus('insufficient-funds', "Solde insuffisant pour acheter cet article.");
       }
       return refus('rejected', "L'achat n'est pas encore pris en charge.");
     },

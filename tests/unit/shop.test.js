@@ -202,3 +202,23 @@ describe('purchaseShopItem : refus', () => {
     verifierRefus(resultat, 'unavailable', 'indisponible', stockage, 1000);
   });
 });
+
+describe('purchaseShopItem : déjà possédé ou solde insuffisant', () => {
+  it('already-owned pour un article déjà dans l’inventaire, sans écriture', () => {
+    const stockage = fauxStockage({ ownedItemIds: ['article-test'] });
+    const resultat = createShop(stockage, { catalogue: [article()] }).purchaseShopItem('article-test');
+    verifierRefus(resultat, 'already-owned', 'article-test', stockage, 1000);
+  });
+
+  it('insufficient-funds si le solde est inférieur au prix, sans écriture', () => {
+    const stockage = fauxStockage({ balance: 199 });
+    const resultat = createShop(stockage, { catalogue: [article()] }).purchaseShopItem('article-test');
+    verifierRefus(resultat, 'insufficient-funds', 'article-test', stockage, 199);
+  });
+
+  it('vérifie la possession avant le solde', () => {
+    const stockage = fauxStockage({ balance: 0, ownedItemIds: ['article-test'] });
+    const resultat = createShop(stockage, { catalogue: [article()] }).purchaseShopItem('article-test');
+    assert.strictEqual(resultat.status, 'already-owned');
+  });
+});
