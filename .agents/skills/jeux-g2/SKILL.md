@@ -70,7 +70,8 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
 { gameId, phase: 'playing' | 'result', raw, interpretation, economy }
 ```
 
-- `raw` : le tirage brut (segment de roue, case plinko…), pour l'animation.
+- `raw` : le tirage brut (segment de roue, case plinko, nombre entier de
+  roulette 0–36…), pour l'animation.
 - `interpretation` : les `details` du résultat (à la fin).
 - `economy` : `{ newBalance, xpGained, leveledUp }` renvoyé par le Core (à la
   fin).
@@ -87,6 +88,7 @@ les règles lèvent une erreur si elle manque (règle 4, rien en dur).
 | --- | --- |
 | `wheel` | `{ bets: { <type>: { match: { <champ>: <valeur> }, multiplier } } }` |
 | `plinko` | `{ paytable: number[] }`, index = numéro de case |
+| `roulette` | `{ bets: { <type>: { match: number[], multiplier } } }`, `match` = liste des nombres gagnants (#191) |
 
 🟠 La forme côté Core / admin est en discussion dans #122. La source finale
 sera `getGameConfig` via `coreService`.
@@ -103,6 +105,9 @@ sera `getGameConfig` via `coreService`.
    `draw(core, context)` dans le fichier du jeu (**pas** dans `rules.js`), qui
    appelle la bonne primitive : `core.tirageEntier`, `core.tirageAvecPoids`,
    `core.melanger` (PR #141 pour `draw`, PR #115 pour les primitives).
+   Exemples livrés : `src/games/roulette/index.js` → `core.tirageEntier(0, 36)`
+   (#191) ; la roue passe son propre draw dans le test de montage
+   (`core.tirageAvecPoids`).
 3. Cartes : `{ rank, suit }` et utilitaires de `src/games/cardUtils.js`
    (`blackjackTotal`, `baccaratTotal`, `evaluatePokerHand`, `hasPair`,
    `RANKS`, `SUITS`).
