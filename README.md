@@ -279,7 +279,7 @@ Le Groupe 4 est responsable de l'application autour des jeux : l'architecture fr
 
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
-| FlorientMarchal | FlorientMarchal, Florient Marchal | Marchal, Florient | Prompt d'initialisation de l'architecture (avec le groupe 4), écran Profil joueur (#18), écran Classement (#35), composants communs LevelBadge (#108), BalanceDisplay (#109) et GameCard (#110) |
+| FlorientMarchal | FlorientMarchal, Florient Marchal | Marchal, Florient | Prompt d'initialisation de l'architecture (avec le groupe 4), écran Profil joueur (#18), écran Classement (#35) et correction de son alignement (#145), composants communs LevelBadge (#108), BalanceDisplay (#109), GameCard (#110), PlayerHeader (#112) et Sidebar (#114), page 404 et page de jeu générique `/game/:gameId` avec affichage des UI slots et roulette du G3 en mode démonstration (#146, #174), écran Lobby G4-04 (#164), skills `composants-communs-g4` et `pages-et-routage-g4` (#147, #160, #170) |
 | rayidahamada | rayidahamada | Rayid, Ahamada Rachid | Écran Statistiques (#21), intégration avec le Core (#69) |
 | Mamadoudahirousy | Mamadoudahirousy | Sy, Mamadou Dahirou | Écran Boutique G4-08 (#20, PR #103) : catalogue responsive temporaire, solde via `coreService`, états des articles et gestion du chargement, des erreurs et du catalogue vide. Proposition de contrat Core documentée ; achats en attente du raccordement Core. |
 | Kardiatou102 | Kardiatou102 | BA,  Kardiatou | Intégration de l’architecture sur Git, développement de l’écran Progression, développement de l’écran Admin. |
