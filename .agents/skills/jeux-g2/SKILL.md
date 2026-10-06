@@ -63,6 +63,8 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
 - `gameResult.multiplier` **inclut la mise** : total reversé = mise totale ×
   `multiplier`, arrondi au centième par le Core. Pas de champ `payout`.
 - `playerAction` est une valeur de `availableActions`, jamais une chaîne libre.
+  Vidéo poker : `hold-0` … `hold-4` (bascule la carte gardée), puis `draw`
+  (validé G3, #8).
 
 ## 3. `renderPayload`
 
@@ -74,6 +76,14 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
 - `interpretation` : les `details` du résultat (à la fin).
 - `economy` : `{ newBalance, xpGained, leveledUp }` renvoyé par le Core (à la
   fin).
+- **Jeux de cartes** (blackjack, vidéo poker, poker) : le brut serait le
+  paquet mélangé. Ces jeux fournissent donc `rules.view(...)` et l'UI reçoit
+  `{ gameId, phase, view, economy? }`, **sans** `raw` ni `interpretation`.
+  `view` ne contient que ce qui est visible (pas la carte cachée du croupier,
+  pas la main de l'IA, pas les cartes à venir). PR #168.
+- La **disposition** d'un jeu (segments de la roue, types de pari…) n'est pas
+  dans le `renderPayload` : c'est de la configuration, à lire via
+  `coreService.getGameConfig(id)` quand il sera exposé (#122).
 - 🟠 Le contenu **par jeu** n'est pas encore figé (contrat § 5.2). Il faut
   l'aligner avec le responsable du jeu dans la discussion #8. Si une donnée
   manque pour l'affichage, la demander au G2, ne jamais la deviner.
@@ -87,6 +97,7 @@ les règles lèvent une erreur si elle manque (règle 4, rien en dur).
 | --- | --- |
 | `wheel` | `{ bets: { <type>: { match: { <champ>: <valeur> }, multiplier } } }` |
 | `plinko` | `{ paytable: number[] }`, index = numéro de case |
+| `video-poker` | « Jacks or Better » 9/6 (#125, @Zelyx21) : `paytable` par `category` de `evaluatePokerHand()`, mise incluse : 10 → 250, 9 → 50, 8 → 25, 7 → 9, 6 → 6, 5 → 4, 4 → 3, 3 → 2, 2 → 1 seulement pour une paire de valets ou mieux (sinon 0), 1 → 0 |
 
 🟠 La forme côté Core / admin est en discussion dans #122. La source finale
 sera `getGameConfig` via `coreService`.
@@ -102,12 +113,20 @@ sera `getGameConfig` via `coreService`.
 2. Si le brut attendu n'est pas `roll()` → `{ value }`, fournir un
    `draw(core, context)` dans le fichier du jeu (**pas** dans `rules.js`), qui
    appelle la bonne primitive : `core.tirageEntier`, `core.tirageAvecPoids`,
-   `core.melanger` (PR #141 pour `draw`, PR #115 pour les primitives).
-3. Cartes : `{ rank, suit }` et utilitaires de `src/games/cardUtils.js`
+   `core.melanger`. Jeux de cartes : `core.melanger(buildDeck(n))` (de
+   `src/games/deck.js`) au début de la manche, `null` pendant les actions
+   (pioche au curseur dans la session).
+3. **Mise qui augmente** (double, relance) : la session en cours porte
+   `totalBet`, et le résultat final `details.totalBet`. L'orchestrateur règle
+   ce montant et refuse une hausse au-delà du solde (PR #199). Le solde est
+   reçu en donnée dans `ctx.balance` pour masquer une action non payable.
+4. **Ce que voit G3** : un jeu de cartes fournit `view({ phase, raw, session,
+   gameResult })` (§ 3).
+5. Cartes : `{ rank, suit }` et utilitaires de `src/games/cardUtils.js`
    (`blackjackTotal`, `baccaratTotal`, `evaluatePokerHand`, `hasPair`,
    `RANKS`, `SUITS`).
-4. Tests unitaires des règles + un test de montage dans
-   `tests/integration/g2/` (modèle : `montage.wheel-plinko.test.js`, fixtures
+6. Tests unitaires des règles + un test de montage dans
+   `tests/integration/g2/` (modèles : `montage.wheel-plinko.test.js`, `montage.dice.test.js`, fixtures
    `tests/fixtures/g2/rolls.js`).
 
 ## À ne jamais faire
