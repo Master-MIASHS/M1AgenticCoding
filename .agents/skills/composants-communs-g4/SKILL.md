@@ -1,6 +1,6 @@
 ---
 name: composants-communs-g4
-description: Comment utiliser les composants communs du Groupe 4 (XPBar, LevelBadge, BalanceDisplay, GameCard, Modal, Notification, Loader, PlayerHeader) depuis un autre groupe (G3 interface des jeux) ou une page G4 - props, exemples, valeurs de repli, et ce qu'il ne faut pas faire. À ouvrir dès qu'une tâche affiche un niveau, un solde, une barre d'XP, une carte de jeu, une fenêtre de résultat, un message ou un chargement, avant de créer un composant similaire.
+description: Comment utiliser les composants communs du Groupe 4 (XPBar, LevelBadge, BalanceDisplay, GameCard, Modal, Notification, Loader, PlayerHeader, Sidebar) depuis un autre groupe (G3 interface des jeux) ou une page G4 - props, exemples, valeurs de repli, et ce qu'il ne faut pas faire. À ouvrir dès qu'une tâche affiche un niveau, un solde, une barre d'XP, une carte de jeu, une fenêtre de résultat, un message ou un chargement, avant de créer un composant similaire.
 ---
 
 # Skill composants-communs-g4 (Groupe 4)
@@ -22,6 +22,7 @@ README qui fait foi.
 | un message ponctuel (gain, erreur, solde insuffisant) | `Notification` | 6 |
 | un état de chargement | `Loader` | 7 |
 | le résumé du joueur (pseudo, niveau, solde, XP) | `PlayerHeader` | 8 |
+| une navigation latérale (liens, repliable sur mobile) | `Sidebar` | 9 |
 
 Avant d'écrire un composant qui ressemble à l'un de ceux-ci : **utilise le composant
 commun**. Le dupliquer crée deux affichages du niveau ou du solde qui divergent.
@@ -186,6 +187,33 @@ import PlayerHeader from '../../components/PlayerHeader/PlayerHeader.jsx';
   indisponible »), jamais l'ensemble.
 - Comme les autres, il ne lit pas le Core : la page lit via `coreService` et passe les props.
 
+## 9. Sidebar : navigation latérale
+
+```jsx
+import Sidebar from '../../components/Sidebar/Sidebar.jsx';
+
+<Sidebar
+  items={[
+    { path: '/profile', label: 'Mon profil', icon: '👤' },
+    { path: '/progression', label: 'Ma progression' },
+  ]}
+  currentPath="/profile"
+  getHref={(path) => '#' + path}
+/>
+```
+
+- Props : `items` (`{ path, label, icon?, href? }`, un élément sans `path` ou sans `label` est
+  ignoré), `currentPath` (le lien identique reçoit `aria-current="page"`), `getHref`,
+  `ariaLabel`, `className`.
+- **Il ne construit aucune URL** : `getHref` est fournie par la page (sans elle, le `path` est
+  utilisé tel quel).
+- Au-dessus de 768 px la liste est toujours visible ; en dessous, elle est derrière un bouton
+  (Échap la referme).
+- Aucune logique d'autorisation : afficher ou non un lien (par exemple Administration) se décide
+  dans la page, en filtrant `items`. Les permissions se vérifient côté Core, pas en masquant un lien.
+- La Navbar couvre la navigation principale : la `Sidebar` sert à une navigation secondaire
+  (par exemple l'écran Admin). Elle n'est branchée dans aucun layout ni aucune page pour le moment.
+
 ## Ce qu'il ne faut pas faire
 
 - Importer `src/core/*` dans un composant, ou appeler `coreService` depuis un composant commun.
@@ -194,12 +222,6 @@ import PlayerHeader from '../../components/PlayerHeader/PlayerHeader.jsx';
 - Recréer un `LevelBadge`, un affichage du solde, une barre d'XP ou un en-tête de joueur dans une page ou un jeu.
 - Mettre des couleurs en dur : utiliser les variables de `src/styles/variables.css`.
 - Modifier un composant commun depuis un autre groupe : ouvrir une issue au G4.
-
-## Composants pas encore disponibles
-
-Ne pas les utiliser tant que leur dossier n'a pas de `.jsx` sur `main` :
-
-- `Sidebar` : PR #155 (en relecture).
 
 ## Ajouter un composant commun (G4)
 
