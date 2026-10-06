@@ -99,6 +99,11 @@ export function tirageAvecPoids(elements, poids) {
   if (!(total > 0) || poids.some((p) => p < 0)) {
     throw new Error('tirageAvecPoids : les poids doivent être positifs ou nuls et leur somme > 0');
   }
+  // Des poids finis peuvent déborder une fois additionnés (MAX_VALUE + MAX_VALUE) :
+  // avec une somme infinie, le tirage sélectionnerait toujours le dernier élément.
+  if (!Number.isFinite(total)) {
+    throw new Error('tirageAvecPoids : la somme des poids doit être finie');
+  }
 
   // r est dans [0, total) : la comparaison stricte r < poids[i] et le saut des
   // poids nuls garantissent qu'un élément de poids 0 n'est jamais tiré, même

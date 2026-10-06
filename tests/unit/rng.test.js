@@ -117,4 +117,11 @@ describe('tirageAvecPoids : validation numérique des poids', () => {
       assert.throws(() => tirageAvecPoids(['a', 'b'], poids), /poids/);
     }
   });
+
+  it('rejette des poids finis dont la somme déborde vers Infinity', () => {
+    assert.throws(
+      () => tirageAvecPoids(['a', 'b'], [Number.MAX_VALUE, Number.MAX_VALUE]),
+      /somme/,
+    );
+  });
 });
