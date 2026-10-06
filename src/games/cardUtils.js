@@ -9,16 +9,19 @@
 //  * Every function is pure: same input, same output, no side effect,
 //    inputs are never mutated.
 //
-// Card format (G2 <-> Core contract, to be formalized with G1):
+// Card format (G2 <-> Core contract, docs/contracts/cards-contract.md):
 //   { rank: '2' | '3' | ... | '10' | 'J' | 'Q' | 'K' | 'A',
 //     suit: 'hearts' | 'diamonds' | 'clubs' | 'spades' }
+//
+// Deck (Option A, #70): G2 builds the deck from the exported RANKS / SUITS,
+// the Core shuffles it with melanger(); the Core never reads the cards.
 // ---------------------------------------------------------------------------
 
 /**
  * A single playing card.
  *
- * Contract note: this format MUST match the deck produced by the Core
- * `shuffleDeck()` (to be formalized in the G2 <-> Core contract document).
+ * Contract note: this format is owned by G2 and defined in
+ * docs/contracts/cards-contract.md (section 1).
  *
  * @typedef {object} Card
  * @property {string} rank - '2'..'10' | 'J' | 'Q' | 'K' | 'A'.
@@ -33,7 +36,12 @@
  * @property {number[]} tiebreakers - numeric ranks (2-14) in descending order.
  */
 
-const RANKS = Object.freeze([
+/**
+ * The 13 card ranks, in ascending order ('2' lowest, 'A' highest). Frozen.
+ *
+ * @type {readonly string[]}
+ */
+export const RANKS = Object.freeze([
   '2',
   '3',
   '4',
@@ -49,7 +57,12 @@ const RANKS = Object.freeze([
   'A',
 ]);
 
-const SUITS = Object.freeze(['hearts', 'diamonds', 'clubs', 'spades']);
+/**
+ * The 4 card suits. Frozen.
+ *
+ * @type {readonly string[]}
+ */
+export const SUITS = Object.freeze(['hearts', 'diamonds', 'clubs', 'spades']);
 
 const RANK_TO_NUMBER = Object.freeze({
   '2': 2,
