@@ -12,6 +12,7 @@
 
 import { GAMES } from './config/games.config.js';
 import { PLAYER_CONFIG } from './config/player.config.js';
+import { getState, updateState } from './state.js';
 
 // Un nouveau joueur commence toujours au niveau 1 (schéma de casino_state).
 const NIVEAU_DE_DEPART = 1;
@@ -154,4 +155,34 @@ export function creerJoueur(
     unlockedGames: jeuxDeDepart(jeux),
     role: 'player',
   };
+}
+
+/**
+ * Crée le profil du joueur : construit le joueur avec creerJoueur, puis
+ * l'enregistre dans l'état en une seule écriture (updateState, #139).
+ * `pseudo` et `birthDate` sont ajoutés à l'état et visibles via getState().
+ *
+ * @param {{ pseudo: string, dateNaissance?: string|null }} infos - Informations
+ *   saisies par le joueur.
+ * @param {object} [options] - Dépendances injectables (tests, réglage admin).
+ * @param {{ getState: function(): object,
+ *   updateState: function(function(object): object): object }} [options.stockage] -
+ *   Accès à l'état (état réel du Core par défaut).
+ * @param {{ capitalDeDepart: number }} [options.config] - Configuration du joueur.
+ * @param {Object<string, { id: string, unlockLevel: number }>} [options.jeux] - Jeux.
+ * @param {Date} [options.maintenant] - Date du jour.
+ * @returns {object} Copie de l'état enregistré.
+ * @throws {Error} Si les informations, la configuration ou l'écriture échouent.
+ */
+export function creerProfil(
+  infos,
+  {
+    stockage = { getState, updateState },
+    config = PLAYER_CONFIG,
+    jeux = GAMES,
+    maintenant = new Date(),
+  } = {},
+) {
+  const joueur = creerJoueur(infos, { config, jeux, maintenant });
+  return stockage.updateState((courant) => ({ ...courant, ...joueur }));
 }
