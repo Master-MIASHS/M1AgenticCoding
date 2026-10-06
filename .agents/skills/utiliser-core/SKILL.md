@@ -14,7 +14,7 @@ Ne pas copier un module interne pour contourner un export manquant.
 Repères à la rédaction (à revérifier, pas des garanties permanentes) :
 - `getState()` est public.
 - `exportSave()` / `importSave()` sont publics (#130, contrôle d’intégrité FNV-1a retenu dans #132).
-- Les algorithmes RNG sont intégrés par #28 ; leur exposition publique est dans #115.
+- `roll()` est public ; `tirageEntier()`, `tirageAvecPoids()` et `melanger()` (#28) le sont depuis #115.
 - L’écriture interne `updateState` est intégrée par #139.
 - L’adaptateur `createProgressionStore` est proposé dans #144 (ticket #143).
 - Le branchement par défaut de la progression reste une étape séparée.
@@ -42,7 +42,7 @@ inventer des champs comme `pseudo` ou `xpForNextLevel` avant leur disponibilité
 La lecture peut échouer si l’initialisation du stockage échoue dans la version
 utilisée : vérifier le comportement courant et le traitement d’erreur prévu.
 
-### Tirer du hasard brut (après disponibilité des exports)
+### Tirer du hasard brut : roll(), tirageEntier(), tirageAvecPoids(), melanger()
 
 | Fonction | Quand l’utiliser | Retour / précaution |
 |---|---|---|
