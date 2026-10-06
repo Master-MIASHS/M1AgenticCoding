@@ -53,7 +53,7 @@ dans `docs/contracts/g2-jeux.md` via G5.
 | --- | --- | --- |
 | @fcassius | FELIHO Cassius | Référent intégration / documentation du G2 : contrats G2 ↔ G1 / G3 / G4, cohérence des formats, mocks et fixtures, tests d'intégration, orchestrateur (#136) |
 | @Zelyx21 | Clémentine B. | Orchestrateur générique (#91) · vidéo poker |
-| @Donia-alfonsi | Donia A. | Utilitaires cartes (#67, #120), constructeur de paquet (#102) · blackjack |
+| @Donia-alfonsi | ALFONSI Donia | Cartes : `cardUtils.js` (#67, #120) et constructeur de paquet `deck.js` (#102) · Blackjack : `blackjack/rules.js` (+ tirage du jeu, hors `rules.js`) · tests associés dans `tests/unit/` |
 | @camseveyrat | Camille S. | Roue et plinko (#26, #128) · roulette |
 | @camilhamdach5-byte | Camil H. | Slots et cartes à gratter (#31) · baccarat |
 | @raphoulefoufou | Raphaël C. | Dés (#24) · poker (contrat IA avec G1) |
