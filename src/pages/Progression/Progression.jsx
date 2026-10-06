@@ -11,7 +11,7 @@
 import { useCallback, useState } from 'react';
 import { getState, getLevel, getUnlockedGames } from '../../services/coreService.js';
 import { GAME_REGISTRY } from '../../config/gameRegistry.js';
-import { formatNumber, getLevelProgress, splitGamesByUnlock } from './progression.utils.js';
+import { formatNumber, splitGamesByUnlock } from './progression.utils.js';
 import XPBar from '../../components/XPBar/XPBar';
 import './progression.css';
 
