@@ -154,15 +154,18 @@ export function createGame({
    */
   function respond(sessionId, { raw, session, gameResult, economy }) {
     const terminal = gameResult !== undefined;
-    const renderPayload = {
-      gameId: id,
-      phase: terminal ? 'result' : 'playing',
-      raw,
-    };
-    if (terminal) {
-      renderPayload.interpretation = gameResult.details;
-      renderPayload.economy = economy;
+    const phase = terminal ? 'result' : 'playing';
+    const renderPayload = { gameId: id, phase };
+    if (typeof rules.view === 'function') {
+      // The game decides what G3 may see (card games: never the shuffled
+      // deck, the hidden dealer card or the cards to come). Neither the raw
+      // draw nor the session is sent as-is.
+      renderPayload.view = rules.view({ phase, raw, session, gameResult });
+    } else {
+      renderPayload.raw = raw;
+      if (terminal) renderPayload.interpretation = gameResult.details;
     }
+    if (terminal) renderPayload.economy = economy;
     const response = {
       sessionId,
       renderPayload,
