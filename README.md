@@ -178,6 +178,9 @@ Le Groupe 1 développe le **Core Engine**, le moteur du casino, en JavaScript pu
 | ania-aitcherif | ania-aitcherif, Ania Aït Cherif | Aït Cherif, Ania | Sauvegarde et restauration (`storage.js`, persistance dans `casino_state`, export/import, contrôle d'intégrité FNV-1a), test de conformité des cartes (#70), niveaux de déblocage réglables (`config/unlock.config.js`, #137) |
 
 ### Groupe 2 — Jeu et règles du jeu
+
+Le Groupe 2 décide **ce qui se passe** dans une partie : les règles de chaque jeu (`src/games/<jeu>/rules.js`), l'orchestration d'une partie (`src/games/_template/createGame.js`) et les appels au Core. Les règles sont **pures** : elles reçoivent un tirage brut et renvoient un résultat `{ outcome, multiplier, details }`, sans `Math.random()`, sans appel au Core et sans valeur de réglage en dur (gains et probabilités viennent de la `config`). Seul l'orchestrateur demande le tirage au Core (`coreService`) et appelle `play()` **une seule fois** par partie. Le Groupe 2 expose à tous les jeux une interface unique, `start(bets)` / `action(sessionId, playerAction)` : il garde l'état de la partie et renvoie à chaque étape un `renderPayload` et les `availableActions`. Il fournit aussi les utilitaires de cartes partagés (`src/games/cardUtils.js`, cartes `{ rank, suit }`). Il ne dessine rien (rendu en jeu : Groupe 3), ne modifie ni le solde ni l'XP (Groupe 1) et ne touche pas aux écrans hors partie (Groupe 4). Périmètre : `src/games/`, plus ses tests (`tests/unit/`, `tests/integration/g2/`, `tests/fixtures/g2/`). Mode d'emploi pour les autres groupes : skill `.agents/skills/jeux-g2`. Contrat : issue #68.
+
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | Donia-alfonsi | Alfonsi Donia | Alfonsi Donia | moteur de cartes partagé, constructeur de paquet |
