@@ -194,6 +194,9 @@ Le Groupe 1 développe le **Core Engine**, le moteur du casino, en JavaScript pu
 | Bahar487 | Bahar487, Bahar, Ali Bahar Ali | ALI BAHAR, Ali | Responsable du groupe 3 (rendu visuel), composants communs et jeux (BetPanel, slots, roulette) |
 
 ### Groupe 4 — Architecture de l'application et composants annexes / Navigation
+
+Le Groupe 4 est responsable de l'application autour des jeux : l'architecture front-end (React + Vite), la navigation et le routage, le layout commun et la barre de navigation, les composants réutilisables (barre d'XP, badge de niveau, affichage du solde, carte de jeu, fenêtre modale, notification, indicateur de chargement) et les écrans hors partie : Lobby, Profil, Progression, Classement, Boutique, Statistiques et Administration. Il consomme le Core uniquement par l'intermédiaire de `coreService.js`, sans jamais importer ses modules internes, et affiche les données que le contrat public expose, en s'appuyant sur des données fictives tant qu'une fonction n'existe pas. Il n'implémente ni la logique du Core (Groupe 1), ni les règles des jeux (Groupe 2), ni l'interface à l'intérieur d'une partie (Groupe 3). Chaque composant est une brique de présentation, documentée et testée, que les autres groupes peuvent réutiliser.
+
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | FlorientMarchal | FlorientMarchal, Florient Marchal | Marchal, Florient | Prompt d'initialisation de l'architecture (avec le groupe 4), écran Profil joueur (#18), écran Classement (#35), composants communs LevelBadge (#108), BalanceDisplay (#109) et GameCard (#110) |
