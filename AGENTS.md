@@ -169,6 +169,15 @@ Les skills sont dans le dossier `.agents/skills/` . N'ouvre une skill **que** si
 | Skill | Quand l'utiliser |
 |---|---|
 | `branch-creator` | Créer n'importe quelle branche |
+| `utiliser-core` | Utiliser une fonction du Core (état, RNG, sauvegarde) depuis G2/G3/G4 via coreService |
+| `feat-dev` | Workflow complet pour implémenter une feature non triviale |
+| `prepare-pr` | Préparer le titre et le corps d'une Pull Request GitHub |
+| `dev-par-les-tests` | Méthodologie TDD pour la logique métier et les correctifs |
+| `game-ui` | Développer l'interface des jeux du casino dans /src/game-ui/ |
+| `jeux-g2` | Implémentation des règles et de la logique des jeux (G2) |
+| `composants-communs-g4` | Création et maintenance des composants UI partagés (G4) |
+| `pages-et-routage-g4` | Gestion des pages et de la navigation de l'application (G4) |
+| `pr-validation` | Valider une PR selon les critères du projet |
 <!-- G5 : ajouter une ligne à chaque skill mergée -->
 
 Si une skill nécessaire n'existe pas, ne l'invente pas en cours de tâche : signale le manque dans la PR.
