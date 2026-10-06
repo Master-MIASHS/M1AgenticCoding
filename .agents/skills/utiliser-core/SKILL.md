@@ -14,7 +14,7 @@ Ne pas copier un module interne pour contourner un export manquant.
 Repères à la rédaction (à revérifier, pas des garanties permanentes) :
 - `getState()` est public.
 - `exportSave()` / `importSave()` sont publics (#130, contrôle d’intégrité FNV-1a retenu dans #132).
-- Les algorithmes RNG sont intégrés par #28 ; leur exposition publique est dans #115.
+- `roll()` est public ; `tirageEntier()`, `tirageAvecPoids()` et `melanger()` (#28) le sont depuis #115.
 - L’écriture interne `updateState` est intégrée par #139.
 - L’adaptateur `createProgressionStore` est proposé dans #144 (ticket #143).
 - Le branchement par défaut de la progression reste une étape séparée.
@@ -42,13 +42,13 @@ inventer des champs comme `pseudo` ou `xpForNextLevel` avant leur disponibilité
 La lecture peut échouer si l’initialisation du stockage échoue dans la version
 utilisée : vérifier le comportement courant et le traitement d’erreur prévu.
 
-### Tirer du hasard brut (après disponibilité des exports)
+### Tirer du hasard brut : roll(), tirageEntier(), tirageAvecPoids(), melanger()
 
 | Fonction | Quand l’utiliser | Retour / précaution |
 |---|---|---|
 | `roll(gameId, params?)` | Obtenir du hasard brut pour les règles G2 | `{ gameId, value, nonce }`, value dans `[0,1)` ; ne décide pas du résultat ; nonce n’est pas un identifiant garanti unique |
-| `tirageEntier(min, max)` | Choisir un entier dans un intervalle | Bornes incluses, min ≤ max ; erreur pour bornes invalides |
-| `tirageAvecPoids(elements, poids)` | Choisir un élément selon des poids relatifs | Tableaux non vides de même longueur ; poids ≥ 0 et somme > 0 ; pas besoin d’une somme égale à 1 |
+| `tirageEntier(min, max)` | Choisir un entier dans un intervalle | Bornes incluses ; erreur si une borne n’est pas un entier sûr, si min > max ou si la largeur de l’intervalle dépasse les entiers sûrs |
+| `tirageAvecPoids(elements, poids)` | Choisir un élément selon des poids relatifs | Renvoie l’élément tiré, pas son index (pour un index : passer `[0, 1, …, n-1]` comme éléments) ; tableaux non vides de même longueur ; poids nombres finis ≥ 0, somme finie et > 0 ; pas besoin d’une somme égale à 1 ; un élément de poids 0 n’est jamais tiré (ex. probabilité réglée à 0 dans la config) |
 | `melanger(liste)` | Mélanger un paquet ou une liste | Nouveau tableau ; mêmes occurrences et références ; entrée non modifiée ; erreur si l’entrée n’est pas un tableau |
 
 ```js
@@ -57,7 +57,9 @@ const paquetMelange = melanger(paquetConstruitParG2);
 ```
 
 G2 construit les cartes `{ rank, suit }`, garde la pioche et applique les règles.
-Le Core ne connaît pas la valeur des cartes. Un sabot de deux jeux contient
+Le Core ne connaît pas la valeur des cartes. Format des cartes, garanties de
+`melanger` et rôles G1/G2 : voir `docs/contracts/cards-contract.md` (#76), qui fait
+référence en cas d’écart avec cette skill. Un sabot de deux jeux contient
 normalement deux occurrences de chaque rang/couleur : vérifier la conservation
 multiplicité par multiplicité, pas l’unicité des 104 valeurs.
 
@@ -65,11 +67,11 @@ Le mélange est superficiel : modifier un objet carte affecterait ses autres
 références. Ne pas muter les cartes partagées. Un mélange peut rendre le même
 ordre ; un test ne doit pas exiger un ordre différent.
 
-Dans la version #28, la validation des poids et des bornes extrêmes est incomplète :
-chaînes numériques acceptées, somme infinie possible, intervalle pouvant déborder.
-Ne pas présenter ces cas comme gérés : utiliser des nombres finis, des poids dont
-la somme est finie, des bornes entières sûres et une largeur sûre ; signaler à G1
-les entrées hors domaine. Les défauts sont décrits dans #115.
+Depuis #167, les entrées hors domaine lèvent une `Error` au lieu de fausser le
+tirage : poids qui ne sont pas des nombres finis (chaîne `'1'`, `NaN`, `Infinity`),
+somme des poids qui déborde, bornes non entières ou hors des entiers sûrs. Ne pas
+rattraper l’erreur avec un tirage par défaut : corriger l’entrée, ou signaler à G1
+une entrée légitime refusée.
 
 `semer` n’est pas une API UI. Dans les tests internes G1 de reproductibilité seulement : importer
 `semer` depuis `src/core/rng.js`, poser une graine et appeler `semer(null)` dans un
