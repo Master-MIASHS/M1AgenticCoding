@@ -3,10 +3,10 @@
 // ---------------------------------------------------------------------------
 // Exports and imports a save file with an integrity hash.
 //
-// NOTE: the integrity hash algorithm below is a DOCUMENTED PLACEHOLDER. The
-// final algorithm is an open decision (see README - "Decisions techniques
-// encore ouvertes"). It is intentionally dependency-free (no server, no
-// external crypto library).
+// NOTE: FNV-1a (32-bit) is the retained standard for the non-cryptographic
+// integrity check of save files (validated by G5). It detects accidental
+// corruption, not tampering: the front-end code is inspectable. It is
+// intentionally dependency-free (no server, no external crypto library).
 // ---------------------------------------------------------------------------
 
 import { getState, restoreState } from './state.js';
@@ -18,9 +18,9 @@ function isRecord(value) {
 }
 
 /**
- * PLACEHOLDER integrity hash (FNV-1a, 32-bit). Deterministic and dependency-
- * free, but NOT cryptographically secure. To be replaced by the final
- * algorithm decided by the team.
+ * Integrity hash (FNV-1a, 32-bit), retained standard for the non-cryptographic
+ * integrity check of save files. Deterministic and dependency-free, but NOT
+ * cryptographically secure: it detects accidental corruption only.
  *
  * @param {string} input
  * @returns {string} hex digest.

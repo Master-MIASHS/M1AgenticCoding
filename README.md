@@ -86,7 +86,7 @@ des valeurs cohérentes mais fictives :
 | `core/economy.js` | `play()`, `getBalance()`, `claimDailyBonus()`, `requestLoan()` |
 | `core/progression.js` | `addXP()`, `getLevel()`, `getUnlockedGames()`, `getLeaderboard()`, `getHistory()` |
 | `core/config/games.config.js` | 10 jeux + niveaux de déblocage, `setGameConfig()`, `getGlobalStats()` |
-| `core/storage.js` | `exportSave()`, `importSave()` (hash placeholder documenté) |
+| `core/storage.js` | `exportSave()`, `importSave()` (hash FNV-1a : standard retenu pour le contrôle d'intégrité non cryptographique) |
 | `core/core.js` | **API publique** du Core (ré-exports) |
 
 **Règle absolue du RNG :** `rng.js` est la seule source de hasard. Aucun fichier
@@ -139,7 +139,6 @@ Ces points sont **volontairement laissés ouverts** et seront tranchés par l'é
   - responsabilités de l'IA
   - éventuelle stratégie locale / offline
 - **Hash de sauvegarde**
-  - algorithme définitif (actuellement un placeholder FNV-1a documenté)
   - gestion de l'intégrité
   - format définitif du fichier de sauvegarde
 - **Routing**
