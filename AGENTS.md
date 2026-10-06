@@ -110,11 +110,8 @@ Frontières :
 
 ### Référents humains
 
-- G1 : Ahmed B, Reda N, Ania A, Amina B, Olti M
-- G2 : Clémentine B, Donia A, Raphaël C, Camille S, Cassius F, Camil H
-- G3 : Ali B, Anthony A, Samy H, Sosthene M, Enzo N, Anthony S
-- G4 : Stacy T, Floriant M, Kardiatou B, Rayid A, Lona A
-- G5 (supervise l'agent général) : Nina V, Gabriel E, Arthur F, Anthony M, Noah C
+La composition détaillée de chaque groupe, les responsabilités exactes de chacun et les pseudos GitHub associés se trouvent **dans le fichier `README.md` (section "Membres par groupe")**. 
+Tout agent doit s'y référer pour savoir avec qui il collabore et connaître les limites strictes de son périmètre.
 
 ## Règles absolues
 
