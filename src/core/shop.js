@@ -12,6 +12,8 @@
 //  * Conception détaillée : docs/design/boutique.md
 // ---------------------------------------------------------------------------
 
+import { SHOP_CONFIG } from './config/shop.config.js';
+
 const CHAMPS_TEXTE = ['name', 'description', 'category'];
 
 /**
@@ -57,4 +59,38 @@ export function validerCatalogue(catalogue) {
     }
     identifiants.add(article.id);
   }
+}
+
+/**
+ * Crée la boutique du Core, branchée sur un stockage injecté.
+ *
+ * Le catalogue est validé et copié à la création : le modifier ensuite ne
+ * change pas la boutique.
+ *
+ * @param {{ getState: function(): object,
+ *   updateState: function(function(object): object): object }} stockage -
+ *   Accès à l'état du joueur (contrat de updateState, #139).
+ * @param {object} [options] - Dépendances injectables (tests, réglages).
+ * @param {Array<object>} [options.catalogue] - Articles de la boutique
+ *   (SHOP_CONFIG.catalogue par défaut).
+ * @returns {{ getShopCatalog: function(): Array<object> }} Opérations de la
+ *   boutique.
+ * @throws {Error} Si le stockage ou le catalogue est invalide.
+ */
+export function createShop(stockage, { catalogue = SHOP_CONFIG.catalogue } = {}) {
+  if (typeof stockage?.getState !== 'function' || typeof stockage?.updateState !== 'function') {
+    throw new Error('createShop : getState et updateState sont requis');
+  }
+  validerCatalogue(catalogue);
+  const articles = structuredClone(catalogue);
+
+  return {
+    /**
+     * Renvoie le catalogue de la boutique.
+     * @returns {Array<object>} Copie indépendante des articles.
+     */
+    getShopCatalog() {
+      return structuredClone(articles);
+    },
+  };
 }

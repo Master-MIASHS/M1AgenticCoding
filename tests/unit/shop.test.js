@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { SHOP_CONFIG } from '../../src/core/config/shop.config.js';
-import { validerCatalogue } from '../../src/core/shop.js';
+import { validerCatalogue, createShop } from '../../src/core/shop.js';
 
 describe('shop.config', () => {
   it('fournit un catalogue vide par défaut (contenu de la boutique non décidé)', () => {
@@ -74,5 +74,68 @@ describe('validerCatalogue', () => {
       () => validerCatalogue([article(), article({ name: 'Doublon' })]),
       /validerCatalogue : identifiant en double article-test/,
     );
+  });
+});
+
+/**
+ * Faux stockage qui imite le contrat de updateState (#139) : le callback
+ * reçoit une copie et renvoie l'état complet, enregistré d'un seul coup.
+ * @param {object} [etatInitial] - Champs de l'état à remplacer.
+ * @returns {{ getState: function(): object, updateState: function(function(object): object): object,
+ *   ecritures: function(): number }} Stockage de test.
+ */
+function fauxStockage(etatInitial = {}) {
+  let etat = {
+    balance: 1000,
+    bestBalance: 1500,
+    xp: 120,
+    level: 3,
+    unlockedGames: ['slots', 'dice'],
+    history: [],
+    role: 'player',
+    ...etatInitial,
+  };
+  let nombreEcritures = 0;
+  return {
+    getState: () => structuredClone(etat),
+    updateState: (calcul) => {
+      const suivant = structuredClone(calcul(structuredClone(etat)));
+      etat = suivant;
+      nombreEcritures += 1;
+      return structuredClone(etat);
+    },
+    ecritures: () => nombreEcritures,
+  };
+}
+
+describe('createShop', () => {
+  it('rejette un stockage invalide', () => {
+    for (const stockage of [undefined, null, {}, { getState: () => ({}) }, { updateState: () => ({}) }]) {
+      assert.throws(() => createShop(stockage), /createShop/);
+    }
+  });
+
+  it('rejette un catalogue invalide', () => {
+    assert.throws(
+      () => createShop(fauxStockage(), { catalogue: [article({ price: -5 })] }),
+      /validerCatalogue/,
+    );
+  });
+});
+
+describe('getShopCatalog', () => {
+  it('lit le catalogue de la config par défaut', () => {
+    assert.deepStrictEqual(createShop(fauxStockage()).getShopCatalog(), SHOP_CONFIG.catalogue);
+  });
+
+  it('renvoie une copie indépendante du catalogue fourni', () => {
+    const catalogue = [article(), article({ id: 'visuel', visual: '✦' })];
+    const boutique = createShop(fauxStockage(), { catalogue });
+    const lu = boutique.getShopCatalog();
+    assert.deepStrictEqual(lu, catalogue);
+    lu[0].price = 0;
+    lu.push(article({ id: 'ajout' }));
+    catalogue[1].price = 1;
+    assert.deepStrictEqual(boutique.getShopCatalog(), [article(), article({ id: 'visuel', visual: '✦' })]);
   });
 });
