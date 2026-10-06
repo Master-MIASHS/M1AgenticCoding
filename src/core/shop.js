@@ -62,6 +62,32 @@ export function validerCatalogue(catalogue) {
 }
 
 /**
+ * Lit l'inventaire du joueur dans l'état.
+ *
+ * Le champ `ownedItemIds` (nom proposé par le G4, à confirmer au branchement)
+ * est absent tant que le joueur n'a rien acheté : l'inventaire est alors vide.
+ *
+ * @param {object} etat - État du joueur.
+ * @returns {string[]} Identifiants des articles possédés (nouveau tableau).
+ * @throws {Error} Si l'inventaire de l'état est corrompu (pas un tableau de
+ *   chaînes, ou un article en double).
+ */
+function lireInventaire(etat) {
+  const { ownedItemIds } = etat;
+  if (ownedItemIds === undefined) {
+    return [];
+  }
+  if (
+    !Array.isArray(ownedItemIds) ||
+    !ownedItemIds.every((id) => typeof id === 'string') ||
+    new Set(ownedItemIds).size !== ownedItemIds.length
+  ) {
+    throw new Error("boutique : l'inventaire de l'état est corrompu");
+  }
+  return [...ownedItemIds];
+}
+
+/**
  * Crée la boutique du Core, branchée sur un stockage injecté.
  *
  * Le catalogue est validé et copié à la création : le modifier ensuite ne
@@ -73,8 +99,9 @@ export function validerCatalogue(catalogue) {
  * @param {object} [options] - Dépendances injectables (tests, réglages).
  * @param {Array<object>} [options.catalogue] - Articles de la boutique
  *   (SHOP_CONFIG.catalogue par défaut).
- * @returns {{ getShopCatalog: function(): Array<object> }} Opérations de la
- *   boutique.
+ * @returns {{ getShopCatalog: function(): Array<object>,
+ *   getShopInventory: function(): { ownedItemIds: string[] } }} Opérations de
+ *   la boutique.
  * @throws {Error} Si le stockage ou le catalogue est invalide.
  */
 export function createShop(stockage, { catalogue = SHOP_CONFIG.catalogue } = {}) {
@@ -91,6 +118,15 @@ export function createShop(stockage, { catalogue = SHOP_CONFIG.catalogue } = {})
      */
     getShopCatalog() {
       return structuredClone(articles);
+    },
+
+    /**
+     * Renvoie l'inventaire du joueur, relu dans l'état à chaque appel.
+     * @returns {{ ownedItemIds: string[] }} Copie indépendante de l'inventaire.
+     * @throws {Error} Si l'inventaire de l'état est corrompu.
+     */
+    getShopInventory() {
+      return { ownedItemIds: lireInventaire(stockage.getState()) };
     },
   };
 }

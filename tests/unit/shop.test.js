@@ -139,3 +139,31 @@ describe('getShopCatalog', () => {
     assert.deepStrictEqual(boutique.getShopCatalog(), [article(), article({ id: 'visuel', visual: '✦' })]);
   });
 });
+
+describe('getShopInventory', () => {
+  it('renvoie un inventaire vide si le joueur n’a rien acheté', () => {
+    assert.deepStrictEqual(createShop(fauxStockage()).getShopInventory(), { ownedItemIds: [] });
+  });
+
+  it('renvoie une copie indépendante de l’inventaire de l’état', () => {
+    const boutique = createShop(fauxStockage({ ownedItemIds: ['a', 'b'] }));
+    const inventaire = boutique.getShopInventory();
+    assert.deepStrictEqual(inventaire, { ownedItemIds: ['a', 'b'] });
+    inventaire.ownedItemIds.push('c');
+    assert.deepStrictEqual(boutique.getShopInventory(), { ownedItemIds: ['a', 'b'] });
+  });
+
+  it('relit l’état à chaque appel', () => {
+    const stockage = fauxStockage();
+    const boutique = createShop(stockage);
+    stockage.updateState((etat) => ({ ...etat, ownedItemIds: ['restaure'] }));
+    assert.deepStrictEqual(boutique.getShopInventory(), { ownedItemIds: ['restaure'] });
+  });
+
+  it('rejette un inventaire corrompu dans l’état', () => {
+    for (const ownedItemIds of [null, 'a', [1], ['a', 'a']]) {
+      const boutique = createShop(fauxStockage({ ownedItemIds }));
+      assert.throws(() => boutique.getShopInventory(), /inventaire/, JSON.stringify(ownedItemIds));
+    }
+  });
+});
