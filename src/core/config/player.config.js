@@ -3,7 +3,8 @@
 // ---------------------------------------------------------------------------
 // Règle 4 d'AGENTS.md : le capital de départ n'est jamais écrit en dur dans
 // le code, il se lit ici. Le défaut de 1000 jetons vient du glossaire
-// d'AGENTS.md ; l'admin pourra le régler plus tard (tâches n°21 et n°24).
+// d'AGENTS.md ; l'admin peut le régler avec createPlayerConfig (#207). La
+// vérification du rôle admin relève de la tâche n°24.
 // ---------------------------------------------------------------------------
 
 /**
@@ -79,6 +80,7 @@ function lireReglages(store) {
  * @param {{ read: function(): object, write: function(object): void }} store
  *   Stockage synchrone des réglages de l'admin ({ capitalDeDepart }).
  * @returns {{ getCapitalDeDepart: function(): number,
+ *   getPlayerConfig: function(): { capitalDeDepart: number },
  *   setCapitalDeDepart: function(number): number }} Configuration du joueur.
  * @throws {TypeError|RangeError} Si le stockage est invalide.
  */
@@ -88,15 +90,26 @@ export function createPlayerConfig(store) {
   }
   lireReglages(store);
 
+  /**
+   * Renvoie le capital de départ : celui réglé par l'admin, sinon le
+   * défaut de PLAYER_CONFIG.
+   *
+   * @returns {number} Capital de départ d'un nouveau joueur.
+   */
+  const getCapitalDeDepart = () =>
+    lireReglages(store).capitalDeDepart ?? PLAYER_CONFIG.capitalDeDepart;
+
   return {
+    getCapitalDeDepart,
+
     /**
-     * Renvoie le capital de départ : celui réglé par l'admin, sinon le
-     * défaut de PLAYER_CONFIG.
+     * Renvoie la configuration complète d'un nouveau joueur, à passer à
+     * creerJoueur(infos, { config }).
      *
-     * @returns {number} Capital de départ d'un nouveau joueur.
+     * @returns {{ capitalDeDepart: number }} Nouvel objet à chaque appel.
      */
-    getCapitalDeDepart() {
-      return lireReglages(store).capitalDeDepart ?? PLAYER_CONFIG.capitalDeDepart;
+    getPlayerConfig() {
+      return { capitalDeDepart: getCapitalDeDepart() };
     },
 
     /**

@@ -8,6 +8,7 @@ import {
   createPlayerConfigMemoryStore,
   createPlayerConfig,
 } from '../../src/core/config/player.config.js';
+import { creerJoueur } from '../../src/core/player.js';
 
 describe('createPlayerConfigMemoryStore', () => {
   it('est vide par défaut', () => {
@@ -87,5 +88,32 @@ describe('setCapitalDeDepart', () => {
   it('ne modifie jamais la configuration par défaut', () => {
     createPlayerConfig(createPlayerConfigMemoryStore()).setCapitalDeDepart(42);
     assert.strictEqual(PLAYER_CONFIG.capitalDeDepart, 1000);
+  });
+});
+
+describe('getPlayerConfig', () => {
+  it('renvoie la configuration complète, défaut compris', () => {
+    const config = createPlayerConfig(createPlayerConfigMemoryStore());
+    assert.deepStrictEqual(config.getPlayerConfig(), { capitalDeDepart: 1000 });
+  });
+
+  it('permet à creerJoueur de créer un joueur avec le capital réglé', () => {
+    const config = createPlayerConfig(createPlayerConfigMemoryStore());
+    config.setCapitalDeDepart(2500);
+    const joueur = creerJoueur({ pseudo: 'alice' }, { config: config.getPlayerConfig() });
+    assert.strictEqual(joueur.balance, 2500);
+    assert.strictEqual(joueur.bestBalance, 2500);
+  });
+
+  it('fonctionne aussi appelée seule (sans this)', () => {
+    const { getPlayerConfig } = createPlayerConfig(createPlayerConfigMemoryStore({ capitalDeDepart: 900 }));
+    assert.deepStrictEqual(getPlayerConfig(), { capitalDeDepart: 900 });
+  });
+
+  it('renvoie une copie : la modifier ne change pas le réglage', () => {
+    const config = createPlayerConfig(createPlayerConfigMemoryStore({ capitalDeDepart: 700 }));
+    const copie = config.getPlayerConfig();
+    copie.capitalDeDepart = 1;
+    assert.strictEqual(config.getCapitalDeDepart(), 700);
   });
 });

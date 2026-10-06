@@ -143,3 +143,4 @@ Commande : `npm test` (fichier `tests/unit/player.config.test.js`).
 | `setCapitalDeDepart` — enregistre et renvoie le nouveau capital | échec | succès |
 | `setCapitalDeDepart` — rejette un capital invalide sans rien écrire | échec | succès |
 | `getPlayerConfig` — `creerJoueur` crée un joueur avec le capital réglé | échec | succès |
+| `getPlayerConfig` — fonctionne aussi appelée seule (sans `this`) et renvoie une copie | échec | succès |
