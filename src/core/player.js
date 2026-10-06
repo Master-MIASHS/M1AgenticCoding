@@ -184,5 +184,39 @@ export function creerProfil(
   } = {},
 ) {
   const joueur = creerJoueur(infos, { config, jeux, maintenant });
-  return stockage.updateState((courant) => ({ ...courant, ...joueur }));
+  verifierPartieNeuve(stockage.getState(), joueur);
+  // Revérifié sur l'état transmis par updateState : la décision et
+  // l'écriture portent sur le même état.
+  return stockage.updateState((courant) => {
+    verifierPartieNeuve(courant, joueur);
+    return { ...courant, ...joueur };
+  });
+}
+
+/**
+ * Vérifie que le profil peut être créé sans écraser une partie : aucun
+ * profil existant, aucune partie jouée, et un meilleur solde qui ne baisse
+ * pas (updateState l'interdit).
+ *
+ * @param {object} etat - État courant.
+ * @param {{ bestBalance: number }} joueur - Joueur à enregistrer.
+ * @returns {void}
+ * @throws {Error} Si un profil existe, si une partie a déjà été jouée ou si
+ *   le capital est inférieur au meilleur solde de l'état.
+ */
+function verifierPartieNeuve(etat, joueur) {
+  if (etat.pseudo !== undefined) {
+    throw new Error('creerProfil : un profil existe déjà (plusieurs profils : tâche n°5)');
+  }
+  if (etat.xp > 0 || etat.level > 1 || etat.history.length > 0) {
+    throw new Error(
+      'creerProfil : une partie a déjà été jouée, le profil ne peut pas écraser sa progression',
+    );
+  }
+  if (joueur.bestBalance < etat.bestBalance) {
+    throw new Error(
+      `creerProfil : le capital (${joueur.bestBalance}) est inférieur au meilleur solde ` +
+        `de l'état (${etat.bestBalance}), qui ne peut pas baisser`,
+    );
+  }
 }

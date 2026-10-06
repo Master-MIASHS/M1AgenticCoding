@@ -66,3 +66,33 @@ describe('creerProfil : partie neuve', () => {
     assert.strictEqual(stockage.ecritures(), 0);
   });
 });
+
+describe('creerProfil : ne jamais écraser une partie', () => {
+  it('refuse si un profil existe déjà, sans écriture', () => {
+    const stockage = fauxStockage({ pseudo: 'alice' });
+    assert.throws(() => creerProfil({ pseudo: 'bob' }, { stockage }), /profil existe déjà/);
+    assert.strictEqual(stockage.ecritures(), 0);
+  });
+
+  it('refuse si une partie a déjà été jouée, sans écriture', () => {
+    const parties = [{ xp: 10 }, { level: 2, xp: 0 }, { history: [{ gameId: 'slots' }] }];
+    for (const changements of parties) {
+      const stockage = fauxStockage(changements);
+      assert.throws(
+        () => creerProfil({ pseudo: 'bob' }, { stockage }),
+        /partie a déjà été jouée/,
+        JSON.stringify(changements),
+      );
+      assert.strictEqual(stockage.ecritures(), 0);
+    }
+  });
+
+  it('refuse clairement un capital inférieur au meilleur solde de l’état, sans écriture', () => {
+    const stockage = fauxStockage();
+    assert.throws(
+      () => creerProfil({ pseudo: 'bob' }, { stockage, config: { capitalDeDepart: 500 } }),
+      /meilleur solde/,
+    );
+    assert.strictEqual(stockage.ecritures(), 0);
+  });
+});
