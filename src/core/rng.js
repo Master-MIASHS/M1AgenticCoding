@@ -90,6 +90,11 @@ export function tirageAvecPoids(elements, poids) {
   if (elements.length !== poids.length) {
     throw new Error('tirageAvecPoids : elements et poids doivent avoir la même longueur');
   }
+  // Chaque poids est vérifié AVANT la somme : une chaîne comme '1' serait
+  // sinon concaténée ('0' + '1' + '2' = '012') et fausserait le tirage.
+  if (poids.some((p) => typeof p !== 'number' || !Number.isFinite(p))) {
+    throw new Error('tirageAvecPoids : chaque poids doit être un nombre fini');
+  }
   const total = poids.reduce((somme, p) => somme + p, 0);
   if (!(total > 0) || poids.some((p) => p < 0)) {
     throw new Error('tirageAvecPoids : les poids doivent être positifs ou nuls et leur somme > 0');
