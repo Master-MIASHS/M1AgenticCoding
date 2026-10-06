@@ -89,9 +89,14 @@ export function tirageEntier(min, max) {
  * l'élément tiré.
  *
  * @param {Array<*>} elements - éléments candidats.
- * @param {number[]} poids - tableau parallèle de poids positifs (même
- *   longueur que elements). Les poids n'ont pas besoin de sommer à 1.
- * @returns {*} un élément de `elements`.
+ * @param {number[]} poids - tableau parallèle de poids (même longueur que
+ *   elements) : nombres finis positifs ou nuls, dont la somme est finie et
+ *   strictement positive. Ils n'ont pas besoin de sommer à 1.
+ * @returns {*} un élément de `elements` (l'élément lui-même, pas son index).
+ *   Un élément de poids 0 n'est jamais tiré.
+ * @throws {Error} si les tableaux sont vides ou de longueurs différentes, si
+ *   un poids n'est pas un nombre fini ou est négatif, ou si la somme des poids
+ *   est nulle ou infinie.
  */
 export function tirageAvecPoids(elements, poids) {
   if (!Array.isArray(elements) || !Array.isArray(poids) || elements.length === 0) {
