@@ -141,7 +141,8 @@ function lireEvenements(store) {
  * @param {function(): number} [options.now] - Horloge en ms (Date.now par défaut).
  * @returns {{
  *   getEvenements: function(): Array<object>,
- *   lancerEvenement: function(object): object
+ *   lancerEvenement: function(object): object,
+ *   getMultiplicateurActif: function(string): number
  * }} Gestion des événements bonus.
  * @throws {Error} Si le stockage, son contenu ou l'horloge est invalide.
  */
@@ -179,6 +180,29 @@ export function createEvenementsBonus(store, { now = Date.now } = {}) {
       const nouveau = copierEvenement(evenement);
       store.write([...evenements, nouveau]);
       return copierEvenement(nouveau);
+    },
+
+    /**
+     * Renvoie le multiplicateur en cours pour une cible : celui de
+     * l'événement actif à l'instant présent, sinon 1. Il y a au plus un
+     * événement actif par cible (chevauchements refusés).
+     *
+     * @param {'gains'|'xp'} cible - Cible du bonus.
+     * @returns {number} Multiplicateur à appliquer (1 sans événement).
+     * @throws {Error} Si la cible est inconnue ou si l'horloge est invalide.
+     */
+    getMultiplicateurActif(cible) {
+      if (!CIBLES.includes(cible)) {
+        throw new Error(`events.config : cible inconnue ${String(cible)} (gains ou xp)`);
+      }
+      const instant = now();
+      if (!Number.isSafeInteger(instant) || instant < 0) {
+        throw new Error("events.config : l'horloge doit renvoyer une date en ms");
+      }
+      const actif = lireEvenements(store).find(
+        (e) => e.cible === cible && e.debut <= instant && instant < e.fin,
+      );
+      return actif === undefined ? 1 : actif.multiplicateur;
     },
   };
 }

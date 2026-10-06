@@ -162,3 +162,45 @@ describe('lancerEvenement et getEvenements', () => {
     assert.strictEqual(bonus.getEvenements()[0].multiplicateur, 2);
   });
 });
+
+describe('getMultiplicateurActif', () => {
+  /**
+   * Gestion d'événements avec une horloge réglable.
+   * @param {Array<object>} initial - Événements de départ.
+   * @returns {{ bonus: object, regler: function(number): void }} Gestion et réglage de l'heure.
+   */
+  function avecHorloge(initial) {
+    let instant = 0;
+    const bonus = createEvenementsBonus(createEvenementsMemoryStore(initial), { now: () => instant });
+    return { bonus, regler: (t) => { instant = t; } };
+  }
+
+  it('vaut 1 sans événement', () => {
+    const { bonus } = avecHorloge([]);
+    assert.strictEqual(bonus.getMultiplicateurActif('gains'), 1);
+    assert.strictEqual(bonus.getMultiplicateurActif('xp'), 1);
+  });
+
+  it('renvoie le multiplicateur pendant l’événement : début inclus, fin exclue', () => {
+    const { bonus, regler } = avecHorloge([evenement()]);
+    const attendus = [[999, 1], [1000, 2], [1999, 2], [2000, 1]];
+    for (const [instant, multiplicateur] of attendus) {
+      regler(instant);
+      assert.strictEqual(bonus.getMultiplicateurActif('gains'), multiplicateur, String(instant));
+    }
+  });
+
+  it('ne concerne que la cible de l’événement', () => {
+    const { bonus, regler } = avecHorloge([evenement(), evenement({ id: 'xp', cible: 'xp', multiplicateur: 3 })]);
+    regler(1500);
+    assert.strictEqual(bonus.getMultiplicateurActif('gains'), 2);
+    assert.strictEqual(bonus.getMultiplicateurActif('xp'), 3);
+  });
+
+  it('rejette une cible inconnue ou une horloge invalide', () => {
+    const { bonus, regler } = avecHorloge([]);
+    assert.throws(() => bonus.getMultiplicateurActif('solde'), /events\.config/);
+    regler(-5);
+    assert.throws(() => bonus.getMultiplicateurActif('gains'), /events\.config/);
+  });
+});
