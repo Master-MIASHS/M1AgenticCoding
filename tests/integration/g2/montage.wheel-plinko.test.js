@@ -85,18 +85,29 @@ describe('G2 - montage wheel (#26) : orchestrateur + règles + Core', () => {
     assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 5);
   });
 
-  test(
-    'écart 8 : le vrai roll() du Core peut alimenter les règles de la roue',
-    {
-      todo:
-        'écart 8 (#68) : mécanisme draw fusionné (#141) ; reste le draw de la roue ' +
-        '(@camseveyrat, config selon #122) et tirageAvecPoids exposé (#115)',
-    },
-    () => {
-      const game = createGame({ id: 'wheel', rules: wheelRules, config: WHEEL_CONFIG });
-      assert.doesNotThrow(() => game.start([{ type: 'red', amount: 10 }]));
+  test('écart 8 (levé) : le VRAI Core tire un segment via draw + tirageAvecPoids (#141, #115)', () => {
+    // Disposition de roue propre au test : le draw définitif de la roue
+    // appartient à @camseveyrat et suivra la forme de config de #122.
+    const segments = [
+      { id: 's1', color: 'red' },
+      { id: 's2', color: 'blue' },
+    ];
+    const game = createGame({
+      id: 'wheel',
+      rules: wheelRules,
+      config: WHEEL_CONFIG,
+      draw: (core) => core.tirageAvecPoids(segments, [1, 1]),
+    });
+
+    // Vrai hasard du Core : on vérifie des invariants, jamais un tirage précis.
+    for (let i = 0; i < 20; i += 1) {
+      const res = game.start([{ type: 'red', amount: 10 }]);
+      assert.ok(segments.includes(res.renderPayload.raw), 'le brut est un des segments');
+      const won = res.renderPayload.raw.color === 'red';
+      assert.equal(res.gameResult.outcome, won ? 'win' : 'loss');
+      assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + (won ? 10 : -10));
     }
-  );
+  });
 });
 
 describe('G2 - montage plinko (#26) : orchestrateur + règles + Core', () => {
