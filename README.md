@@ -192,6 +192,9 @@ Le Groupe 2 décide **ce qui se passe** dans une partie : les règles de chaque 
 
 
 ### Groupe 3 — Rendu visuel
+
+Le Groupe 3 est responsable de l'interface **à l'intérieur d'une partie** : l'affichage de chaque jeu, les interactions du joueur (mise, bouton jouer, actions comme tirer ou rester), les animations et effets visuels, les états visuels d'une partie (chargement, en cours, terminée, erreur), l'affichage du résultat et les composants visuels communs aux jeux, comme le panneau de mise `BetPanel`. Son périmètre exclusif est `src/game-ui/`. Il affiche les données fournies par le Groupe 2 (`renderPayload`, `availableActions`, `gameResult`) sans jamais les recalculer : il ne décide pas du résultat d'une partie, ne calcule ni probabilités ni gains, ne modifie pas le solde ni l'XP et n'utilise jamais `Math.random()`. Il ne touche ni au Core (Groupe 1), qu'il n'utilise que via `coreService.js`, ni aux règles des jeux dans `src/games/` (Groupe 2), ni aux écrans hors partie comme le Lobby (Groupe 4). Tant qu'un jeu n'est pas livré par le Groupe 2, il travaille sur des données fictives qui respectent exactement le format du contrat, puis les remplace par les vraies données sans changer ses composants. Les règles de travail des agents du groupe sont décrites dans la skill `.agents/skills/game-ui/`.
+
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | Zozote | Enzo Nguyen | Nguyen Enzo | UI, composants communs, review |
