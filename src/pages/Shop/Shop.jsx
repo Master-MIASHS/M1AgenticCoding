@@ -16,7 +16,7 @@ const STATUS_CLASSES = {
 };
 
 function formatCredits(amount) {
-  return new Intl.NumberFormat('fr-FR').format(amount);
+  return Number.isFinite(amount) ? new Intl.NumberFormat('fr-FR').format(amount) : '—';
 }
 
 function getItemStatus(item) {
@@ -30,18 +30,19 @@ function Shop({ shopData = shopMock, balanceReader = getBalance }) {
   const [balance, setBalance] = useState(null);
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState(
-    'Les achats seront disponibles lorsque le contrat Boutique du Core sera raccordé.',
+    'Les achats seront disponibles lorsque le contrat Boutique du Core sera raccordé.'
   );
 
   const loadShop = useCallback(() => {
     setCatalogue(null);
+    setBalance(null);
     setError('');
 
     try {
       const items = shopData?.items;
       const currentBalance = balanceReader();
 
-      if (!Array.isArray(items) || typeof currentBalance !== 'number') {
+      if (!Array.isArray(items) || !Number.isFinite(currentBalance)) {
         throw new Error('Données de boutique invalides.');
       }
 
@@ -60,14 +61,18 @@ function Shop({ shopData = shopMock, balanceReader = getBalance }) {
     return () => window.clearTimeout(timerId);
   }, [loadShop]);
 
-  function handlePurchase(item) {
+  function explainUnavailablePurchase(item) {
     setFeedback(
-      `L’achat de « ${item.name} » n’est pas encore disponible : le contrat d’achat du Core manque.`,
+      `L’achat de « ${item.name} » n’est pas encore disponible : le contrat d’achat du Core manque.`
     );
   }
 
   return (
-    <section className="page-shop" aria-labelledby="shop-title">
+    <section
+      className="page-shop"
+      aria-labelledby="shop-title"
+      aria-busy={!error && catalogue === null}
+    >
       <header className="shop-hero">
         <div>
           <p className="shop-hero__eyebrow">Casino Fantôme</p>
@@ -76,15 +81,24 @@ function Shop({ shopData = shopMock, balanceReader = getBalance }) {
             Personnalisez votre expérience avec des objets réservés aux habitués du casino.
           </p>
         </div>
-        <div className="shop-balance" aria-label={balance === null ? 'Solde en cours de chargement' : `Solde : ${formatCredits(balance)} jetons`}>
+        <div
+          className="shop-balance"
+          aria-label={
+            balance === null
+              ? error
+                ? 'Solde indisponible'
+                : 'Solde en cours de chargement'
+              : `Solde : ${formatCredits(balance)} jetons`
+          }
+        >
           <span className="shop-balance__label">Votre solde</span>
           <strong className="shop-balance__amount">
-            {balance === null ? '…' : `${formatCredits(balance)} jetons`}
+            {balance === null ? (error ? '—' : '…') : `${formatCredits(balance)} jetons`}
           </strong>
         </div>
       </header>
 
-      <p className="shop-feedback" role="status" aria-live="polite">
+      <p id="shop-purchase-pending" className="shop-feedback" role="status" aria-live="polite">
         {feedback}
       </p>
 
@@ -104,7 +118,7 @@ function Shop({ shopData = shopMock, balanceReader = getBalance }) {
       ) : null}
 
       {!error && catalogue?.length === 0 ? (
-        <div className="shop-state">
+        <div className="shop-state" role="status" aria-live="polite">
           <p>Le catalogue est vide pour le moment.</p>
         </div>
       ) : null}
@@ -135,9 +149,10 @@ function Shop({ shopData = shopMock, balanceReader = getBalance }) {
                       <button
                         type="button"
                         className="shop-button"
-                        onClick={() => handlePurchase(item)}
+                        aria-describedby="shop-purchase-pending"
+                        onClick={() => explainUnavailablePurchase(item)}
                       >
-                        Acheter
+                        Achat indisponible
                       </button>
                     ) : (
                       <button type="button" className="shop-button" disabled>
