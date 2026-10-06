@@ -37,3 +37,67 @@ export function niveauDeForce(force, config = AI_POKER_CONFIG) {
   }
   return 'faible';
 }
+
+// Actions du contrat G2 (discussion #9). Toute autre valeur est un écart de
+// contrat, signalé par une erreur plutôt qu'ignorée.
+const ACTIONS_CONNUES = ['fold', 'check', 'call', 'raise'];
+
+/**
+ * Détermine les actions que le bot peut réellement jouer.
+ *
+ * Part des actions déclarées possibles par le G2 (dans leur ordre), puis :
+ *  - retire `fold` quand `check` est possible : se coucher alors qu'on peut
+ *    parler gratuitement n'est jamais meilleur ;
+ *  - retire `raise` si les jetons du bot sont sous `minRaise` : le montant ne
+ *    pourrait pas respecter les bornes promises au G2.
+ *
+ * @param {{ availableActions: string[], minRaise?: number,
+ *   aiState: { chips: number } }} situation - Situation transmise par le G2.
+ * @returns {string[]} Actions jouables (nouveau tableau, jamais vide).
+ * @throws {Error} Si la situation est invalide ou si aucune action ne reste
+ *   jouable.
+ */
+export function actionsCandidates(situation) {
+  if (situation === null || typeof situation !== 'object' || Array.isArray(situation)) {
+    throw new Error('actionsCandidates : la situation doit être un objet');
+  }
+  const { availableActions, minRaise, aiState } = situation;
+  if (!Array.isArray(availableActions) || availableActions.length === 0) {
+    throw new Error('actionsCandidates : availableActions doit être un tableau non vide');
+  }
+  const inconnue = availableActions.find((action) => !ACTIONS_CONNUES.includes(action));
+  if (inconnue !== undefined) {
+    throw new Error(`actionsCandidates : action inconnue ${String(inconnue)}`);
+  }
+  if (
+    aiState === null ||
+    typeof aiState !== 'object' ||
+    typeof aiState.chips !== 'number' ||
+    !Number.isFinite(aiState.chips) ||
+    aiState.chips < 0
+  ) {
+    throw new Error('actionsCandidates : aiState.chips doit être un nombre fini positif ou nul');
+  }
+  const relancePossible = availableActions.includes('raise');
+  if (
+    relancePossible &&
+    (typeof minRaise !== 'number' || !Number.isFinite(minRaise) || minRaise <= 0)
+  ) {
+    throw new Error('actionsCandidates : minRaise doit être un nombre fini strictement positif');
+  }
+
+  const checkPossible = availableActions.includes('check');
+  const candidates = availableActions.filter((action) => {
+    if (action === 'fold') {
+      return !checkPossible;
+    }
+    if (action === 'raise') {
+      return aiState.chips >= minRaise;
+    }
+    return true;
+  });
+  if (candidates.length === 0) {
+    throw new Error('actionsCandidates : aucune action ne reste jouable pour le bot');
+  }
+  return candidates;
+}
