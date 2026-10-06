@@ -16,3 +16,21 @@
 export const PLAYER_CONFIG = Object.freeze({
   capitalDeDepart: 1000,
 });
+
+/**
+ * Crée un stockage en mémoire de la configuration réglée par l'admin, en
+ * attendant le branchement sur casino_state (n°8).
+ *
+ * @param {{ capitalDeDepart?: number }} [initial] - Valeurs déjà réglées.
+ * @returns {{ read: function(): object, write: function(object): void }}
+ *   Stockage synchrone ; read() renvoie une copie.
+ */
+export function createPlayerConfigMemoryStore(initial = {}) {
+  let reglages = { ...initial };
+  return {
+    read: () => ({ ...reglages }),
+    write: (suivants) => {
+      reglages = { ...suivants };
+    },
+  };
+}
