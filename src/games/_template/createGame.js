@@ -16,7 +16,12 @@
 // only keeps the sessionId (contrat § 5.1, confirmed by G3 on 29/09).
 //
 // Responsibilities of the orchestrator (and ONLY these):
-//   1. draw the raw result through coreService.roll(gameId, params)
+//   1. draw the raw result through the Core: by default
+//      coreService.roll(gameId, params); a game whose rules expect another
+//      raw shape (wheel segment, plinko slot, slot symbols...) injects its own
+//      `draw(core, context)` that calls the right Core primitive
+//      (tirageEntier / tirageAvecPoids / melanger, contrat § 4.1, écart 8).
+//      `draw` lives in the game's own file, never in rules.js (rules stay pure)
 //   2. hand the raw result to the injected rules, together with the bets and
 //      the game config:
 //        - single-step games : rules.resolve(raw, { bets, config })
@@ -44,7 +49,8 @@
 //   - where availableActions come from: read from session.availableActions.
 //
 // ABSOLUTE RULE: this file never calls Math.random(); the only source of
-// randomness is coreService.roll().
+// randomness is the Core, reached through `draw` (coreService.roll() by
+// default).
 // ---------------------------------------------------------------------------
 
 import * as coreService from '../../services/coreService.js';
@@ -101,18 +107,31 @@ function isPending(result) {
  *   - start(raw, { bets, config }) -> session AND
  *     step(session, action, raw) -> session | gameResult            (multi-step)
  *
- * @param {{ id: string, rules: object, config?: object, core?: object }} options
+ * @param {{ id: string, rules: object, config?: object, core?: object, draw?: Function }} options
  *   `config` is forwarded as-is to the rules (undefined when not provided).
  *   `core` is injectable for testing; it defaults to the official
  *   coreService facade.
+ *   `draw(core, context)` returns the raw draw handed to the rules; it is the
+ *   only code allowed to ask the Core for randomness on behalf of the game.
+ *   `context` is { bets, config, params } on start(), plus { session, action }
+ *   on action(). Defaults to core.roll(id, params).
  * @returns {{ id: string, start: Function, action: Function, playRound: Function }}
  */
-export function createGame({ id, rules, config, core = coreService }) {
+export function createGame({
+  id,
+  rules,
+  config,
+  core = coreService,
+  draw = (c, { params }) => c.roll(id, params),
+}) {
   if (typeof id !== 'string' || id.length === 0) {
     throw new TypeError('createGame: a non-empty string `id` is required');
   }
   if (rules === null || typeof rules !== 'object') {
     throw new TypeError('createGame: `rules` must be an object');
+  }
+  if (typeof draw !== 'function') {
+    throw new TypeError('createGame: `draw` must be a function draw(core, context)');
   }
   const singleStep = typeof rules.resolve === 'function';
   const multiStep = typeof rules.start === 'function' && typeof rules.step === 'function';
@@ -169,7 +188,8 @@ export function createGame({ id, rules, config, core = coreService }) {
    * Opens a round. Instant games are settled immediately.
    *
    * @param {object | object[]} bets - one { type, amount } or an array of them.
-   * @param {object} [params] - optional parameters forwarded to core.roll().
+   * @param {object} [params] - optional parameters forwarded to draw() (and to
+   *   core.roll() by the default draw).
    */
   function start(bets, params = {}) {
     const normalizedBets = normalizeBets(bets);
@@ -178,7 +198,7 @@ export function createGame({ id, rules, config, core = coreService }) {
     const sessionId = `${id}-${sessionCount}`;
 
     // The ONLY place randomness enters the game.
-    const raw = core.roll(id, params);
+    const raw = draw(core, { ...context, params });
 
     if (singleStep) {
       return settle(sessionId, normalizedBets, raw, rules.resolve(raw, context));
@@ -212,7 +232,13 @@ export function createGame({ id, rules, config, core = coreService }) {
       throw new Error(`createGame(${id}): session kept running beyond ${MAX_STEPS} steps`);
     }
 
-    const raw = core.roll(id, entry.params);
+    const raw = draw(core, {
+      bets: entry.bets,
+      config,
+      params: entry.params,
+      session: entry.session,
+      action: playerAction,
+    });
     const result = rules.step(entry.session, playerAction, raw);
     if (!isPending(result)) {
       return settle(sessionId, entry.bets, raw, result);
