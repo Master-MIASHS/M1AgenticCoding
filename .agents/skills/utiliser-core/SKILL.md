@@ -17,8 +17,8 @@ Repères à la rédaction (à revérifier, pas des garanties permanentes) :
 - `getShopCatalog()`, `getShopInventory()` et `purchaseShopItem()` sont publics (#205).
 - `roll()` est public ; `tirageEntier()`, `tirageAvecPoids()` et `melanger()` (#28) le sont depuis #115.
 - L’écriture interne `updateState` est intégrée par #139.
-- L’adaptateur `createProgressionStore` est proposé dans #144 (ticket #143).
-- Le branchement par défaut de la progression reste une étape séparée.
+- L’adaptateur `createProgressionStore` est intégré par #144 (ticket #143).
+- Le branchement par défaut de la progression utilise cet adaptateur (#237) ; vérifier que la PR correspondante est intégrée dans la branche utilisée.
 
 ## G2/G3/G4 : accéder par la façade
 
@@ -142,8 +142,7 @@ const resultat = purchaseShopItem(article.id);     // { status, itemId, balance,
 
 ## G1 uniquement : écriture et progression internes
 
-Ces exemples supposent #139 et #144 intégrées dans la base de travail ; #144
-reste à fusionner à la rédaction. Ils ne
+Ces exemples supposent #139 et #144 intégrées dans la base de travail. Ils ne
 constituent pas une autorisation d’import interne pour G2/G3/G4.
 
 ### updateState(updater)
@@ -185,8 +184,10 @@ les deux champs, ignore les autres, refuse les diminutions et propage les erreur
 XP finie ≥ 0 (décimales acceptées), niveau entier sûr ≥ 1. Le calcul du niveau
 reste à `createProgression`. Les dépendances injectées doivent être synchrones.
 
-Ne pas remplacer seul l’instance par défaut de Reda ni prétendre que cet exemple
-est déjà le branchement de production. Pour régler une partie, ne pas enchaîner
+Le branchement de l’instance publique est autorisé par Reda et réalisé dans #237.
+`addXP` persiste XP/niveau ensemble et propage les erreurs de stockage ; `getLevel`
+relit la progression courante. Sans localStorage, l’état reste en mémoire.
+Ce branchement ne déclenche aucun gain automatique par partie. Pour régler une partie, ne pas enchaîner
 une écriture de solde puis une écriture XP : #131 prévoit une transaction globale
 comprenant solde, XP/niveau, meilleur solde et historique.
 
