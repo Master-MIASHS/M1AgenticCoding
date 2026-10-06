@@ -1,14 +1,70 @@
 # Casino Fantôme
 
-> **Squelette de l'architecture technique** — 100 % front-end (React + Vite + JavaScript).
+> Simulateur de casino **100 % fictif**, 100 % front-end (React + Vite + JavaScript),
+> développé par des agents IA supervisés par environ 25 étudiants répartis en 5 groupes.
 
-Ce dépôt contient le **socle** du projet « Casino Fantôme » : l'arborescence,
-le **Core en mocks** qui valide les contrats d'architecture, la façade
-`coreService`, la configuration de base et la CI.
+## Le projet
 
-> ⚠️ **Aucune fonctionnalité métier n'est implémentée** à ce stade
-> (pas de jeux, pas d'économie réelle, pas de XP, pas d'IA, pas de backend).
-> L'objectif est de préparer le terrain pour les différents groupes.
+Le joueur reprend un vieux casino fermé depuis des années. Il démarre avec un
+capital de jetons fictifs et cherche à le faire grossir en jouant. **Aucun vrai
+argent, nulle part** : pas de paiement, pas d'achat réel, pas de conversion
+entre jetons et argent.
+
+### Principes du jeu
+
+- **Solde et progression sont indépendants.** Le solde de jetons monte et descend
+  selon les gains et les pertes. L'XP se gagne à chaque partie jouée (gagnée ou
+  perdue) et **ne redescend jamais** ; elle sert uniquement à débloquer des jeux
+  et des salles.
+- Un joueur ruiné garde son niveau et ses jeux débloqués, et n'est **jamais
+  bloqué** à 0 jeton (un mécanisme de relance est prévu).
+- Le **meilleur solde atteint** est le score du classement ; il ne redescend jamais.
+- Pas de multijoueur en temps réel : le poker et le bingo se jouent contre des bots.
+- Le capital de départ (1000 par défaut), les seuils de déblocage, les
+  probabilités de gain et les gains d'XP sont **configurables**, jamais codés en dur.
+
+### Jeux prévus
+
+| Jeu | Type | Débloqué (par défaut) |
+| --- | --- | --- |
+| Machine à sous | Hasard | Départ |
+| Dés / Craps | Hasard | Départ |
+| Cartes à gratter | Hasard | Niveau 2 |
+| Blackjack | Cartes | Niveau 3 |
+| Roue de la fortune | Hasard | Niveau 4 |
+| Roulette | Hasard | Niveau 5 |
+| Baccarat | Hasard | Niveau 6 |
+| Plinko | Hasard | Niveau 7 |
+| Vidéo poker | Cartes | Niveau 8 |
+| Memory casino | Adresse | Niveau 8 |
+| Quiz « risque ton argent » | Adresse | Niveau 9 |
+| Bingo (contre bots) | Hasard | Niveau 10 |
+| Poker contre l'IA (bots) | Cartes | Niveau 12 |
+
+### Rôles (cumulatifs)
+
+- **Joueur** : jouer aux jeux débloqués, voir ses stats, consulter le classement,
+  dépenser ses jetons en boutique.
+- **Modérateur** : joueur + gérer les signalements, voir les comptes suspects,
+  désactiver un compte pour triche.
+- **Admin** : modérateur + configurer les jeux, ajuster le capital de départ,
+  lancer des évènements bonus, consulter le dashboard de stats globales.
+
+Le **classement** affiche pour chaque joueur : pseudo, meilleur solde atteint,
+niveau et badges.
+
+### Organisation
+
+| Groupe | Responsabilité |
+| --- | --- |
+| G1 — Core Engine | Moteur sans UI : état, RNG, économie, XP, sauvegarde, IA des bots, API publique |
+| G2 — Jeux | Règles de chaque jeu et orchestration des parties |
+| G3 — Rendu visuel | Affichage, animations et interface **en jeu** |
+| G4 — Application | Navigation, lobby, profil, progression, classement, boutique, stats, admin |
+| G5 — Qualité et intégration | Git, CI/CD, tests, contrats, revue des PR, releases |
+
+Le détail de chaque groupe est dans [Membres par groupe](#membres-par-groupe).
+Les règles suivies par les agents IA sont dans [`AGENTS.md`](AGENTS.md).
 
 ## Stack
 
@@ -85,7 +141,7 @@ des valeurs cohérentes mais fictives :
 | `core/rng.js` | `roll(gameId, params)` — **seule source de hasard** |
 | `core/economy.js` | `play()`, `getBalance()`, `claimDailyBonus()`, `requestLoan()` |
 | `core/progression.js` | `addXP()`, `getLevel()`, `getUnlockedGames()`, `getLeaderboard()`, `getHistory()` |
-| `core/config/games.config.js` | 10 jeux + niveaux de déblocage, `setGameConfig()`, `getGlobalStats()` |
+| `core/config/games.config.js` | 10 jeux configurés sur les 13 prévus (manquent Memory, Quiz et Bingo) + niveaux de déblocage, `setGameConfig()`, `getGlobalStats()` |
 | `core/storage.js` | `exportSave()`, `importSave()` (hash placeholder documenté) |
 | `core/core.js` | **API publique** du Core (ré-exports) |
 
@@ -146,17 +202,29 @@ Ces points sont **volontairement laissés ouverts** et seront tranchés par l'é
   - framework de test définitif (actuellement le runner intégré Node `node --test`)
   - stratégie unit / integration / e2e
 
+## Décisions de jeu encore ouvertes
+
+Ces points ne doivent **pas** être tranchés seul : toute tâche qui en dépend
+s'arrête et remonte la question au Groupe 5 (voir `AGENTS.md`).
+
+- Relance à 0 jeton : bonus quotidien **ou** prêt avec intérêt fictif ?
+- Le solde peut-il passer sous 0 ?
+- XP gagnée par partie (identique pour tous les jeux ?) et courbe de niveaux.
+- Contenu de la boutique.
+- Liste des salles et niveaux de déblocage.
+- Contenu des évènements bonus.
+- Administration (G4-10) : confirmée ou non.
+
 ## CI
 
 `.github/workflows/ci.yml` : à chaque push / Pull Request, installe les
 dépendances, lance le build et les tests. Échoue si le build ou les tests échouent.
 
-## Hors périmètre (à ce stade)
+## Hors périmètre
 
-Pas de jeux, pas de règles de blackjack / roulette / slots / poker, pas
-d'économie réelle, pas de système XP complet, pas d'IA, pas d'API externe,
-pas de backend, pas de base de données, pas d'authentification, pas
-d'interface graphique avancée, pas de bibliothèques inutiles.
+- Tout vrai argent : paiement, achat réel, conversion jetons ↔ argent.
+- Multijoueur en temps réel.
+- Backend, base de données, API externe, authentification serveur.
 
 ## Membres par groupe
 
