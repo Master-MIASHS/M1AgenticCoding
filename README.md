@@ -175,6 +175,7 @@ Le Groupe 1 développe le **Core Engine**, le moteur du casino, en JavaScript pu
 | ahmed-abc73 | ahmed-abc73, Ahmed Bekakria | Bekakria, Ahmed | État partagé et API du Core (`state.js`, `core.js`, coordination de `coreService.js`), tests d’isolation de l’état et coordination des interfaces G1 |
 | Amina1203 | Amina1203, Amina Boudaouine | Boudaouine, Amina | Économie du Core (`economy.js` : validation des mises et calcul des règlements) |
 | nafiamedreda | nafiamedreda, Mohamed Reda NAFIA | NAFIA, Mohamed Reda | Progression et configuration du Core : XP, calcul des niveaux, seuils XP configurables et tests associés ; validation et gestion de la configuration des jeux dans `src/core/config/games.config.js`. |
+| ania-aitcherif | ania-aitcherif, Ania Aït Cherif | Aït Cherif, Ania | Sauvegarde et restauration (`storage.js`, persistance dans `casino_state`, export/import, contrôle d'intégrité FNV-1a), test de conformité des cartes (#70), niveaux de déblocage réglables (`config/unlock.config.js`, #137) |
 
 ### Groupe 2 — Jeu et règles du jeu
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
