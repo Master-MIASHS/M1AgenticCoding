@@ -12,13 +12,31 @@ test('GamePage identifies a game from its id and handles unknown ids', async (t)
     const { GAME_REGISTRY } = await server.ssrLoadModule('/src/config/gameRegistry.js');
     const render = (props) => renderToStaticMarkup(createElement(GamePage, props));
 
+    const WITH_UI = ['slots', 'roulette'];
+
     await t.test('every registered game shows its name', () => {
       assert.ok(GAME_REGISTRY.length > 0);
       for (const { id, name } of GAME_REGISTRY) {
         const html = render({ gameId: id });
         assert.ok(html.includes(name), `${id} should show ${name}`);
-        assert.ok(html.includes('bientôt jouable'));
         assert.ok(!html.includes('Jeu introuvable'));
+      }
+    });
+
+    await t.test('games without a UI keep the waiting message', () => {
+      for (const { id } of GAME_REGISTRY.filter((g) => !WITH_UI.includes(g.id))) {
+        const html = render({ gameId: id });
+        assert.ok(html.includes('bientôt jouable'), `${id} is not playable yet`);
+        assert.ok(!html.includes('Mode démonstration'));
+      }
+    });
+
+    await t.test('games with a Groupe 3 UI display it in demonstration mode', () => {
+      for (const id of WITH_UI) {
+        const html = render({ gameId: id });
+        assert.ok(html.includes('Mode démonstration'), `${id} is flagged as simulated`);
+        assert.ok(!html.includes('bientôt jouable'));
+        assert.ok(html.includes('<button'), `${id} renders its controls`);
       }
     });
 
@@ -27,6 +45,7 @@ test('GamePage identifies a game from its id and handles unknown ids', async (t)
         const html = render({ gameId });
         assert.ok(html.includes('Jeu introuvable'));
         assert.ok(!html.includes('bientôt jouable'));
+        assert.ok(!html.includes('Mode démonstration'));
       }
       assert.ok(render({}).includes('Jeu introuvable'));
     });
