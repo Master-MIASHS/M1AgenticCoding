@@ -96,5 +96,6 @@ const ranking = getLeaderboard(); // [{ pseudo, balance, level }]
 ## Limites connues (à jour au moment de l'écriture)
 
 - Routage provisoire par hash, à remplacer si l'équipe choisit une bibliothèque.
-- Le Lobby et la Boutique affichent encore un placeholder sur `main` (Boutique : PR #103).
+- Le Lobby (`/`) liste les jeux de `GAME_REGISTRY` avec `GameCard` et lit les jeux débloqués via
+  `getUnlockedGames()`. Exemple à suivre pour une page qui affiche des jeux.
 - `/admin` n'est pas routé.
