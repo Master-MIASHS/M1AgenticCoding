@@ -1,6 +1,6 @@
 ---
 name: composants-communs-g4
-description: Comment utiliser les composants communs du Groupe 4 (XPBar, LevelBadge, BalanceDisplay, GameCard) depuis un autre groupe (G3 interface des jeux) ou une page G4 - props, exemples, valeurs de repli, et ce qu'il ne faut pas faire. À ouvrir dès qu'une tâche affiche un niveau, un solde, une barre d'XP ou une carte de jeu, avant de créer un composant similaire.
+description: Comment utiliser les composants communs du Groupe 4 (XPBar, LevelBadge, BalanceDisplay, GameCard, Modal, Notification, Loader) depuis un autre groupe (G3 interface des jeux) ou une page G4 - props, exemples, valeurs de repli, et ce qu'il ne faut pas faire. À ouvrir dès qu'une tâche affiche un niveau, un solde, une barre d'XP, une carte de jeu, une fenêtre de résultat, un message ou un chargement, avant de créer un composant similaire.
 ---
 
 # Skill composants-communs-g4 (Groupe 4)
@@ -18,6 +18,9 @@ README qui fait foi.
 | le niveau du joueur | `LevelBadge` | 2 |
 | le solde du joueur | `BalanceDisplay` | 3 |
 | un jeu (jouable ou verrouillé) dans une liste | `GameCard` | 4 |
+| une fenêtre (résultat de partie, confirmation) | `Modal` | 5 |
+| un message ponctuel (gain, erreur, solde insuffisant) | `Notification` | 6 |
+| un état de chargement | `Loader` | 7 |
 
 Avant d'écrire un composant qui ressemble à l'un de ceux-ci : **utilise le composant
 commun**. Le dupliquer crée deux affichages du niveau ou du solde qui divergent.
@@ -113,6 +116,58 @@ import { GAME_REGISTRY } from '../../config/gameRegistry.js';
 - Le composant ne construit aucune URL (le routage n'est pas définitif, voir la skill
   `pages-et-routage-g4`).
 
+## 5. Modal : fenêtre modale
+
+```jsx
+<Modal isOpen={open} onClose={() => setOpen(false)} title="Résultat" variant="success"
+  footer={<button type="button" onClick={() => setOpen(false)}>Continuer</button>}>
+  <p>Vous avez gagné.</p>
+</Modal>
+```
+
+- Props : `isOpen`, `title`, `children`, `onClose`, `footer` (facultatif, pour les boutons
+  d'action), `variant` (`neutral` par défaut, `success`, `error`), `closeOnBackdrop`
+  (`false` par défaut).
+- **Le parent contrôle l'ouverture** : il doit passer `isOpen` à `false` dans `onClose`.
+  Échap et le bouton « × » appellent `onClose`.
+- Elle utilise le `<dialog>` natif : le focus est confiné dans la fenêtre puis restauré à la
+  fermeture. Mettre des `type="button"` sur les boutons et éviter `<form method="dialog">`.
+- Cas typique du G3 : afficher `gameResult` quand `terminal` est `true`.
+
+## 6. Notification : message ponctuel
+
+```jsx
+{message && (
+  <Notification type="error" onClose={() => setMessage(null)}>
+    Solde insuffisant.
+  </Notification>
+)}
+```
+
+- Props : `type` (`info` par défaut, `success`, `warning`, `error`), `children`, `onClose`
+  (facultatif : sans lui, ni bouton de fermeture ni minuterie), `autoClose` (`false` par
+  défaut, sinon une durée en millisecondes).
+- **Le parent contrôle l'affichage** : il retire la notification dans `onClose`. Pour un
+  nouveau message, changer la `key` pour obtenir une durée complète.
+- Les erreurs utilisent `role="alert"`, les autres `role="status"`.
+- **Ne pas activer `autoClose` sur un message qui demande une lecture ou une action** (une
+  erreur à corriger, par exemple) : il disparaît sans que le joueur puisse le lire.
+
+## 7. Loader : indicateur de chargement
+
+```jsx
+<Loader variant="inline" size="sm" label="Chargement…" />
+{loading && <Loader variant="overlay" label="Veuillez patienter…" />}
+```
+
+- Props : `variant` (`inline` par défaut, ou `overlay`), `size` (`sm`, `md`, `lg`), `label` et
+  `showLabel` (`true` par défaut ; masqué, le texte reste lu par les lecteurs d'écran).
+- `inline` s'insère dans une zone (par exemple dans le bouton « Jouer »). `overlay` bloque
+  toute l'interface (clavier et clics) jusqu'à son démontage ; Échap ne le ferme pas.
+- **Le parent DOIT démonter un `overlay` quand le chargement se termine, y compris en cas
+  d'erreur**, sinon l'interface reste bloquée.
+- Il n'a aucune logique de chargement : c'est le parent qui sait quand charger.
+
 ## Ce qu'il ne faut pas faire
 
 - Importer `src/core/*` dans un composant, ou appeler `coreService` depuis un composant commun.
@@ -126,7 +181,6 @@ import { GAME_REGISTRY } from '../../config/gameRegistry.js';
 
 Ne pas les utiliser tant que leur dossier n'a pas de `.jsx` sur `main` :
 
-- `Modal`, `Notification`, `Loader` : PR #104.
 - `PlayerHeader` : PR #150.
 - `Sidebar` : non décidé.
 
