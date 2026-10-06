@@ -57,7 +57,9 @@ const paquetMelange = melanger(paquetConstruitParG2);
 ```
 
 G2 construit les cartes `{ rank, suit }`, garde la pioche et applique les règles.
-Le Core ne connaît pas la valeur des cartes. Un sabot de deux jeux contient
+Le Core ne connaît pas la valeur des cartes. Format des cartes, garanties de
+`melanger` et rôles G1/G2 : voir `docs/contracts/cards-contract.md` (#76), qui fait
+référence en cas d’écart avec cette skill. Un sabot de deux jeux contient
 normalement deux occurrences de chaque rang/couleur : vérifier la conservation
 multiplicité par multiplicité, pas l’unicité des 104 valeurs.
 
