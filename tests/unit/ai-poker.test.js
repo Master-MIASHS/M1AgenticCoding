@@ -5,7 +5,12 @@ import assert from 'node:assert/strict';
 
 import { AI_POKER_CONFIG } from '../../src/core/config/ai.config.js';
 import { semer } from '../../src/core/rng.js';
-import { niveauDeForce, actionsCandidates, montantDeRelance } from '../../src/core/ai/poker.js';
+import {
+  niveauDeForce,
+  actionsCandidates,
+  montantDeRelance,
+  deciderAction,
+} from '../../src/core/ai/poker.js';
 
 const NIVEAUX = ['faible', 'moyenne', 'forte'];
 const ACTIONS = ['fold', 'check', 'call', 'raise'];
@@ -193,5 +198,86 @@ describe('montantDeRelance', () => {
     const pauvre = situation({ aiState: { ...situation().aiState, chips: 39 } });
     assert.throws(() => montantDeRelance(pauvre, 'forte'), /montantDeRelance/);
     assert.throws(() => montantDeRelance(situation({ minRaise: 0 }), 'forte'), /montantDeRelance/);
+  });
+});
+
+/**
+ * Config de test avec les mêmes poids d'actions pour tous les niveaux.
+ * @param {{ fold: number, check: number, call: number, raise: number }} poids
+ * @returns {object} Config de l'IA.
+ */
+function configPoidsActions(poids) {
+  return { ...AI_POKER_CONFIG, poidsActions: { faible: poids, moyenne: poids, forte: poids } };
+}
+
+describe('deciderAction', () => {
+  const combinaisons = [
+    ['fold', 'call', 'raise'],
+    ['check', 'raise'],
+    ['fold', 'check'],
+    ['fold', 'call'],
+    ['call'],
+    ['check'],
+  ];
+
+  it('renvoie toujours une action de availableActions, avec un montant dans les bornes', () => {
+    avecGraine('decision-legale', () => {
+      for (const availableActions of combinaisons) {
+        for (const force of [0, 0.2, 0.5, 0.9, 1]) {
+          const s = situation({ availableActions });
+          for (let i = 0; i < 100; i += 1) {
+            const decision = deciderAction(force, s);
+            assert.ok(availableActions.includes(decision.type), decision.type);
+            if (decision.type === 'raise') {
+              assert.ok(decision.amount >= s.minRaise && decision.amount <= s.aiState.chips);
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('suit les poids de la config : une action de poids nul n’est jamais jouée', () => {
+    const config = configPoidsActions({ fold: 0, check: 1, call: 1, raise: 0 });
+    avecGraine('decision-poids', () => {
+      for (let i = 0; i < 300; i += 1) {
+        const decision = deciderAction(0.5, situation(), { config });
+        assert.strictEqual(decision.type, 'call');
+      }
+    });
+  });
+
+  it('prend l’action de repli quand toutes les actions possibles ont un poids nul', () => {
+    const config = configPoidsActions({ fold: 0, check: 0, call: 0, raise: 0 });
+    assert.deepStrictEqual(deciderAction(0.5, situation(), { config }), { type: 'call' });
+    const s = situation({ availableActions: ['fold', 'raise'] });
+    assert.deepStrictEqual(deciderAction(0.5, s, { config }), { type: 'fold' });
+  });
+
+  it('ajoute un montant seulement pour une relance', () => {
+    const relance = configPoidsActions({ fold: 0, check: 0, call: 0, raise: 1 });
+    const decision = deciderAction(1, situation(), { config: relance });
+    assert.strictEqual(decision.type, 'raise');
+    assert.deepStrictEqual(Object.keys(decision).sort(), ['amount', 'type']);
+    const suivre = configPoidsActions({ fold: 0, check: 0, call: 1, raise: 0 });
+    assert.deepStrictEqual(deciderAction(1, situation(), { config: suivre }), { type: 'call' });
+  });
+
+  it('donne la même suite de décisions avec la même graine', () => {
+    const jouer = () => {
+      const decisions = [];
+      avecGraine('decision-reproductible', () => {
+        for (let i = 0; i < 50; i += 1) {
+          decisions.push(deciderAction((i % 11) / 10, situation()));
+        }
+      });
+      return decisions;
+    };
+    assert.deepStrictEqual(jouer(), jouer());
+  });
+
+  it('propage les erreurs de force et de situation', () => {
+    assert.throws(() => deciderAction(2, situation()), /force/);
+    assert.throws(() => deciderAction(0.5, situation({ availableActions: [] })), /availableActions/);
   });
 });

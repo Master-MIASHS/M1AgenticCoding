@@ -135,3 +135,39 @@ export function montantDeRelance(situation, niveau, config = AI_POKER_CONFIG) {
   const multiplicateur = tirageAvecPoids(multiplicateurs, poids[niveau]);
   return Math.min(minRaise * multiplicateur, aiState.chips);
 }
+
+/**
+ * Décide l'action du bot à partir de la force de sa main.
+ *
+ * L'action est tirée (via rng.js) parmi les actions jouables, avec les poids
+ * du niveau de force dans la config. Si toutes ces actions ont un poids nul,
+ * le bot joue la première action jouable de `ordreDeRepli`. Une relance
+ * reçoit un montant compris entre `minRaise` et les jetons du bot.
+ *
+ * @param {number} force - Force de la main du bot, de 0 à 1.
+ * @param {{ availableActions: string[], minRaise?: number,
+ *   aiState: { chips: number } }} situation - Situation transmise par le G2.
+ * @param {object} [options] - Dépendances injectables (tests, réglages).
+ * @param {object} [options.config] - Configuration de l'IA (AI_POKER_CONFIG
+ *   par défaut).
+ * @returns {{ type: 'fold'|'check'|'call' } | { type: 'raise', amount: number }}
+ *   La décision : `type` est toujours dans `availableActions`.
+ * @throws {Error} Si la force, la situation ou la configuration est invalide.
+ */
+export function deciderAction(force, situation, { config = AI_POKER_CONFIG } = {}) {
+  const niveau = niveauDeForce(force, config);
+  const candidates = actionsCandidates(situation);
+  const poids = candidates.map((action) => config.poidsActions[niveau][action]);
+
+  const type = poids.every((p) => p === 0)
+    ? config.ordreDeRepli.find((action) => candidates.includes(action))
+    : tirageAvecPoids(candidates, poids);
+  if (type === undefined) {
+    throw new Error('deciderAction : ordreDeRepli ne contient aucune action jouable');
+  }
+
+  if (type === 'raise') {
+    return { type, amount: montantDeRelance(situation, niveau, config) };
+  }
+  return { type };
+}
