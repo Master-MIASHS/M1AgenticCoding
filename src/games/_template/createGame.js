@@ -175,12 +175,35 @@ export function createGame({
   }
 
   /**
+   * Total stake settled by the Core. It is the sum of the opening bets,
+   * unless the rules raised the stake during the round (blackjack double,
+   * poker raise...): the stake lives in the G2 session and is reported on
+   * the terminal result as `details.totalBet` (contrat § 3.2, § 4.3). It can
+   * only grow: a smaller value is a rules bug.
+   *
+   * @param {Array<{ type: string, amount: number }>} bets
+   * @param {object} gameResult
+   * @returns {number}
+   */
+  function finalStake(bets, gameResult) {
+    const opening = sumBets(bets);
+    const reported = gameResult?.details?.totalBet;
+    if (reported === undefined) return opening;
+    if (typeof reported !== 'number' || !Number.isFinite(reported) || reported < opening) {
+      throw new RangeError(
+        `createGame(${id}): details.totalBet must be a number >= the opening bets (${opening})`
+      );
+    }
+    return reported;
+  }
+
+  /**
    * Terminal step: the economy is settled exactly once per round.
    * core.play() expects the TOTAL bet (a number), not the bets array.
    */
   function settle(sessionId, bets, raw, gameResult) {
     sessions.delete(sessionId);
-    const economy = core.play(id, sumBets(bets), gameResult);
+    const economy = core.play(id, finalStake(bets, gameResult), gameResult);
     return respond(sessionId, { raw, gameResult, economy });
   }
 

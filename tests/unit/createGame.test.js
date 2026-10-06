@@ -344,6 +344,34 @@ test('createGame rejects a draw that is not a function', () => {
   assert.throws(() => createGame({ id: 'slots', rules: singleStepRules, draw: 42 }), TypeError);
 });
 
+test('a stake raised during the round (double) is settled through details.totalBet', () => {
+  const core = makeRecordingCore([0.1, 0.2]);
+  const rules = {
+    start() {
+      return { needsDraw: true, stake: 10, availableActions: ['double', 'stand'] };
+    },
+    step(session, action) {
+      const stake = action === 'double' ? session.stake * 2 : session.stake;
+      return { outcome: 'loss', multiplier: 0, details: { totalBet: stake } };
+    },
+  };
+  const game = createGame({ id: 'mock-multi', rules, core });
+  const { sessionId } = game.start({ type: 'main', amount: 10 });
+  game.action(sessionId, 'double');
+  assert.equal(core.playCalls[0].bets, 20, 'the doubled stake is lost, not only the opening bet');
+});
+
+test('details.totalBet below the opening bets is rejected before play()', () => {
+  const core = makeRecordingCore([0.1]);
+  const game = createGame({
+    id: 'mock-single',
+    rules: { resolve: () => ({ outcome: 'loss', multiplier: 0, details: { totalBet: 5 } }) },
+    core,
+  });
+  assert.throws(() => game.start({ type: 'red', amount: 10 }), RangeError);
+  assert.deepEqual(core.playCalls, []);
+});
+
 test('config stays undefined when not provided (no default value invented)', () => {
   let ctxSeen;
   createGame({
