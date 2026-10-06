@@ -72,7 +72,8 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
 { gameId, phase: 'playing' | 'result', raw, interpretation, economy }
 ```
 
-- `raw` : le tirage brut (segment de roue, case plinko…), pour l'animation.
+- `raw` : le tirage brut (segment de roue, case plinko, nombre entier de
+  roulette 0–36…), pour l'animation.
 - `interpretation` : les `details` du résultat (à la fin).
 - `economy` : `{ newBalance, xpGained, leveledUp }` renvoyé par le Core (à la
   fin).
@@ -116,6 +117,7 @@ les règles lèvent une erreur si elle manque (règle 4, rien en dur).
 | `plinko` | `{ paytable: number[] }`, index = numéro de case |
 | `blackjack` | `{ paytable: { blackjack, win } }`, multiplicateurs mise incluse (ex. `{ blackjack: 2.5, win: 2 }`) ; égalité → 1, perte → 0 (#189) |
 | `video-poker` | « Jacks or Better » 9/6 (#125) : `paytable` par `category` de `evaluatePokerHand()`, mise incluse : 10 → 250, 9 → 50, 8 → 25, 7 → 9, 6 → 6, 5 → 4, 4 → 3, 3 → 2, 2 → 1 seulement pour une paire de valets ou mieux (sinon 0), 1 → 0 |
+| `roulette` | `{ bets: { <type>: { match: number[], multiplier } } }`, `match` = liste des nombres gagnants (#191) |
 
 Forme côté Core / admin, **validée dans #122** (G1, G2, G4) :
 
@@ -143,6 +145,9 @@ exposé).
    Jeux de cartes : `core.melanger(buildDeck(n))` (de `src/games/deck.js`) au
    début de la manche, `null` pendant les actions (pioche au curseur dans la
    session). Modèles : `blackjack/index.js`, `video-poker/draw.js`.
+   Exemples livrés : `src/games/roulette/index.js` → `core.tirageEntier(0, 36)`
+   (#191) ; la roue passe son propre draw dans le test de montage
+   (`core.tirageAvecPoids`).
 3. **Mise qui augmente** (double, relance) : la session en cours porte
    `totalBet`, et le résultat final `details.totalBet`. L'orchestrateur règle
    ce montant (#166). Une hausse au-delà du solde est refusée : l'action lève
