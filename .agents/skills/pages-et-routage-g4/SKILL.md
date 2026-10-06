@@ -61,8 +61,9 @@ en lui passant `href`. Le composant ne construit pas d'URL.
 
 - `App.jsx` rend `GamePage` pour tout chemin `/game/...`. `GamePage` est aujourd'hui une page
   d'attente : elle n'affiche pas encore la partie.
-- La PR #149 transmet l'identifiant du jeu (`gameId`) à `GamePage`. Avant sa fusion, il
-  n'est pas disponible.
+- `App.jsx` transmet l'identifiant du jeu à `GamePage` (`gameId`, lu dans `#/game/<gameId>`).
+  `GamePage` retrouve le jeu dans `gameRegistry` ; pour un identifiant inconnu, elle affiche
+  un message d'erreur.
 - **Le point d'intégration des jeux du G3 n'est pas encore défini.** Ne modifie pas
   `App.jsx` ni `GamePage` toi-même : ouvre une issue « G3 → G4 » qui décrit ce dont tu as
   besoin (par exemple « `GamePage` doit monter le composant de `src/game-ui/<jeu>/` »).
