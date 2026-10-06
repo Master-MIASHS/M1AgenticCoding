@@ -18,6 +18,38 @@ describe('calculateSettlement', () => {
       { newBalance: 90, payout: 10, netGain: -10 });
   });
 
+  it('settles multiple bets from their total stake and aggregate multiplier', () => {
+    assert.deepEqual(calculateSettlement(100, 15,
+      { outcome: 'win', multiplier: 20 / 15, details: { bets: [] } }),
+    { newBalance: 105, payout: 20, netGain: 5 });
+    assert.deepEqual(calculateSettlement(100, 15,
+      { outcome: 'win', multiplier: 180 / 15, details: { bets: [] } }),
+    { newBalance: 265, payout: 180, netGain: 165 });
+  });
+
+  it('rounds the aggregate payout once to two decimal places', () => {
+    assert.deepEqual(calculateSettlement(100, 10, { outcome: 'win', multiplier: 1.2345 }),
+      { newBalance: 102.35, payout: 12.35, netGain: 2.35 });
+    assert.deepEqual(calculateSettlement(100, 10, { outcome: 'loss', multiplier: 0.2345 }),
+      { newBalance: 92.35, payout: 2.35, netGain: -7.65 });
+  });
+
+  it('keeps the outcome semantics used by the G2 rules before rounding', () => {
+    assert.deepEqual(calculateSettlement(100, 1, { outcome: 'loss', multiplier: 0.5 }),
+      { newBalance: 99.5, payout: 0.5, netGain: -0.5 });
+    assert.deepEqual(calculateSettlement(100, 3, { outcome: 'win', multiplier: 1.1 }),
+      { newBalance: 100.3, payout: 3.3, netGain: 0.3 });
+  });
+
+  it('rejects an outcome inconsistent with the aggregate multiplier', () => {
+    assert.throws(() => calculateSettlement(100, 10,
+      { outcome: 'loss', multiplier: 2 }), RangeError);
+    assert.throws(() => calculateSettlement(100, 10,
+      { outcome: 'win', multiplier: 0.5 }), RangeError);
+    assert.throws(() => calculateSettlement(100, 10,
+      { outcome: 'push', multiplier: 1.1 }), RangeError);
+  });
+
   it('rejects invalid stakes without changing the shared balance', () => {
     const before = getBalance();
     for (const bet of [NaN, Infinity, -Infinity, '10', null, undefined]) {
