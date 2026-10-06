@@ -1,6 +1,6 @@
 ---
 name: composants-communs-g4
-description: Comment utiliser les composants communs du Groupe 4 (XPBar, LevelBadge, BalanceDisplay, GameCard, Modal, Notification, Loader) depuis un autre groupe (G3 interface des jeux) ou une page G4 - props, exemples, valeurs de repli, et ce qu'il ne faut pas faire. À ouvrir dès qu'une tâche affiche un niveau, un solde, une barre d'XP, une carte de jeu, une fenêtre de résultat, un message ou un chargement, avant de créer un composant similaire.
+description: Comment utiliser les composants communs du Groupe 4 (XPBar, LevelBadge, BalanceDisplay, GameCard, Modal, Notification, Loader, PlayerHeader) depuis un autre groupe (G3 interface des jeux) ou une page G4 - props, exemples, valeurs de repli, et ce qu'il ne faut pas faire. À ouvrir dès qu'une tâche affiche un niveau, un solde, une barre d'XP, une carte de jeu, une fenêtre de résultat, un message ou un chargement, avant de créer un composant similaire.
 ---
 
 # Skill composants-communs-g4 (Groupe 4)
@@ -21,6 +21,7 @@ README qui fait foi.
 | une fenêtre (résultat de partie, confirmation) | `Modal` | 5 |
 | un message ponctuel (gain, erreur, solde insuffisant) | `Notification` | 6 |
 | un état de chargement | `Loader` | 7 |
+| le résumé du joueur (pseudo, niveau, solde, XP) | `PlayerHeader` | 8 |
 
 Avant d'écrire un composant qui ressemble à l'un de ceux-ci : **utilise le composant
 commun**. Le dupliquer crée deux affichages du niveau ou du solde qui divergent.
@@ -168,12 +169,29 @@ import { GAME_REGISTRY } from '../../config/gameRegistry.js';
   d'erreur**, sinon l'interface reste bloquée.
 - Il n'a aucune logique de chargement : c'est le parent qui sait quand charger.
 
+## 8. PlayerHeader : résumé du joueur
+
+```jsx
+import PlayerHeader from '../../components/PlayerHeader/PlayerHeader.jsx';
+
+<PlayerHeader pseudo={state.pseudo} level={level} balance={state.balance}
+  xp={state.xp} xpForNextLevel={state.xpForNextLevel} />
+```
+
+- Il **assemble** `LevelBadge`, `BalanceDisplay` et `XPBar` : ne pas les juxtaposer à la main
+  pour refaire un en-tête de joueur.
+- Props : `pseudo` (« Joueur Fantôme » si absent ou vide), `level`, `balance`, `xp`,
+  `xpForNextLevel`, `className`. Toutes sont transmises telles quelles aux composants.
+- Une donnée manquante ne dégrade que sa partie (« Niveau — », « Solde — », « Progression
+  indisponible »), jamais l'ensemble.
+- Comme les autres, il ne lit pas le Core : la page lit via `coreService` et passe les props.
+
 ## Ce qu'il ne faut pas faire
 
 - Importer `src/core/*` dans un composant, ou appeler `coreService` depuis un composant commun.
 - Passer à un composant une valeur recalculée par l'UI (niveau, seuil d'XP, gain) : la lire
   telle quelle depuis `coreService`.
-- Recréer un `LevelBadge`, un affichage du solde ou une barre d'XP dans une page ou un jeu.
+- Recréer un `LevelBadge`, un affichage du solde, une barre d'XP ou un en-tête de joueur dans une page ou un jeu.
 - Mettre des couleurs en dur : utiliser les variables de `src/styles/variables.css`.
 - Modifier un composant commun depuis un autre groupe : ouvrir une issue au G4.
 
@@ -181,8 +199,7 @@ import { GAME_REGISTRY } from '../../config/gameRegistry.js';
 
 Ne pas les utiliser tant que leur dossier n'a pas de `.jsx` sur `main` :
 
-- `PlayerHeader` : PR #150.
-- `Sidebar` : non décidé.
+- `Sidebar` : PR #155 (en relecture).
 
 ## Ajouter un composant commun (G4)
 
