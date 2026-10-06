@@ -87,7 +87,11 @@ describe('G2 - montage wheel (#26) : orchestrateur + règles + Core', () => {
 
   test(
     'écart 8 : le vrai roll() du Core peut alimenter les règles de la roue',
-    { todo: 'écart 8 (#68) : roll() renvoie { gameId, value, nonce }, wheel attend un segment' },
+    {
+      todo:
+        'écart 8 (#68) : mécanisme draw fusionné (#141) ; reste le draw de la roue ' +
+        '(@camseveyrat, config selon #122) et tirageAvecPoids exposé (#115)',
+    },
     () => {
       const game = createGame({ id: 'wheel', rules: wheelRules, config: WHEEL_CONFIG });
       assert.doesNotThrow(() => game.start([{ type: 'red', amount: 10 }]));
