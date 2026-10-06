@@ -14,6 +14,7 @@
 // ---------------------------------------------------------------------------
 
 import { AI_POKER_CONFIG } from '../config/ai.config.js';
+import { tirageAvecPoids } from '../rng.js';
 
 /**
  * Classe la force d'une main en niveau, selon les seuils de la config.
@@ -100,4 +101,37 @@ export function actionsCandidates(situation) {
     throw new Error('actionsCandidates : aucune action ne reste jouable pour le bot');
   }
   return candidates;
+}
+
+/**
+ * Calcule le montant d'une relance du bot.
+ *
+ * Le montant vaut `minRaise × multiplicateur`, le multiplicateur étant tiré
+ * (via rng.js) avec les poids du niveau dans la config, puis plafonné aux
+ * jetons du bot. Il reste donc toujours entre `minRaise` et `aiState.chips`.
+ *
+ * @param {{ minRaise: number, aiState: { chips: number } }} situation -
+ *   Situation transmise par le G2 (relance possible pour le bot).
+ * @param {'faible'|'moyenne'|'forte'} niveau - Niveau de force de la main.
+ * @param {{ relance: { multiplicateurs: number[],
+ *   poids: Object<string, number[]> } }} [config] - Configuration de l'IA
+ *   (AI_POKER_CONFIG par défaut).
+ * @returns {number} Montant de la relance.
+ * @throws {Error} Si le niveau est inconnu, si `minRaise` est invalide ou si
+ *   les jetons du bot sont sous `minRaise`.
+ */
+export function montantDeRelance(situation, niveau, config = AI_POKER_CONFIG) {
+  const { multiplicateurs, poids } = config.relance;
+  if (!Object.hasOwn(poids, niveau)) {
+    throw new Error(`montantDeRelance : niveau de force inconnu ${String(niveau)}`);
+  }
+  const { minRaise, aiState } = situation;
+  if (typeof minRaise !== 'number' || !Number.isFinite(minRaise) || minRaise <= 0) {
+    throw new Error('montantDeRelance : minRaise doit être un nombre fini strictement positif');
+  }
+  if (!(aiState?.chips >= minRaise)) {
+    throw new Error('montantDeRelance : les jetons du bot sont sous minRaise');
+  }
+  const multiplicateur = tirageAvecPoids(multiplicateurs, poids[niveau]);
+  return Math.min(minRaise * multiplicateur, aiState.chips);
 }

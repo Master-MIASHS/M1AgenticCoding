@@ -4,7 +4,8 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { AI_POKER_CONFIG } from '../../src/core/config/ai.config.js';
-import { niveauDeForce, actionsCandidates } from '../../src/core/ai/poker.js';
+import { semer } from '../../src/core/rng.js';
+import { niveauDeForce, actionsCandidates, montantDeRelance } from '../../src/core/ai/poker.js';
 
 const NIVEAUX = ['faible', 'moyenne', 'forte'];
 const ACTIONS = ['fold', 'check', 'call', 'raise'];
@@ -127,5 +128,70 @@ describe('actionsCandidates', () => {
   it('lève une erreur si aucune action ne reste jouable', () => {
     const s = situation({ availableActions: ['raise'], aiState: { chips: 10 } });
     assert.throws(() => actionsCandidates(s), /aucune action/);
+  });
+});
+
+/**
+ * Exécute un test avec une graine fixe, puis rétablit le hasard normal.
+ * @param {string} graine - Graine du RNG.
+ * @param {function(): void} test - Corps du test.
+ */
+function avecGraine(graine, test) {
+  semer(graine);
+  try {
+    test();
+  } finally {
+    semer(null);
+  }
+}
+
+/**
+ * Config de test dont seul un multiplicateur de relance peut être tiré.
+ * @param {number} index - Index du multiplicateur gardé.
+ * @returns {object} Config de l'IA.
+ */
+function configRelanceUnique(index) {
+  const poids = AI_POKER_CONFIG.relance.multiplicateurs.map((_, i) => (i === index ? 1 : 0));
+  return {
+    ...AI_POKER_CONFIG,
+    relance: {
+      multiplicateurs: AI_POKER_CONFIG.relance.multiplicateurs,
+      poids: { faible: poids, moyenne: poids, forte: poids },
+    },
+  };
+}
+
+describe('montantDeRelance', () => {
+  it('reste toujours entre minRaise et aiState.chips', () => {
+    avecGraine('relance-bornes', () => {
+      for (const niveau of NIVEAUX) {
+        for (const chips of [40, 55, 100, 380]) {
+          const s = situation({ aiState: { ...situation().aiState, chips } });
+          for (let i = 0; i < 300; i += 1) {
+            const montant = montantDeRelance(s, niveau);
+            assert.ok(montant >= s.minRaise && montant <= chips, `${niveau} ${chips} ${montant}`);
+          }
+        }
+      }
+    });
+  });
+
+  it('vaut minRaise multiplié par le multiplicateur tiré dans la config', () => {
+    const dernier = AI_POKER_CONFIG.relance.multiplicateurs.length - 1;
+    const attendu = situation().minRaise * AI_POKER_CONFIG.relance.multiplicateurs[dernier];
+    assert.strictEqual(montantDeRelance(situation(), 'forte', configRelanceUnique(dernier)), attendu);
+  });
+
+  it('est plafonné aux jetons du bot', () => {
+    const dernier = AI_POKER_CONFIG.relance.multiplicateurs.length - 1;
+    const s = situation({ aiState: { ...situation().aiState, chips: 50 } });
+    assert.strictEqual(montantDeRelance(s, 'forte', configRelanceUnique(dernier)), 50);
+  });
+
+  it('rejette un niveau inconnu ou une relance impossible', () => {
+    assert.throws(() => montantDeRelance(situation(), 'énorme'), /montantDeRelance/);
+    const pauvre = situation({ aiState: { ...situation().aiState, chips: 39 } });
+    assert.throws(() => montantDeRelance(pauvre, 'forte'), /montantDeRelance/);
+    assert.throws(() => montantDeRelance(situation({ minRaise: 0 }), 'forte'), /montantDeRelance/);
   });
 });
