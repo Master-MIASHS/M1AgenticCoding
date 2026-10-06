@@ -10,6 +10,7 @@ import {
   actionsCandidates,
   montantDeRelance,
   deciderAction,
+  validerConfig,
 } from '../../src/core/ai/poker.js';
 
 const NIVEAUX = ['faible', 'moyenne', 'forte'];
@@ -279,5 +280,83 @@ describe('deciderAction', () => {
   it('propage les erreurs de force et de situation', () => {
     assert.throws(() => deciderAction(2, situation()), /force/);
     assert.throws(() => deciderAction(0.5, situation({ availableActions: [] })), /availableActions/);
+  });
+});
+
+describe('validerConfig', () => {
+  /**
+   * Copie modifiable de la config par défaut.
+   * @returns {object} Config de l'IA, non figée.
+   */
+  const copie = () => structuredClone(AI_POKER_CONFIG);
+
+  it('accepte la config par défaut', () => {
+    assert.doesNotThrow(() => validerConfig(AI_POKER_CONFIG));
+  });
+
+  it('rejette des seuils absents, hors de [0, 1] ou dans le mauvais ordre', () => {
+    const cas = [
+      (c) => { delete c.seuils; },
+      (c) => { c.seuils.moyenne = -0.1; },
+      (c) => { c.seuils.forte = 1.5; },
+      (c) => { c.seuils = { moyenne: 0.8, forte: 0.4 }; },
+      (c) => { c.seuils.forte = '0.7'; },
+    ];
+    for (const modifier of cas) {
+      const c = copie();
+      modifier(c);
+      assert.throws(() => validerConfig(c), /validerConfig : seuils/);
+    }
+  });
+
+  it('rejette des poids d’actions absents, négatifs ou non numériques', () => {
+    const cas = [
+      (c) => { delete c.poidsActions.moyenne; },
+      (c) => { delete c.poidsActions.forte.raise; },
+      (c) => { c.poidsActions.faible.fold = -1; },
+      (c) => { c.poidsActions.faible.call = NaN; },
+    ];
+    for (const modifier of cas) {
+      const c = copie();
+      modifier(c);
+      assert.throws(() => validerConfig(c), /validerConfig : poidsActions/);
+    }
+  });
+
+  it('rejette des relances qui ne respecteraient pas minRaise ou ne pourraient pas être tirées', () => {
+    const cas = [
+      (c) => { c.relance.multiplicateurs = []; },
+      (c) => { c.relance.multiplicateurs = [0.5, 2, 3]; },
+      (c) => { c.relance.poids.faible = [1, 1]; },
+      (c) => { c.relance.poids.moyenne = [0, 0, 0]; },
+      (c) => { c.relance.poids.forte = [1, -1, 1]; },
+      (c) => { delete c.relance.poids.faible; },
+    ];
+    for (const modifier of cas) {
+      const c = copie();
+      modifier(c);
+      assert.throws(() => validerConfig(c), /validerConfig : relance/);
+    }
+  });
+
+  it('rejette un ordre de repli qui ne couvre pas les quatre actions', () => {
+    const cas = [
+      (c) => { c.ordreDeRepli = ['check', 'call', 'fold']; },
+      (c) => { c.ordreDeRepli = ['check', 'call', 'fold', 'allin']; },
+      (c) => { c.ordreDeRepli = 'check'; },
+    ];
+    for (const modifier of cas) {
+      const c = copie();
+      modifier(c);
+      assert.throws(() => validerConfig(c), /validerConfig : ordreDeRepli/);
+    }
+  });
+
+  it('est appliquée par les fonctions qui reçoivent une config', () => {
+    const c = copie();
+    delete c.seuils;
+    assert.throws(() => niveauDeForce(0.5, c), /validerConfig/);
+    assert.throws(() => montantDeRelance(situation(), 'forte', c), /validerConfig/);
+    assert.throws(() => deciderAction(0.5, situation(), { config: c }), /validerConfig/);
   });
 });

@@ -43,6 +43,7 @@ L'IA ne lit que `availableActions`, `minRaise` et `aiState.chips`, plus la force
 
 | Fonction | Rôle |
 |---|---|
+| `validerConfig(config)` | Vérifie qu'une config est complète et cohérente (appelée par les fonctions qui reçoivent une config) |
 | `niveauDeForce(force, config)` | Classe une force dans `[0, 1]` en `'faible'`, `'moyenne'` ou `'forte'` selon les seuils de la config |
 | `actionsCandidates(situation)` | Actions que le bot peut réellement jouer, parmi `availableActions` |
 | `montantDeRelance(situation, niveau, config)` | Montant d'une relance, toujours entre `minRaise` et `aiState.chips` |
@@ -68,6 +69,7 @@ Le **bluff** n'est pas un cas à part : c'est le poids de `raise` au niveau faib
 | Hasard uniquement via `tirageAvecPoids` (`rng.js`) | Règle 2 d'`AGENTS.md` ; reproductible en test avec `semer()`. |
 | Tous les réglages dans `config/ai.config.js` | Règle 4 : aucune valeur de réglage en dur. Les valeurs par défaut sont un premier réglage du G1, à ajuster en jouant. |
 | Config injectable (`options.config`) | Tester des comportements précis sans dépendre des valeurs par défaut. |
+| Config injectée **validée** (`validerConfig`) | Une config incomplète donnerait sinon une erreur JavaScript peu claire, ou un bot qui enfreint ses garanties : multiplicateur < 1 (relance sous `minRaise`), poids de relance tous nuls (aucun montant tirable), ordre de repli incomplet (aucune action de repli). |
 | Force de main en entrée, et non calculée par l'IA | Le Core n'importe pas `src/games/`, et l'évaluation des mains est une règle du G2. |
 | Type toujours dans `availableActions`, montant toujours dans `[minRaise, aiState.chips]` | Garanties promises au G2 (discussion #9) : le G2 n'a jamais à corriger une décision du bot. |
 | Action inconnue dans `availableActions` → erreur | Détecte tout de suite un écart de contrat au lieu de l'ignorer. |
@@ -104,3 +106,6 @@ Commande : `npm test` (fichier `tests/unit/ai-poker.test.js`). Les tirages sont 
 | `deciderAction` — prend l'action de repli quand tous les poids sont nuls | échec | succès |
 | `deciderAction` — ajoute un montant seulement pour une relance | échec | succès |
 | `deciderAction` — donne la même décision avec la même graine | échec | succès |
+| `validerConfig` — accepte la config par défaut | échec | succès |
+| `validerConfig` — rejette des seuils, des poids d'actions, des relances ou un ordre de repli invalides | échec | succès |
+| `validerConfig` — est appliquée par les fonctions qui reçoivent une config | échec | succès |

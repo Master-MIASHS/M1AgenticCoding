@@ -16,6 +16,101 @@
 import { AI_POKER_CONFIG } from '../config/ai.config.js';
 import { tirageAvecPoids } from '../rng.js';
 
+// Actions du contrat G2 (discussion #9). Toute autre valeur est un écart de
+// contrat, signalé par une erreur plutôt qu'ignorée.
+const ACTIONS_CONNUES = ['fold', 'check', 'call', 'raise'];
+
+const NIVEAUX = ['faible', 'moyenne', 'forte'];
+
+/**
+ * Indique si une valeur est un poids utilisable par tirageAvecPoids.
+ * @param {*} valeur - Valeur à tester.
+ * @returns {boolean} Vrai pour un nombre fini positif ou nul.
+ */
+function estUnPoids(valeur) {
+  return typeof valeur === 'number' && Number.isFinite(valeur) && valeur >= 0;
+}
+
+/**
+ * Indique si une valeur est un objet simple (ni null, ni tableau).
+ * @param {*} valeur - Valeur à tester.
+ * @returns {boolean} Vrai pour un objet simple.
+ */
+function estUnObjet(valeur) {
+  return valeur !== null && typeof valeur === 'object' && !Array.isArray(valeur);
+}
+
+/**
+ * Vérifie qu'une configuration de l'IA est complète et cohérente.
+ *
+ * Une config injectée invalide donnerait sinon une erreur JavaScript peu
+ * claire, ou un bot qui enfreint ses garanties (ex. multiplicateur < 1 :
+ * relance sous minRaise).
+ *
+ * @param {object} config - Configuration de l'IA (forme d'AI_POKER_CONFIG).
+ * @returns {void}
+ * @throws {Error} Si les seuils, les poids des actions, les relances ou
+ *   l'ordre de repli sont invalides.
+ */
+export function validerConfig(config) {
+  const seuils = config?.seuils;
+  if (
+    !estUnObjet(seuils) ||
+    typeof seuils.moyenne !== 'number' ||
+    typeof seuils.forte !== 'number' ||
+    !(seuils.moyenne >= 0 && seuils.moyenne <= seuils.forte && seuils.forte <= 1)
+  ) {
+    throw new Error('validerConfig : seuils doit contenir 0 ≤ moyenne ≤ forte ≤ 1');
+  }
+
+  const poidsActions = config.poidsActions;
+  const poidsActionsValides =
+    estUnObjet(poidsActions) &&
+    NIVEAUX.every(
+      (niveau) =>
+        estUnObjet(poidsActions[niveau]) &&
+        ACTIONS_CONNUES.every((action) => estUnPoids(poidsActions[niveau][action])),
+    );
+  if (!poidsActionsValides) {
+    throw new Error(
+      'validerConfig : poidsActions doit donner un poids fini ≥ 0 à chaque action pour chaque niveau',
+    );
+  }
+
+  const relance = config.relance;
+  const multiplicateurs = relance?.multiplicateurs;
+  const relanceValide =
+    estUnObjet(relance) &&
+    Array.isArray(multiplicateurs) &&
+    multiplicateurs.length > 0 &&
+    multiplicateurs.every((m) => typeof m === 'number' && Number.isFinite(m) && m >= 1) &&
+    estUnObjet(relance.poids) &&
+    NIVEAUX.every((niveau) => {
+      const poids = relance.poids[niveau];
+      return (
+        Array.isArray(poids) &&
+        poids.length === multiplicateurs.length &&
+        poids.every(estUnPoids) &&
+        poids.some((p) => p > 0)
+      );
+    });
+  if (!relanceValide) {
+    throw new Error(
+      'validerConfig : relance doit avoir des multiplicateurs finis ≥ 1 et, pour chaque niveau, ' +
+        'autant de poids finis ≥ 0 dont au moins un strictement positif',
+    );
+  }
+
+  const ordre = config.ordreDeRepli;
+  if (
+    !Array.isArray(ordre) ||
+    ordre.length !== ACTIONS_CONNUES.length ||
+    !ACTIONS_CONNUES.every((action) => ordre.includes(action))
+  ) {
+    throw new Error('validerConfig : ordreDeRepli doit contenir les quatre actions une seule fois');
+  }
+}
+
 /**
  * Classe la force d'une main en niveau, selon les seuils de la config.
  *
@@ -24,9 +119,11 @@ import { tirageAvecPoids } from '../rng.js';
  * @param {{ seuils: { moyenne: number, forte: number } }} [config] -
  *   Configuration de l'IA (AI_POKER_CONFIG par défaut).
  * @returns {'faible'|'moyenne'|'forte'} Le niveau de force.
- * @throws {Error} Si la force n'est pas un nombre compris entre 0 et 1.
+ * @throws {Error} Si la force n'est pas un nombre compris entre 0 et 1, ou si
+ *   la configuration est invalide.
  */
 export function niveauDeForce(force, config = AI_POKER_CONFIG) {
+  validerConfig(config);
   if (typeof force !== 'number' || !(force >= 0 && force <= 1)) {
     throw new Error('niveauDeForce : la force doit être un nombre entre 0 et 1');
   }
@@ -38,10 +135,6 @@ export function niveauDeForce(force, config = AI_POKER_CONFIG) {
   }
   return 'faible';
 }
-
-// Actions du contrat G2 (discussion #9). Toute autre valeur est un écart de
-// contrat, signalé par une erreur plutôt qu'ignorée.
-const ACTIONS_CONNUES = ['fold', 'check', 'call', 'raise'];
 
 /**
  * Détermine les actions que le bot peut réellement jouer.
@@ -117,10 +210,11 @@ export function actionsCandidates(situation) {
  *   poids: Object<string, number[]> } }} [config] - Configuration de l'IA
  *   (AI_POKER_CONFIG par défaut).
  * @returns {number} Montant de la relance.
- * @throws {Error} Si le niveau est inconnu, si `minRaise` est invalide ou si
- *   les jetons du bot sont sous `minRaise`.
+ * @throws {Error} Si le niveau est inconnu, si `minRaise` est invalide, si
+ *   les jetons du bot sont sous `minRaise` ou si la configuration est invalide.
  */
 export function montantDeRelance(situation, niveau, config = AI_POKER_CONFIG) {
+  validerConfig(config);
   const { multiplicateurs, poids } = config.relance;
   if (!Object.hasOwn(poids, niveau)) {
     throw new Error(`montantDeRelance : niveau de force inconnu ${String(niveau)}`);
@@ -159,12 +253,11 @@ export function deciderAction(force, situation, { config = AI_POKER_CONFIG } = {
   const candidates = actionsCandidates(situation);
   const poids = candidates.map((action) => config.poidsActions[niveau][action]);
 
+  // validerConfig (appelée par niveauDeForce) garantit que ordreDeRepli
+  // contient les quatre actions : une action jouable y est toujours trouvée.
   const type = poids.every((p) => p === 0)
     ? config.ordreDeRepli.find((action) => candidates.includes(action))
     : tirageAvecPoids(candidates, poids);
-  if (type === undefined) {
-    throw new Error('deciderAction : ordreDeRepli ne contient aucune action jouable');
-  }
 
   if (type === 'raise') {
     return { type, amount: montantDeRelance(situation, niveau, config) };
