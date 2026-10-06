@@ -60,12 +60,22 @@ export function roll(gameId, params = {}) {
  * IMPORTANT : tirage brut uniquement, aucune signification de gain/perte.
  * Ce sont les jeux qui interprètent la valeur retournée.
  *
- * @param {number} min - borne inférieure incluse (entier).
- * @param {number} max - borne supérieure incluse (entier), doit être >= min.
+ * @param {number} min - borne inférieure incluse (entier sûr).
+ * @param {number} max - borne supérieure incluse (entier sûr), doit être >= min.
  * @returns {number} un entier compris entre min et max (inclus).
+ * @throws {Error} si une borne n'est pas un entier sûr (|n| < 2^53), si
+ *   max < min, ou si la largeur de l'intervalle dépasse les entiers sûrs.
  */
 export function tirageEntier(min, max) {
-  if (!Number.isInteger(min) || !Number.isInteger(max) || max < min) {
+  // Entiers « sûrs » uniquement (|n| < 2^53) : au-delà, les nombres JavaScript
+  // perdent la précision entière et le tirage renverrait des valeurs fausses.
+  // La largeur de l'intervalle doit elle aussi rester un entier sûr.
+  if (
+    !Number.isSafeInteger(min) ||
+    !Number.isSafeInteger(max) ||
+    max < min ||
+    !Number.isSafeInteger(max - min + 1)
+  ) {
     throw new Error(`tirageEntier : bornes invalides [${min}, ${max}]`);
   }
   return min + Math.floor(hasardActuel() * (max - min + 1));
@@ -79,9 +89,14 @@ export function tirageEntier(min, max) {
  * l'élément tiré.
  *
  * @param {Array<*>} elements - éléments candidats.
- * @param {number[]} poids - tableau parallèle de poids positifs (même
- *   longueur que elements). Les poids n'ont pas besoin de sommer à 1.
- * @returns {*} un élément de `elements`.
+ * @param {number[]} poids - tableau parallèle de poids (même longueur que
+ *   elements) : nombres finis positifs ou nuls, dont la somme est finie et
+ *   strictement positive. Ils n'ont pas besoin de sommer à 1.
+ * @returns {*} un élément de `elements` (l'élément lui-même, pas son index).
+ *   Un élément de poids 0 n'est jamais tiré.
+ * @throws {Error} si les tableaux sont vides ou de longueurs différentes, si
+ *   un poids n'est pas un nombre fini ou est négatif, ou si la somme des poids
+ *   est nulle ou infinie.
  */
 export function tirageAvecPoids(elements, poids) {
   if (!Array.isArray(elements) || !Array.isArray(poids) || elements.length === 0) {
@@ -90,9 +105,19 @@ export function tirageAvecPoids(elements, poids) {
   if (elements.length !== poids.length) {
     throw new Error('tirageAvecPoids : elements et poids doivent avoir la même longueur');
   }
+  // Chaque poids est vérifié AVANT la somme : une chaîne comme '1' serait
+  // sinon concaténée ('0' + '1' + '2' = '012') et fausserait le tirage.
+  if (poids.some((p) => typeof p !== 'number' || !Number.isFinite(p))) {
+    throw new Error('tirageAvecPoids : chaque poids doit être un nombre fini');
+  }
   const total = poids.reduce((somme, p) => somme + p, 0);
   if (!(total > 0) || poids.some((p) => p < 0)) {
     throw new Error('tirageAvecPoids : les poids doivent être positifs ou nuls et leur somme > 0');
+  }
+  // Des poids finis peuvent déborder une fois additionnés (MAX_VALUE + MAX_VALUE) :
+  // avec une somme infinie, le tirage sélectionnerait toujours le dernier élément.
+  if (!Number.isFinite(total)) {
+    throw new Error('tirageAvecPoids : la somme des poids doit être finie');
   }
 
   // r est dans [0, total) : la comparaison stricte r < poids[i] et le saut des
