@@ -78,8 +78,8 @@ function lireReglages(store) {
  *
  * @param {{ read: function(): object, write: function(object): void }} store
  *   Stockage synchrone des réglages de l'admin ({ capitalDeDepart }).
- * @returns {{ getCapitalDeDepart: function(): number }} Configuration du
- *   joueur.
+ * @returns {{ getCapitalDeDepart: function(): number,
+ *   setCapitalDeDepart: function(number): number }} Configuration du joueur.
  * @throws {TypeError|RangeError} Si le stockage est invalide.
  */
 export function createPlayerConfig(store) {
@@ -97,6 +97,23 @@ export function createPlayerConfig(store) {
      */
     getCapitalDeDepart() {
       return lireReglages(store).capitalDeDepart ?? PLAYER_CONFIG.capitalDeDepart;
+    },
+
+    /**
+     * Règle le capital de départ des nouveaux joueurs. Tout est validé avant
+     * l'écriture : en cas d'erreur, rien n'est modifié. Les soldes des
+     * joueurs existants ne changent pas.
+     *
+     * @param {number} montant - Nouveau capital, nombre fini strictement positif.
+     * @returns {number} Le capital enregistré.
+     * @throws {RangeError} Si le capital est invalide.
+     */
+    setCapitalDeDepart(montant) {
+      validerCapital(montant);
+      const reglages = lireReglages(store);
+      reglages.capitalDeDepart = montant;
+      store.write(reglages);
+      return montant;
     },
   };
 }

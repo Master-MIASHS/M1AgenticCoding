@@ -56,3 +56,36 @@ describe('getCapitalDeDepart', () => {
     assert.strictEqual(config.getCapitalDeDepart(), 300);
   });
 });
+
+describe('setCapitalDeDepart', () => {
+  it('enregistre et renvoie le nouveau capital', () => {
+    const store = createPlayerConfigMemoryStore();
+    const config = createPlayerConfig(store);
+    assert.strictEqual(config.setCapitalDeDepart(5000), 5000);
+    assert.strictEqual(config.getCapitalDeDepart(), 5000);
+    assert.deepStrictEqual(store.read(), { capitalDeDepart: 5000 });
+  });
+
+  it('rejette un capital invalide sans rien écrire', () => {
+    let ecritures = 0;
+    const memoire = createPlayerConfigMemoryStore({ capitalDeDepart: 800 });
+    const store = {
+      read: memoire.read,
+      write: (valeur) => {
+        ecritures += 1;
+        memoire.write(valeur);
+      },
+    };
+    const config = createPlayerConfig(store);
+    for (const montant of [0, -100, NaN, Infinity, '1000', null, undefined]) {
+      assert.throws(() => config.setCapitalDeDepart(montant), /player\.config/, String(montant));
+    }
+    assert.strictEqual(ecritures, 0);
+    assert.strictEqual(config.getCapitalDeDepart(), 800);
+  });
+
+  it('ne modifie jamais la configuration par défaut', () => {
+    createPlayerConfig(createPlayerConfigMemoryStore()).setCapitalDeDepart(42);
+    assert.strictEqual(PLAYER_CONFIG.capitalDeDepart, 1000);
+  });
+});
