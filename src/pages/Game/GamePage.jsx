@@ -8,12 +8,14 @@ import { getBalance } from '../../services/coreService.js';
 import { getGameMeta } from '../../config/gameRegistry.js';
 import SlotsGame from '../../game-ui/slots/SlotsGame.jsx';
 import RouletteGame from '../../game-ui/roulette/RouletteGame.jsx';
+import WheelGame from '../../game-ui/wheel/WheelGame.jsx';
 import './game.css';
 
 // Games whose UI (Groupe 3) exists. Any other game keeps the waiting message.
 const GAME_UIS = {
   slots: SlotsGame,
   roulette: RouletteGame,
+  wheel: WheelGame,
 };
 
 const OUTCOME_LABELS = { win: 'Gagné', loss: 'Perdu', push: 'Égalité' };
