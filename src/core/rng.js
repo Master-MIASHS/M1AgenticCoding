@@ -60,12 +60,22 @@ export function roll(gameId, params = {}) {
  * IMPORTANT : tirage brut uniquement, aucune signification de gain/perte.
  * Ce sont les jeux qui interprètent la valeur retournée.
  *
- * @param {number} min - borne inférieure incluse (entier).
- * @param {number} max - borne supérieure incluse (entier), doit être >= min.
+ * @param {number} min - borne inférieure incluse (entier sûr).
+ * @param {number} max - borne supérieure incluse (entier sûr), doit être >= min.
  * @returns {number} un entier compris entre min et max (inclus).
+ * @throws {Error} si une borne n'est pas un entier sûr (|n| < 2^53), si
+ *   max < min, ou si la largeur de l'intervalle dépasse les entiers sûrs.
  */
 export function tirageEntier(min, max) {
-  if (!Number.isInteger(min) || !Number.isInteger(max) || max < min) {
+  // Entiers « sûrs » uniquement (|n| < 2^53) : au-delà, les nombres JavaScript
+  // perdent la précision entière et le tirage renverrait des valeurs fausses.
+  // La largeur de l'intervalle doit elle aussi rester un entier sûr.
+  if (
+    !Number.isSafeInteger(min) ||
+    !Number.isSafeInteger(max) ||
+    max < min ||
+    !Number.isSafeInteger(max - min + 1)
+  ) {
     throw new Error(`tirageEntier : bornes invalides [${min}, ${max}]`);
   }
   return min + Math.floor(hasardActuel() * (max - min + 1));

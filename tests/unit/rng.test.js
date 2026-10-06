@@ -125,3 +125,23 @@ describe('tirageAvecPoids : validation numérique des poids', () => {
     );
   });
 });
+
+describe('tirageEntier : bornes entières sûres', () => {
+  it('rejette des bornes au-delà des entiers sûrs de JavaScript', () => {
+    for (const [min, max] of [[0, 1e300], [-(2 ** 53), 0], [0, 2 ** 53]]) {
+      assert.throws(() => tirageEntier(min, max), /bornes/);
+    }
+  });
+
+  it('rejette un intervalle dont la largeur dépasse les entiers sûrs', () => {
+    assert.throws(() => tirageEntier(-(2 ** 53) + 1, 2 ** 53 - 1), /bornes/);
+  });
+
+  it('accepte un grand intervalle sûr et renvoie un entier sûr', () => {
+    semer('graine-bornes');
+    const n = tirageEntier(0, 2 ** 52);
+    semer(null);
+    assert.ok(Number.isSafeInteger(n));
+    assert.ok(n >= 0 && n <= 2 ** 52);
+  });
+});
