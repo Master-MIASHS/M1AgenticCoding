@@ -22,11 +22,18 @@ body {
   min-height: 100vh;
 }
 
-.main-layout__header,
-.admin-layout__header {
+.main-layout__navbar,
+.main-layout__player-info {
   padding: var(--space-3);
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
+}
+
+.main-layout__navbar-placeholder,
+.main-layout__player-info-placeholder {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
 .main-layout__content,
