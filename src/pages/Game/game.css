@@ -33,3 +33,18 @@
   margin: 0;
   color: var(--color-text-muted);
 }
+
+.game__demo {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.game__result {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-accent);
+}

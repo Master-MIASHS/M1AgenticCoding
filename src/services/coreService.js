@@ -13,6 +13,9 @@
 import {
   getState,
   roll,
+  tirageEntier,
+  tirageAvecPoids,
+  melanger,
   play,
   getBalance,
   claimDailyBonus,
@@ -31,6 +34,9 @@ import {
 export {
   getState,
   roll,
+  tirageEntier,
+  tirageAvecPoids,
+  melanger,
   play,
   getBalance,
   claimDailyBonus,
