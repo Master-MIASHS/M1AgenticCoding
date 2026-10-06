@@ -1,6 +1,6 @@
 ---
 name: utiliser-core
-description: Utiliser la lecture d’état et le RNG du Core de Casino Fantôme depuis G2/G3/G4 via coreService, ou préparer le branchement interne G1 de l’état atomique et de la progression. Vérifier la disponibilité des exports avant intégration.
+description: Utiliser la lecture d’état, le RNG et la sauvegarde (export/import) du Core de Casino Fantôme depuis G2/G3/G4 via coreService, ou préparer le branchement interne G1 de l’état atomique et de la progression. Vérifier la disponibilité des exports avant intégration.
 ---
 
 # Utiliser le Core
@@ -13,6 +13,7 @@ Ne pas copier un module interne pour contourner un export manquant.
 
 Repères à la rédaction (à revérifier, pas des garanties permanentes) :
 - `getState()` est public.
+- `exportSave()` / `importSave()` sont publics (#130, contrôle d’intégrité FNV-1a retenu dans #132).
 - Les algorithmes RNG sont intégrés par #28 ; leur exposition publique est dans #115.
 - L’écriture interne `updateState` est intégrée par #139.
 - L’adaptateur `createProgressionStore` est proposé dans #144 (ticket #143).
@@ -73,6 +74,40 @@ les entrées hors domaine. Les défauts sont décrits dans #115.
 `semer` n’est pas une API UI. Dans les tests internes G1 de reproductibilité seulement : importer
 `semer` depuis `src/core/rng.js`, poser une graine et appeler `semer(null)` dans un
 `finally`. Tout hasard passe par le Core, jamais par `Math.random()`.
+
+### Exporter et importer une sauvegarde : exportSave() / importSave()
+
+Utiliser pour permettre au joueur de télécharger sa partie ou d’en recharger une
+(écran Profil ou paramètres, G4). Le Core ne gère ni le fichier ni le bouton :
+l’UI propose le texte en téléchargement, ou lit le fichier choisi et passe son contenu.
+
+```js
+import { exportSave, importSave } from '<chemin-relatif>/services/coreService.js';
+
+const contenu = exportSave(); // chaîne JSON { version, hash, data }
+
+try {
+  const etat = importSave(texteDuFichier); // copie indépendante de l’état restauré
+} catch (erreur) {
+  // sauvegarde refusée : la partie en cours n’a pas changé
+}
+```
+
+| Fonction | Retour | Erreurs |
+|---|---|---|
+| `exportSave()` | Chaîne JSON `{ version, hash, data }`, où `data` est l’état courant | Aucune attendue |
+| `importSave(texte)` | Copie indépendante de l’état restauré | `Error` si le texte n’est pas du JSON, si la version n’est pas supportée (seule la version 1 l’est), si la forme est invalide, si le hash ne correspond pas, si l’état n’est pas conforme, ou si l’écriture dans le stockage échoue |
+
+- Une sauvegarde refusée ne modifie rien, ni en mémoire ni dans `casino_state`.
+- Une sauvegarde acceptée remplace **toute** la partie (solde, XP, niveau, jeux
+  débloqués, historique) : prévenir le joueur avant. Relire `getState()` ensuite.
+- Ne pas modifier le texte exporté : toute modification change le hash et l’import est refusé.
+- Le hash FNV-1a détecte une sauvegarde abîmée, pas la triche (le code est visible).
+  Ne pas le présenter comme une protection.
+- Ne jamais lire ou écrire `casino_state` directement dans `localStorage`.
+- Pas encore tranché : l’import accepte aujourd’hui une sauvegarde avec moins d’XP
+  ou un niveau plus bas, et le démarrage avec un `casino_state` corrompu est en cours
+  de correction (n°27). Vérifier le comportement courant avant de s’appuyer dessus.
 
 ## G1 uniquement : écriture et progression internes
 
@@ -135,5 +170,5 @@ comprenant solde, XP/niveau, meilleur solde et historique.
 - Exécuter les tests concernés, puis tests/lint/build avant la PR.
 
 Coordination : #61 (état), #70 (cartes), #115 (exports), #131 (règlement),
-#139 (écriture atomique), #143/#144 (adaptateur). Une évolution de contrat passe
+#139 (écriture atomique), #143/#144 (adaptateur), #172 (sauvegarde). Une évolution de contrat passe
 par G1/G5 ; cette skill ne remplace pas les contrats validés.

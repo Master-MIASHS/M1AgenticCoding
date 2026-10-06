@@ -2,7 +2,7 @@
 // Couvre : les sequences reproductibles via semer(), et l'integrite de
 // melanger() (aucun element perdu ou duplique).
 
-import { test } from 'node:test';
+import { describe, it, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { semer, roll, tirageEntier, tirageAvecPoids, melanger } from '../../src/core/rng.js';
@@ -102,4 +102,46 @@ test('melanger() est reproductible avec la meme graine', () => {
 
 test('melanger() rejette une entree qui n\'est pas un tableau', () => {
   assert.throws(() => melanger('pas-un-tableau'));
+});
+
+// Validation numérique (#162) : défauts signalés dans #115 et #156.
+describe('tirageAvecPoids : validation numérique des poids', () => {
+  it('rejette des poids qui ne sont pas des nombres (chaîne, booléen, null, objet)', () => {
+    for (const poids of [['1', '2'], ['1', 2], [true, 1], [null, 1], [{}, 1]]) {
+      assert.throws(() => tirageAvecPoids(['a', 'b'], poids), /poids/);
+    }
+  });
+
+  it('rejette des poids infinis ou NaN', () => {
+    for (const poids of [[Infinity, 1], [-Infinity, 1], [NaN, 1]]) {
+      assert.throws(() => tirageAvecPoids(['a', 'b'], poids), /poids/);
+    }
+  });
+
+  it('rejette des poids finis dont la somme déborde vers Infinity', () => {
+    assert.throws(
+      () => tirageAvecPoids(['a', 'b'], [Number.MAX_VALUE, Number.MAX_VALUE]),
+      /somme/,
+    );
+  });
+});
+
+describe('tirageEntier : bornes entières sûres', () => {
+  it('rejette des bornes au-delà des entiers sûrs de JavaScript', () => {
+    for (const [min, max] of [[0, 1e300], [-(2 ** 53), 0], [0, 2 ** 53]]) {
+      assert.throws(() => tirageEntier(min, max), /bornes/);
+    }
+  });
+
+  it('rejette un intervalle dont la largeur dépasse les entiers sûrs', () => {
+    assert.throws(() => tirageEntier(-(2 ** 53) + 1, 2 ** 53 - 1), /bornes/);
+  });
+
+  it('accepte un grand intervalle sûr et renvoie un entier sûr', () => {
+    semer('graine-bornes');
+    const n = tirageEntier(0, 2 ** 52);
+    semer(null);
+    assert.ok(Number.isSafeInteger(n));
+    assert.ok(n >= 0 && n <= 2 ** 52);
+  });
 });
