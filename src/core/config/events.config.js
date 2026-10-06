@@ -142,6 +142,7 @@ function lireEvenements(store) {
  * @returns {{
  *   getEvenements: function(): Array<object>,
  *   lancerEvenement: function(object): object,
+ *   arreterEvenement: function(string): object,
  *   getMultiplicateurActif: function(string): number
  * }} Gestion des événements bonus.
  * @throws {Error} Si le stockage, son contenu ou l'horloge est invalide.
@@ -180,6 +181,24 @@ export function createEvenementsBonus(store, { now = Date.now } = {}) {
       const nouveau = copierEvenement(evenement);
       store.write([...evenements, nouveau]);
       return copierEvenement(nouveau);
+    },
+
+    /**
+     * Arrête un événement (annulation ou arrêt anticipé) en le retirant.
+     *
+     * @param {string} id - Identifiant de l'événement.
+     * @returns {object} Copie de l'événement retiré.
+     * @throws {Error} Si aucun événement ne porte cet identifiant (rien
+     *   n'est alors modifié).
+     */
+    arreterEvenement(id) {
+      const evenements = lireEvenements(store);
+      const retire = evenements.find((e) => e.id === id);
+      if (retire === undefined) {
+        throw new Error(`events.config : aucun événement ${String(id)}`);
+      }
+      store.write(evenements.filter((e) => e !== retire));
+      return retire;
     },
 
     /**

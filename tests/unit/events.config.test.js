@@ -204,3 +204,29 @@ describe('getMultiplicateurActif', () => {
     assert.throws(() => bonus.getMultiplicateurActif('gains'), /events\.config/);
   });
 });
+
+describe('arreterEvenement', () => {
+  it('retire l’événement, qui ne compte plus dans le multiplicateur', () => {
+    const store = stockageCompte([evenement(), evenement({ id: 'xp', cible: 'xp' })]);
+    const bonus = createEvenementsBonus(store, { now: () => 1500 });
+    assert.deepStrictEqual(bonus.arreterEvenement('test'), evenement());
+    assert.deepStrictEqual(bonus.getEvenements().map((e) => e.id), ['xp']);
+    assert.strictEqual(bonus.getMultiplicateurActif('gains'), 1);
+    assert.strictEqual(store.ecritures(), 1);
+  });
+
+  it('permet de relancer un événement sur la période libérée', () => {
+    const bonus = createEvenementsBonus(createEvenementsMemoryStore([evenement()]));
+    bonus.arreterEvenement('test');
+    assert.doesNotThrow(() => bonus.lancerEvenement(evenement({ id: 'remplace', multiplicateur: 3 })));
+  });
+
+  it('lève une erreur pour un identifiant inconnu, sans écriture', () => {
+    const store = stockageCompte([evenement()]);
+    const bonus = createEvenementsBonus(store);
+    for (const id of ['inconnu', '', 42, undefined]) {
+      assert.throws(() => bonus.arreterEvenement(id), /events\.config/, String(id));
+    }
+    assert.strictEqual(store.ecritures(), 0);
+  });
+});
