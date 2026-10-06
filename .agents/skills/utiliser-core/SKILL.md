@@ -48,7 +48,7 @@ utilisée : vérifier le comportement courant et le traitement d’erreur prévu
 |---|---|---|
 | `roll(gameId, params?)` | Obtenir du hasard brut pour les règles G2 | `{ gameId, value, nonce }`, value dans `[0,1)` ; ne décide pas du résultat ; nonce n’est pas un identifiant garanti unique |
 | `tirageEntier(min, max)` | Choisir un entier dans un intervalle | Bornes incluses ; erreur si une borne n’est pas un entier sûr, si min > max ou si la largeur de l’intervalle dépasse les entiers sûrs |
-| `tirageAvecPoids(elements, poids)` | Choisir un élément selon des poids relatifs | Renvoie l’élément tiré, pas son index (pour un index : passer `[0, 1, …, n-1]` comme éléments) ; tableaux non vides de même longueur ; poids nombres finis ≥ 0, somme finie et > 0 ; pas besoin d’une somme égale à 1 |
+| `tirageAvecPoids(elements, poids)` | Choisir un élément selon des poids relatifs | Renvoie l’élément tiré, pas son index (pour un index : passer `[0, 1, …, n-1]` comme éléments) ; tableaux non vides de même longueur ; poids nombres finis ≥ 0, somme finie et > 0 ; pas besoin d’une somme égale à 1 ; un élément de poids 0 n’est jamais tiré (ex. probabilité réglée à 0 dans la config) |
 | `melanger(liste)` | Mélanger un paquet ou une liste | Nouveau tableau ; mêmes occurrences et références ; entrée non modifiée ; erreur si l’entrée n’est pas un tableau |
 
 ```js
