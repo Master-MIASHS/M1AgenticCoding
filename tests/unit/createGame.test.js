@@ -361,6 +361,63 @@ test('a stake raised during the round (double) is settled through details.totalB
   assert.equal(core.playCalls[0].bets, 20, 'the doubled stake is lost, not only the opening bet');
 });
 
+/** Rules with a 'double' raise, used by the balance tests below. */
+function makeDoubleRules(outcome, multiplier) {
+  return {
+    start(raw, ctx) {
+      return { needsDraw: true, stake: 10, balanceSeen: ctx.balance, availableActions: ['double'] };
+    },
+    step(session, action) {
+      if (action === 'double') return { ...session, stake: 20, totalBet: 20 };
+      return { outcome, multiplier, details: { totalBet: session.stake } };
+    },
+  };
+}
+
+/** Recording core that also exposes a fixed balance, like coreService. */
+function withBalance(core, balance) {
+  return { ...core, getBalance: () => balance };
+}
+
+test('a doubled stake that wins is settled on the doubled amount', () => {
+  const core = withBalance(makeRecordingCore([0.1, 0.2, 0.3]), 100);
+  const game = createGame({ id: 'mock-multi', rules: makeDoubleRules('win', 2), core });
+  const { sessionId } = game.start({ type: 'main', amount: 10 });
+  game.action(sessionId, 'double');
+  const end = game.action(sessionId, 'stand');
+  assert.equal(core.playCalls[0].bets, 20);
+  assert.equal(end.gameResult.multiplier, 2, '20 x 2 returned, stake included');
+});
+
+test('the balance is handed to the rules as data', () => {
+  const core = withBalance(makeRecordingCore([0.1]), 42);
+  const rules = makeDoubleRules('loss', 0);
+  let seen;
+  const spy = { ...rules, start: (raw, ctx) => ((seen = ctx.balance), rules.start(raw, ctx)) };
+  createGame({ id: 'mock-multi', rules: spy, core }).start({ type: 'main', amount: 10 });
+  assert.equal(seen, 42);
+});
+
+test('an opening bet above the balance is refused before any draw', () => {
+  const core = withBalance(makeRecordingCore([0.1]), 5);
+  const game = createGame({ id: 'mock-single', rules: singleStepRules, core });
+  assert.throws(() => game.start({ type: 'red', amount: 10 }), /insufficient balance/);
+  assert.deepEqual(core.log, []);
+});
+
+test('a raise above the balance is refused, the session is kept and the round goes on', () => {
+  const core = withBalance(makeRecordingCore([0.1, 0.2, 0.3]), 15);
+  const game = createGame({ id: 'mock-multi', rules: makeDoubleRules('loss', 0), core });
+  const { sessionId } = game.start({ type: 'main', amount: 10 });
+
+  assert.throws(() => game.action(sessionId, 'double'), /insufficient balance/);
+  assert.deepEqual(core.playCalls, [], 'nothing is settled');
+
+  const end = game.action(sessionId, 'stand');
+  assert.equal(end.terminal, true);
+  assert.equal(core.playCalls[0].bets, 10, 'the opening stake only');
+});
+
 test('details.totalBet below the opening bets is rejected before play()', () => {
   const core = makeRecordingCore([0.1]);
   const game = createGame({

@@ -186,8 +186,19 @@ export function createGame({
    * @returns {number}
    */
   function finalStake(bets, gameResult) {
+    return checkStake(bets, gameResult?.details?.totalBet);
+  }
+
+  /**
+   * Validates a stake reported by the rules (`details.totalBet` on a result,
+   * `totalBet` on a running session) and returns the stake to settle.
+   *
+   * @param {Array<{ type: string, amount: number }>} bets
+   * @param {unknown} reported
+   * @returns {number}
+   */
+  function checkStake(bets, reported) {
     const opening = sumBets(bets);
-    const reported = gameResult?.details?.totalBet;
     if (reported === undefined) return opening;
     if (typeof reported !== 'number' || !Number.isFinite(reported) || reported < opening) {
       throw new RangeError(
@@ -195,6 +206,32 @@ export function createGame({
       );
     }
     return reported;
+  }
+
+  /**
+   * Current balance, when the injected core exposes getBalance() (the
+   * official coreService does). Undefined otherwise: no check is made.
+   *
+   * @returns {number | undefined}
+   */
+  function readBalance() {
+    return typeof core.getBalance === 'function' ? core.getBalance() : undefined;
+  }
+
+  /**
+   * A stake can never exceed the balance. Checked BEFORE the round starts and
+   * before a raise is accepted, so that play() never fails at the very end.
+   *
+   * @param {number} stake
+   * @throws {RangeError} when the balance is known and too low.
+   */
+  function ensureAffordable(stake) {
+    const balance = readBalance();
+    if (balance !== undefined && stake > balance) {
+      throw new RangeError(
+        `createGame(${id}): insufficient balance for a stake of ${stake} (balance ${balance})`
+      );
+    }
   }
 
   /**
@@ -216,7 +253,12 @@ export function createGame({
    */
   function start(bets, params = {}) {
     const normalizedBets = normalizeBets(bets);
-    const context = { bets: normalizedBets, config };
+    // Fail fast: no draw, no session for a round the player cannot afford.
+    ensureAffordable(sumBets(normalizedBets));
+    // The balance is handed to the rules as plain data (they stay pure), so
+    // that they can hide an unaffordable raise (double...) from
+    // availableActions.
+    const context = { bets: normalizedBets, config, balance: readBalance() };
     sessionCount += 1;
     const sessionId = `${id}-${sessionCount}`;
 
@@ -263,6 +305,11 @@ export function createGame({
       action: playerAction,
     });
     const result = rules.step(entry.session, playerAction, raw);
+    // A raise the player cannot afford is refused: the session is left as it
+    // was and the round goes on.
+    ensureAffordable(
+      isPending(result) ? checkStake(entry.bets, result.totalBet) : finalStake(entry.bets, result)
+    );
     if (!isPending(result)) {
       return settle(sessionId, entry.bets, raw, result);
     }
