@@ -66,3 +66,119 @@ export function createEvenementsMemoryStore(initial = []) {
     },
   };
 }
+
+/**
+ * Indique si deux événements visent la même cible sur des périodes qui se
+ * recouvrent ([debut, fin), donc deux événements qui se suivent ne se
+ * recouvrent pas).
+ *
+ * @param {object} a - Premier événement (valide).
+ * @param {object} b - Second événement (valide).
+ * @returns {boolean} Vrai en cas de chevauchement sur la même cible.
+ */
+function seChevauchent(a, b) {
+  return a.cible === b.cible && a.debut < b.fin && b.debut < a.fin;
+}
+
+/**
+ * Vérifie qu'un nouvel événement peut rejoindre une liste : identifiant
+ * libre et aucun chevauchement sur la même cible.
+ *
+ * @param {Array<object>} evenements - Événements déjà présents (valides).
+ * @param {object} nouveau - Événement à ajouter (valide).
+ * @returns {void}
+ * @throws {Error} Si l'identifiant est déjà utilisé ou en cas de chevauchement.
+ */
+function verifierCompatibilite(evenements, nouveau) {
+  if (evenements.some((e) => e.id === nouveau.id)) {
+    throw new Error(`events.config : identifiant déjà utilisé ${nouveau.id}`);
+  }
+  const conflit = evenements.find((e) => seChevauchent(e, nouveau));
+  if (conflit !== undefined) {
+    throw new Error(
+      `events.config : ${nouveau.id} chevauche ${conflit.id} sur la cible ${nouveau.cible}`,
+    );
+  }
+}
+
+/**
+ * Copie un événement en ne gardant que ses champs connus.
+ * @param {object} evenement - Événement valide.
+ * @returns {{ id: string, cible: string, multiplicateur: number, debut: number,
+ *   fin: number }} Nouvel objet.
+ */
+function copierEvenement({ id, cible, multiplicateur, debut, fin }) {
+  return { id, cible, multiplicateur, debut, fin };
+}
+
+/**
+ * Lit et valide les événements du stockage.
+ *
+ * @param {{ read: function(): Array<object> }} store - Stockage injecté.
+ * @returns {Array<object>} Copie indépendante des événements.
+ * @throws {Error} Si le contenu du stockage est invalide.
+ */
+function lireEvenements(store) {
+  const contenu = store.read();
+  if (!Array.isArray(contenu)) {
+    throw new Error('events.config : le stockage doit contenir un tableau d’événements');
+  }
+  const evenements = [];
+  for (const evenement of contenu) {
+    validerEvenement(evenement);
+    verifierCompatibilite(evenements, evenement);
+    evenements.push(copierEvenement(evenement));
+  }
+  return evenements;
+}
+
+/**
+ * Crée la gestion des événements bonus sur un stockage injecté.
+ *
+ * @param {{ read: function(): Array<object>, write: function(Array<object>): void }} store
+ *   Stockage synchrone des événements.
+ * @param {object} [options] - Dépendances injectables.
+ * @param {function(): number} [options.now] - Horloge en ms (Date.now par défaut).
+ * @returns {{
+ *   getEvenements: function(): Array<object>,
+ *   lancerEvenement: function(object): object
+ * }} Gestion des événements bonus.
+ * @throws {Error} Si le stockage, son contenu ou l'horloge est invalide.
+ */
+export function createEvenementsBonus(store, { now = Date.now } = {}) {
+  if (!store || typeof store.read !== 'function' || typeof store.write !== 'function') {
+    throw new Error('events.config : le stockage doit fournir read() et write()');
+  }
+  if (typeof now !== 'function') {
+    throw new Error("events.config : l'horloge now doit être une fonction");
+  }
+  lireEvenements(store);
+
+  return {
+    /**
+     * Renvoie tous les événements : passés, en cours et à venir.
+     * @returns {Array<object>} Copie indépendante des événements.
+     */
+    getEvenements() {
+      return lireEvenements(store);
+    },
+
+    /**
+     * Lance un événement. Tout est vérifié avant l'écriture : en cas
+     * d'erreur, rien n'est modifié.
+     *
+     * @param {object} evenement - Événement à lancer.
+     * @returns {object} Copie de l'événement enregistré.
+     * @throws {Error} Si l'événement est invalide, si son identifiant est déjà
+     *   utilisé ou s'il chevauche un autre événement de la même cible.
+     */
+    lancerEvenement(evenement) {
+      validerEvenement(evenement);
+      const evenements = lireEvenements(store);
+      verifierCompatibilite(evenements, evenement);
+      const nouveau = copierEvenement(evenement);
+      store.write([...evenements, nouveau]);
+      return copierEvenement(nouveau);
+    },
+  };
+}
