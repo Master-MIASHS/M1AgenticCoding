@@ -47,8 +47,8 @@ utilisée : vérifier le comportement courant et le traitement d’erreur prévu
 | Fonction | Quand l’utiliser | Retour / précaution |
 |---|---|---|
 | `roll(gameId, params?)` | Obtenir du hasard brut pour les règles G2 | `{ gameId, value, nonce }`, value dans `[0,1)` ; ne décide pas du résultat ; nonce n’est pas un identifiant garanti unique |
-| `tirageEntier(min, max)` | Choisir un entier dans un intervalle | Bornes incluses, min ≤ max ; erreur pour bornes invalides |
-| `tirageAvecPoids(elements, poids)` | Choisir un élément selon des poids relatifs | Tableaux non vides de même longueur ; poids ≥ 0 et somme > 0 ; pas besoin d’une somme égale à 1 |
+| `tirageEntier(min, max)` | Choisir un entier dans un intervalle | Bornes incluses ; erreur si une borne n’est pas un entier sûr, si min > max ou si la largeur de l’intervalle dépasse les entiers sûrs |
+| `tirageAvecPoids(elements, poids)` | Choisir un élément selon des poids relatifs | Tableaux non vides de même longueur ; poids nombres finis ≥ 0, somme finie et > 0 ; pas besoin d’une somme égale à 1 |
 | `melanger(liste)` | Mélanger un paquet ou une liste | Nouveau tableau ; mêmes occurrences et références ; entrée non modifiée ; erreur si l’entrée n’est pas un tableau |
 
 ```js
@@ -65,11 +65,11 @@ Le mélange est superficiel : modifier un objet carte affecterait ses autres
 références. Ne pas muter les cartes partagées. Un mélange peut rendre le même
 ordre ; un test ne doit pas exiger un ordre différent.
 
-Dans la version #28, la validation des poids et des bornes extrêmes est incomplète :
-chaînes numériques acceptées, somme infinie possible, intervalle pouvant déborder.
-Ne pas présenter ces cas comme gérés : utiliser des nombres finis, des poids dont
-la somme est finie, des bornes entières sûres et une largeur sûre ; signaler à G1
-les entrées hors domaine. Les défauts sont décrits dans #115.
+Depuis #167, les entrées hors domaine lèvent une `Error` au lieu de fausser le
+tirage : poids qui ne sont pas des nombres finis (chaîne `'1'`, `NaN`, `Infinity`),
+somme des poids qui déborde, bornes non entières ou hors des entiers sûrs. Ne pas
+rattraper l’erreur avec un tirage par défaut : corriger l’entrée, ou signaler à G1
+une entrée légitime refusée.
 
 `semer` n’est pas une API UI. Dans les tests internes G1 de reproductibilité seulement : importer
 `semer` depuis `src/core/rng.js`, poser une graine et appeler `semer(null)` dans un
