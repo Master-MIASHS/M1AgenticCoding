@@ -50,8 +50,8 @@
   font-weight: 700;
 }
 
-.leaderboard__level,
-.leaderboard__balance {
+.leaderboard__table .leaderboard__level,
+.leaderboard__table .leaderboard__balance {
   text-align: right;
 }
 
