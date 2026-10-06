@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import * as coreService from '../../src/services/coreService.js';
+import { computeIntegrityHash } from '../../src/core/storage.js';
 
 const EXPECTED_API = [
   'getState',
@@ -23,6 +24,14 @@ const EXPECTED_API = [
   'exportSave',
   'importSave',
 ];
+
+function createSave(data, version = 1) {
+  return JSON.stringify({
+    version,
+    hash: computeIntegrityHash(JSON.stringify(data)),
+    data,
+  });
+}
 
 test('coreService exposes the full public contract', () => {
   for (const fn of EXPECTED_API) {
@@ -57,4 +66,77 @@ test('exportSave / importSave round-trip and reject tampered saves', () => {
   parsed.hash = 'deadbeef'; // tamper with the integrity hash
   const corrupted = JSON.stringify(parsed);
   assert.throws(() => coreService.importSave(corrupted));
+});
+
+test('importSave rejects invalid JSON, unsupported versions, and invalid state shapes', () => {
+  assert.throws(() => coreService.importSave('{invalid json'));
+
+  const save = JSON.parse(coreService.exportSave());
+  save.version += 1;
+  assert.throws(() => coreService.importSave(JSON.stringify(save)));
+
+  const invalidData = { ...JSON.parse(coreService.exportSave()).data, history: {} };
+  const invalidSave = createSave(invalidData);
+  const previousState = coreService.getState();
+  assert.throws(() => coreService.importSave(invalidSave));
+  assert.deepEqual(coreService.getState(), previousState);
+});
+
+test('importSave restores the state after validating the save', () => {
+  const originalState = coreService.getState();
+  const restoredState = { ...originalState, balance: originalState.balance + 250 };
+  const save = createSave(restoredState);
+
+  assert.deepEqual(coreService.importSave(save), restoredState);
+  assert.deepEqual(coreService.getState(), restoredState);
+  assert.deepEqual(coreService.importSave(coreService.exportSave()), restoredState);
+});
+
+test('importSave persists state and does not replace memory if persistence fails', async () => {
+  const originalState = coreService.getState();
+  const originalSave = coreService.exportSave();
+  const originalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  let storedState = null;
+  let failWrite = false;
+
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem(key) {
+        return key === 'casino_state' ? storedState : null;
+      },
+      setItem(key, value) {
+        if (failWrite) {
+          throw new Error('storage unavailable');
+        }
+        assert.equal(key, 'casino_state');
+        storedState = value;
+      },
+    },
+  });
+
+  try {
+    const restoredState = { ...originalState, balance: originalState.balance + 500 };
+    assert.deepEqual(coreService.importSave(createSave(restoredState)), restoredState);
+    assert.deepEqual(JSON.parse(storedState), restoredState);
+
+    const reloadedState = await import('../../src/core/state.js?reload-test');
+    assert.deepEqual(reloadedState.getState(), restoredState);
+
+    failWrite = true;
+    const stateBeforeFailedImport = coreService.getState();
+    assert.throws(() => coreService.importSave(createSave({
+      ...stateBeforeFailedImport,
+      balance: stateBeforeFailedImport.balance + 1,
+    })));
+    assert.deepEqual(coreService.getState(), stateBeforeFailedImport);
+  } finally {
+    failWrite = false;
+    coreService.importSave(originalSave);
+    if (originalStorageDescriptor) {
+      Object.defineProperty(globalThis, 'localStorage', originalStorageDescriptor);
+    } else {
+      delete globalThis.localStorage;
+    }
+  }
 });

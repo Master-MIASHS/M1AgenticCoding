@@ -164,7 +164,7 @@ Les agents ne se coordonnent pas directement entre eux. Si une tâche a besoin d
 
 ## Skills
 
-Les skills sont dans le dossier `skills/`. N'ouvre une skill **que** si la tâche en a besoin.
+Les skills sont dans le dossier `.agents/skills/` . N'ouvre une skill **que** si la tâche en a besoin.
 
 | Skill | Quand l'utiliser |
 |---|---|
@@ -176,7 +176,7 @@ Si une skill nécessaire n'existe pas, ne l'invente pas en cours de tâche : sig
 ### Proposer une nouvelle skill
 
 - Critère : la même instruction a dû être répétée sur 2 ou 3 tâches.
-- La skill est ajoutée dans `skills/` via une PR vers la branche `skills`, jamais dans une branche de fonctionnalité.
+- La skill est ajoutée dans `.agents/skills/` via une PR vers la branche `skills`, jamais dans une branche de fonctionnalité.
 - Aucun agent ne merge une skill : G5 relit, merge et met à jour le tableau ci-dessus.
 
 ## Décisions ouvertes (ne pas trancher seul)

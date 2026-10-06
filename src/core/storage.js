@@ -3,20 +3,24 @@
 // ---------------------------------------------------------------------------
 // Exports and imports a save file with an integrity hash.
 //
-// NOTE: the integrity hash algorithm below is a DOCUMENTED PLACEHOLDER. The
-// final algorithm is an open decision (see README - "Decisions techniques
-// encore ouvertes"). It is intentionally dependency-free (no server, no
-// external crypto library).
+// NOTE: FNV-1a (32-bit) is the retained standard for the non-cryptographic
+// integrity check of save files (validated by G5). It detects accidental
+// corruption, not tampering: the front-end code is inspectable. It is
+// intentionally dependency-free (no server, no external crypto library).
 // ---------------------------------------------------------------------------
 
-import { getState } from './state.js';
+import { getState, restoreState } from './state.js';
 
 const SAVE_VERSION = 1;
 
+function isRecord(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 /**
- * PLACEHOLDER integrity hash (FNV-1a, 32-bit). Deterministic and dependency-
- * free, but NOT cryptographically secure. To be replaced by the final
- * algorithm decided by the team.
+ * Integrity hash (FNV-1a, 32-bit), retained standard for the non-cryptographic
+ * integrity check of save files. Deterministic and dependency-free, but NOT
+ * cryptographically secure: it detects accidental corruption only.
  *
  * @param {string} input
  * @returns {string} hex digest.
@@ -47,14 +51,14 @@ export function exportSave() {
 }
 
 /**
- * Validates and reads a save file content.
+ * Validates a save file and restores its state.
  *
- * Recomputes the integrity hash and compares it with the stored one. Throws
- * if the save is invalid or corrupted / tampered with.
+ * Validates the version and integrity hash before restoring the state to
+ * memory and localStorage. Invalid saves leave the current state unchanged.
  *
  * @param {string} fileContent - JSON string produced by exportSave().
- * @returns {object} the parsed state data.
- * @throws {Error} if the content is invalid or the hash does not match.
+ * @returns {object} independent copy of the restored state.
+ * @throws {Error} if the save is invalid, corrupted, or cannot be persisted.
  */
 export function importSave(fileContent) {
   let parsed;
@@ -63,10 +67,20 @@ export function importSave(fileContent) {
   } catch {
     throw new Error('importSave: invalid save content (not JSON).');
   }
+
+  if (!isRecord(parsed) || parsed.version !== SAVE_VERSION) {
+    throw new Error('importSave: unsupported or invalid save version.');
+  }
+
   const { hash, data } = parsed;
+  if (typeof hash !== 'string' || !isRecord(data)) {
+    throw new Error('importSave: invalid save state.');
+  }
+
   const expected = computeIntegrityHash(JSON.stringify(data));
   if (hash !== expected) {
     throw new Error('importSave: integrity check failed (corrupted save).');
   }
-  return data;
+
+  return restoreState(data);
 }
