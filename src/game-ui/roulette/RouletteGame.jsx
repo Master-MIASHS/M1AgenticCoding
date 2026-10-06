@@ -11,16 +11,20 @@ const CHOICES = [
 ];
 
 // status : "playing" (prêt à jouer) | "loading" | "terminal" | "error"
+// start(bets) : bets est toujours un tableau [{ type, amount }] (contrat G2 § 2.1)
+// renderResult(gameResult, bet) : gain affiché = bet × gameResult.multiplier
 export default function RouletteGame({ balance, start = mockStart, renderResult }) {
   const [status, setStatus] = useState('playing');
   const [choice, setChoice] = useState(null);
   const [payload, setPayload] = useState(null);
   const [gameResult, setGameResult] = useState(null);
+  const [lastBet, setLastBet] = useState(null);
 
   const handlePlay = async (bet) => {
     setStatus('loading');
+    setLastBet(bet);
     try {
-      const res = await start(bet, choice);
+      const res = await start([{ type: choice, amount: bet }]);
       setPayload(res.renderPayload);
       setGameResult(res.gameResult ?? null);
       setStatus('terminal');
@@ -62,7 +66,7 @@ export default function RouletteGame({ balance, start = mockStart, renderResult 
         </p>
       )}
 
-      {status === 'terminal' && renderResult ? renderResult(gameResult) : null}
+      {status === 'terminal' && renderResult ? renderResult(gameResult, lastBet) : null}
 
       <BetPanel balance={balance} onPlay={handlePlay} disabled={loading || !choice} />
     </section>
