@@ -344,6 +344,40 @@ test('createGame rejects a draw that is not a function', () => {
   assert.throws(() => createGame({ id: 'slots', rules: singleStepRules, draw: 42 }), TypeError);
 });
 
+test('rules.view() decides what G3 sees: no raw deck, no session internals', () => {
+  const deck = ['A', 'K', 'Q', 'J', '10'];
+  const viewCalls = [];
+  const rules = {
+    start(raw) {
+      return { needsDraw: true, deck: raw, cursor: 2, hand: raw.slice(0, 2), availableActions: ['stand'] };
+    },
+    step() {
+      return { outcome: 'push', multiplier: 1, details: { hand: ['A', 'K'] } };
+    },
+    view({ phase, session, gameResult }) {
+      viewCalls.push(phase);
+      return phase === 'result' ? { hand: gameResult.details.hand } : { hand: session.hand };
+    },
+  };
+  const game = createGame({
+    id: 'mock-cards',
+    rules,
+    core: makeRecordingCore([0.5]),
+    draw: (c, ctx) => (ctx.session ? null : deck),
+  });
+
+  const started = game.start({ type: 'main', amount: 5 });
+  assert.deepEqual(started.renderPayload, { gameId: 'mock-cards', phase: 'playing', view: { hand: ['A', 'K'] } });
+  assert.equal(JSON.stringify(started).includes('"Q"'), false, 'the cards to come never reach G3');
+
+  const end = game.action(started.sessionId, 'stand');
+  assert.deepEqual(end.renderPayload.view, { hand: ['A', 'K'] });
+  assert.equal('raw' in end.renderPayload, false);
+  assert.equal('interpretation' in end.renderPayload, false);
+  assert.deepEqual(end.renderPayload.economy, { newBalance: 0, xpGained: 1, leveledUp: false });
+  assert.deepEqual(viewCalls, ['playing', 'result']);
+});
+
 test('config stays undefined when not provided (no default value invented)', () => {
   let ctxSeen;
   createGame({
