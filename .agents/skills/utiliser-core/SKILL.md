@@ -15,6 +15,7 @@ Repères à la rédaction (à revérifier, pas des garanties permanentes) :
 - `getState()` est public.
 - `exportSave()` / `importSave()` sont publics (#130, contrôle d’intégrité FNV-1a retenu dans #132).
 - `roll()` est public ; `tirageEntier()`, `tirageAvecPoids()` et `melanger()` (#28) le sont depuis #115.
+- `creerProfil()` est public (#226, construit avec `creerJoueur`, #134).
 - L’écriture interne `updateState` est intégrée par #139.
 - L’adaptateur `createProgressionStore` est proposé dans #144 (ticket #143).
 - Le branchement par défaut de la progression reste une étape séparée.
@@ -37,10 +38,36 @@ const { balance, bestBalance, xp, level, unlockedGames, history, role } = snapsh
 ```
 
 Le résultat est une copie indépendante, pas une référence réactive. Le modifier
-ne met pas à jour le joueur. Relire après une opération réussie du Core. Ne pas
-inventer des champs comme `pseudo` ou `xpForNextLevel` avant leur disponibilité.
+ne met pas à jour le joueur. Relire après une opération réussie du Core.
+`pseudo` et `birthDate` n’existent qu’après `creerProfil()` (absents avant : prévoir
+un affichage par défaut). Ne pas inventer `xpForNextLevel` avant sa disponibilité.
 La lecture peut échouer si l’initialisation du stockage échoue dans la version
 utilisée : vérifier le comportement courant et le traitement d’erreur prévu.
+
+### Créer le profil du joueur : creerProfil()
+
+Utiliser sur l’écran de création de profil (G4), au premier lancement.
+
+```js
+import { creerProfil, getState } from '<chemin-relatif>/services/coreService.js';
+
+try {
+  const etat = creerProfil({ pseudo: saisie, dateNaissance: '2000-05-17' }); // date facultative
+  // etat.pseudo, etat.balance (capital de départ de la config)…
+} catch (erreur) {
+  // refus : afficher erreur.message, rien n’a été enregistré
+}
+```
+
+- Le Core valide tout : pseudo non vide (espaces retirés), date `AAAA-MM-JJ` existante
+  et pas dans le futur. L’UI ne recalcule ni le capital ni les jeux de départ.
+- Une seule écriture : en cas d’erreur, l’état n’est pas modifié.
+- **Un seul profil, sur une partie neuve** : refus si un profil existe déjà ou si une
+  partie a déjà été jouée (la progression ne doit jamais être écrasée). Plusieurs
+  profils : tâche n°5, pas encore disponible.
+- Refus aussi si le capital réglé par l’admin est inférieur au meilleur solde de
+  l’état par défaut (le meilleur solde ne baisse jamais) : à trancher au branchement.
+- Après la création, relire `getState()` : `pseudo` et `birthDate` y figurent.
 
 ### Tirer du hasard brut : roll(), tirageEntier(), tirageAvecPoids(), melanger()
 
