@@ -206,8 +206,9 @@ import Sidebar from '../../components/Sidebar/Sidebar.jsx';
   ignoré), `currentPath` (le lien identique reçoit `aria-current="page"`), `getHref`,
   `ariaLabel`, `className`.
 - **Il ne construit aucune URL** : `getHref` est fournie par la page (sans elle, le `path` est
-  utilisé tel quel).
-- Au-dessus de 768 px la liste est toujours visible ; en dessous, elle est derrière un bouton
+  utilisé tel quel) Un `href` porté par
+  l'élément est prioritaire sur `getHref`.
+- À partir de 768 px (inclus) la liste est toujours visible ; en dessous, elle est derrière un bouton
   (Échap la referme).
 - Aucune logique d'autorisation : afficher ou non un lien (par exemple Administration) se décide
   dans la page, en filtrant `items`. Les permissions se vérifient côté Core, pas en masquant un lien.
