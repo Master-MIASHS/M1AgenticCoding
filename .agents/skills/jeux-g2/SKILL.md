@@ -40,8 +40,10 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
   **une seule** fois.
 - `id` : `slots`, `dice`, `scratch`, `blackjack`, `wheel`, `roulette`,
   `baccarat`, `plinko`, `video-poker`, `poker`.
-- `start()` / `action()` arrivent avec la PR #136. Avant son merge, seul
-  `playRound(bets)` existe : utiliser un mock au format ci-dessous.
+- `start()` / `action()` sont dans `main` depuis la PR #136. `playRound(bets)`
+  reste disponible pour un jeu instantané joué en un seul appel.
+- Tant que les règles d'un jeu ne sont pas livrées, G3 utilise un mock qui
+  renvoie exactement le format ci-dessous.
 
 ## 2. Ce que renvoient `start()` et `action()`
 
