@@ -289,8 +289,6 @@ Le Groupe 4 est responsable de l'application autour des jeux : l'architecture fr
 
 Le Groupe 5 est l'équipe transverse garante de la stabilité du dépôt, de l'alignement architectural et de la qualité du code produit par l'ensemble des groupes.
 
-### Périmètre d'Intervention & Responsabilités
-
 * **Organisation & Pilotage :** Animation transverse, priorisation du Kanban sur GitHub Projects, gestion des labels, Definition of Ready/Done et arbitrage des dépendances inter-groupes.
 * **Gouvernance Git & Releases :** Protection stricte de `main` (pas de push direct, PR avec 2 approbations obligatoires), abandon de `develop`, gestion des conflits, conventions Conventional Commits et gestion des releases (SemVer, tags).
 * **DevOps & CI/CD :** Maintenance du pipeline GitHub Actions (`ci.yml` : lint, tests, build), mise en place des *quality gates* bloquants, correction des workflows défaillants et gestion du déploiement continu.
