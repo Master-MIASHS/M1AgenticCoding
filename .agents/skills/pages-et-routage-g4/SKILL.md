@@ -59,14 +59,24 @@ en lui passant `href`. Le composant ne construit pas d'URL.
 
 État actuel, à connaître avant de coder :
 
-- `App.jsx` rend `GamePage` pour tout chemin `/game/...`. `GamePage` est aujourd'hui une page
-  d'attente : elle n'affiche pas encore la partie.
-- `App.jsx` transmet l'identifiant du jeu à `GamePage` (`gameId`, lu dans `#/game/<gameId>`).
-  `GamePage` retrouve le jeu dans `gameRegistry` ; pour un identifiant inconnu, elle affiche
-  un message d'erreur.
-- **Le point d'intégration des jeux du G3 n'est pas encore défini.** Ne modifie pas
-  `App.jsx` ni `GamePage` toi-même : ouvre une issue « G3 → G4 » qui décrit ce dont tu as
-  besoin (par exemple « `GamePage` doit monter le composant de `src/game-ui/<jeu>/` »).
+- `App.jsx` rend `GamePage` pour tout chemin `/game/...` et lui transmet l'identifiant du jeu
+  (`gameId`, lu dans `#/game/<gameId>`). `GamePage` retrouve le jeu dans `gameRegistry` ; pour
+  un identifiant inconnu, elle affiche « Jeu introuvable ».
+- `GamePage` contient une table `GAME_UIS` (identifiant du jeu → composant de `src/game-ui/`).
+  Aujourd'hui : `slots` → `SlotsGame` et `roulette` → `RouletteGame`. Un jeu qui n'est pas
+  dans la table affiche « Ce jeu sera bientôt jouable ».
+- Le composant reçoit `balance` (lu via `coreService.getBalance()`) et `renderResult`
+  (affiche l'issue et le multiplicateur du `gameResult`, sans rien calculer). `start` n'est
+  pas passé : le jeu utilise son mock par défaut.
+- Tant que les jeux utilisent leur mock, la page affiche « Mode démonstration » : les
+  résultats ne viennent pas du Core et le solde n'est pas modifié.
+
+Pour ajouter l'UI d'un jeu (G3) :
+
+1. Ne modifie pas `GamePage` toi-même : ouvre une issue « G3 → G4 » avec le chemin du composant
+   (`src/game-ui/<jeu>/<Jeu>Game.jsx`) et ses props.
+2. Le G4 ajoute une ligne à `GAME_UIS`. Le composant doit accepter `balance` et `renderResult`.
+3. Brancher le vrai `start` du G2 (au lieu du mock) est une tâche séparée.
 
 ## 5. Lire les données du joueur
 
