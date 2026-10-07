@@ -97,3 +97,50 @@ Commande : `npm test` (fichier `tests/unit/player.test.js`).
 | `creerJoueur` — construit un joueur complet avec le capital de la config | échec | succès |
 | `creerJoueur` — utilise un capital injecté et rejette un capital invalide | échec | succès |
 | `creerJoueur` — renvoie des objets indépendants à chaque appel | échec | succès |
+
+## Suite : capital de départ réglable par l'admin (#207)
+
+Demande de @Kardiatou102 (G4, page Admin) dans la discussion #9. `AGENTS.md` prévoit que l'admin peut « ajuster le capital de départ ».
+
+### Conception
+
+Même modèle que les niveaux de déblocage réglables d'Ania (n°21, `config/unlock.config.js`), dans `src/core/config/player.config.js` :
+
+| Fonction | Rôle |
+|---|---|
+| `createPlayerConfigMemoryStore(initial)` | Stockage en mémoire `{ read, write }`, en attendant le branchement sur `casino_state` (n°8) |
+| `createPlayerConfig(store)` | Configuration du joueur sur un stockage injecté |
+| `getCapitalDeDepart()` | Capital réglé par l'admin, sinon le défaut de `PLAYER_CONFIG` (1000) |
+| `getPlayerConfig()` | `{ capitalDeDepart }`, à passer à `creerJoueur(infos, { config })` |
+| `setCapitalDeDepart(montant)` | Règle le capital ; tout est validé avant l'écriture |
+
+Le stockage ne contient que ce que l'admin a réglé (`{ capitalDeDepart }` ou `{}`).
+
+### Décisions
+
+| Décision | Pourquoi |
+|---|---|
+| Même modèle que n°21 (stockage injecté `read` / `write`) | Cohérence dans le Core ; branchement commun à la n°8. |
+| Capital : nombre fini **strictement positif** | Même règle que `creerJoueur` : un capital nul bloquerait le nouveau joueur. |
+| Valeur invalide refusée **sans écriture** | L'admin ne peut pas laisser une config cassée. |
+| Contenu du stockage validé à chaque lecture | Un stockage corrompu est signalé plutôt que de créer des joueurs faux. |
+| Seuls les **nouveaux** joueurs sont concernés | `creerJoueur` lit le capital à la création ; les soldes existants ne changent pas (solde et progression indépendants). |
+| `PLAYER_CONFIG` reste figée | Le défaut ne change jamais ; seule la valeur réglée est stockée. |
+
+### Hors périmètre
+
+Vérification du rôle admin (n°24, @Amina1203) ; enregistrement dans `casino_state` (n°8) et exposition dans `coreService` (@ahmed-abc73) ; écran Admin (G4). Aucun capital maximum n'est imposé (non défini dans le projet).
+
+### Plan de tests
+
+Commande : `npm test` (fichier `tests/unit/player.config.test.js`).
+
+| `describe` / `it` | Avant implémentation | Après |
+|---|---|---|
+| `createPlayerConfigMemoryStore` — lit une copie de la valeur stockée et la remplace à l'écriture | échec | succès |
+| `createPlayerConfig` — rejette un stockage sans `read` / `write` ou au contenu invalide | échec | succès |
+| `getCapitalDeDepart` — renvoie le défaut (1000) sans réglage, sinon la valeur réglée | échec | succès |
+| `setCapitalDeDepart` — enregistre et renvoie le nouveau capital | échec | succès |
+| `setCapitalDeDepart` — rejette un capital invalide sans rien écrire | échec | succès |
+| `getPlayerConfig` — `creerJoueur` crée un joueur avec le capital réglé | échec | succès |
+| `getPlayerConfig` — fonctionne aussi appelée seule (sans `this`) et renvoie une copie | échec | succès |
