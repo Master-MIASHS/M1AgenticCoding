@@ -1,13 +1,16 @@
 // ---------------------------------------------------------------------------
 // Core - Création d'un nouveau joueur (Groupe 1, tâche n°3)
 // ---------------------------------------------------------------------------
-// Construit un joueur valide, prêt à être enregistré dans l'état.
+// Construit un joueur valide et crée le profil du joueur dans l'état.
 //
-//  * Fonctions PURES : rien n'est écrit dans l'état ni dans localStorage.
-//    L'enregistrement relève de l'état réel et du branchement (n°1, n°8).
+//  * validerPseudo, validerDateNaissance, jeuxDeDepart et creerJoueur sont
+//    PURES : elles n'écrivent rien.
+//  * Seule creerProfil écrit dans l'état, en une seule écriture updateState
+//    (#226), et uniquement sur une partie neuve.
 //  * Aucune valeur de réglage en dur (règle 4 d'AGENTS.md) : le capital de
 //    départ vient de config/player.config.js.
-//  * Conception détaillée : docs/design/nouveau-joueur.md
+//  * Conception détaillée : docs/design/nouveau-joueur.md et
+//    docs/design/creer-profil.md
 // ---------------------------------------------------------------------------
 
 import { GAMES } from './config/games.config.js';
