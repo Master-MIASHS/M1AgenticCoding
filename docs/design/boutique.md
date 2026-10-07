@@ -9,7 +9,8 @@ Permettre au joueur d'**acheter un article de la boutique avec ses jetons fictif
 - **Aucun écran** : la page Boutique est au G4 (#20, PR #103).
 - **Aucun contenu inventé** : le contenu de la boutique est une décision ouverte d'`AGENTS.md`. Le catalogue par défaut est vide ; les articles du mock du G4 ne sont pas repris.
 - **Aucun effet des articles** (avatar, thème, effet visuel) : leur affichage relève du G3 / G4.
-- **Pas de modification de `state.js`** ni d'exposition dans `core.js` / `coreService.js` : branchement (n°8) et exposition (n°6) par @ahmed-abc73.
+- **Pas de modification de `state.js`** : `ownedItemIds` est un champ ajouté à l'état (conservé après rechargement, la validation de l'état acceptant les champs supplémentaires).
+- L'exposition dans `core.js` / `coreService.js` revenait à @ahmed-abc73 (n°6) ; elle a été ajoutée dans la PR #206 pour que le G4 puisse brancher l'écran (voir « Exposition » ci-dessous).
 - **Aucun vrai argent** (règle 1) : uniquement des jetons fictifs.
 
 ## Conception
@@ -72,6 +73,10 @@ Permettre au joueur d'**acheter un article de la boutique avec ses jetons fictif
 | Erreurs de stockage propagées | Comme `updateState` (#139) : ne jamais annoncer un achat qui n'a pas été enregistré. |
 | Erreurs `Error` avec message en français | Cohérent avec `rng.js`, `player.js` et `ai/poker.js`. |
 
+## Exposition (ajoutée dans la PR #206)
+
+`shop.js` crée une boutique branchée sur l'état réel (`createShop({ getState, updateState })`) et exporte `getShopCatalog`, `getShopInventory` et `purchaseShopItem`, réexportées par `core.js` puis `coreService.js` (contrat proposé par le G4). Testé dans `tests/unit/shop.core.test.js` et `core.contract.test.js`.
+
 ## Points ouverts
 
 - **Contenu du catalogue** : articles et prix à fixer par le G5 (#205).
@@ -81,7 +86,7 @@ Permettre au joueur d'**acheter un article de la boutique avec ses jetons fictif
 ## Risques
 
 - Tant que le catalogue est vide, la boutique n'affiche aucun article.
-- Sans branchement (n°8) ni exposition (n°6), le G4 ne peut pas encore appeler ces fonctions via `coreService`.
+- Tant que `Shop.jsx` (G4) lit `shop.mock.js`, l'écran n'utilise pas ces fonctions.
 - Si `ownedItemIds` est renommé dans l'état, seul `shop.js` est à adapter.
 
 ## Plan de tests
