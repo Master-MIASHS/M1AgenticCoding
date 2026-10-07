@@ -463,6 +463,67 @@ test('a raise above the balance is refused, the session is kept and the round go
   assert.equal(core.playCalls[0].bets, 10, 'the opening stake only');
 });
 
+test('a raise that ENDS the round (blackjack double) above the balance is refused too', () => {
+  // 'double' raises the stake to 20 AND ends the round at once, so the raise
+  // is only reported as details.totalBet on the terminal result.
+  const rules = {
+    start() {
+      return { needsDraw: true, availableActions: ['double', 'stand'] };
+    },
+    step(session, action) {
+      const totalBet = action === 'double' ? 20 : 10;
+      return { outcome: 'loss', multiplier: 0, details: { totalBet } };
+    },
+  };
+  const core = withBalance(makeRecordingCore([0.1, 0.2, 0.3]), 15);
+  const game = createGame({ id: 'mock-multi', rules, core });
+  const { sessionId } = game.start({ type: 'main', amount: 10 });
+
+  assert.throws(() => game.action(sessionId, 'double'), /insufficient balance/);
+  assert.deepEqual(core.playCalls, [], 'nothing is settled on a refused raise');
+
+  // Refused = the session is kept and the round goes on with its stake.
+  const end = game.action(sessionId, 'stand');
+  assert.equal(end.terminal, true);
+  assert.equal(core.playCalls[0].bets, 10);
+});
+
+test('instant games also receive the balance as data in resolve()', () => {
+  let seen;
+  const rules = {
+    resolve(raw, ctx) {
+      seen = ctx.balance;
+      return { outcome: 'loss', multiplier: 0, details: {} };
+    },
+  };
+  createGame({ id: 'mock-single', rules, core: withBalance(makeRecordingCore([0.5]), 77) }).start({
+    type: 'red',
+    amount: 1,
+  });
+  assert.equal(seen, 77);
+});
+
+test('a core without getBalance() means no balance check and balance undefined', () => {
+  let seen = 'not called';
+  const rules = {
+    resolve(raw, ctx) {
+      seen = ctx.balance;
+      return { outcome: 'loss', multiplier: 0, details: {} };
+    },
+  };
+  const core = makeRecordingCore([0.5]);
+  createGame({ id: 'mock-single', rules, core }).start({ type: 'red', amount: 1e6 });
+  assert.equal(seen, undefined);
+  assert.equal(core.playCalls[0].bets, 1e6, 'no check: the Core stays the authority');
+});
+
+test('a non-numeric balance is rejected instead of silently disabling the check', () => {
+  const core = { ...makeRecordingCore([0.5]), getBalance: () => ({ balance: 10 }) };
+  const game = createGame({ id: 'mock-single', rules: singleStepRules, core });
+  assert.throws(() => game.start({ type: 'red', amount: 1 }), /finite number/);
+  assert.deepEqual(core.log, [], 'no draw, no settlement');
+});
+
 test('config stays undefined when not provided (no default value invented)', () => {
   let ctxSeen;
   createGame({
