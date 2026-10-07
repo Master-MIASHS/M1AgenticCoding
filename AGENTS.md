@@ -172,7 +172,6 @@ Les skills sont dans le dossier `.agents/skills/` . N'ouvre une skill **que** si
 | `flux-git-et-versionnement` | Avant une branche, un commit ou une PR : format strict des commits, hygiène pré-commit |
 | `expert-git-commit-push` | Préparer le staging, le message de commit et le push d'une branche |
 | `ci-cd-et-automatisation` | Quality Gate (`npm ci`, lint, test, build), échec CI, modification d'un workflow |
-| `composants-communs-g4` | Création et maintenance des composants UI partagés (G4) |
 | `dev-par-les-tests` | Méthodologie TDD pour la logique métier et les correctifs |
 | `expert-tests-node` | Écrire ou revoir des tests unitaires avec le runner natif `node --test` |
 | `flaky-test-detector` | Test instable ou CI intermittente (G5) |
@@ -204,6 +203,7 @@ Les skills sont dans le dossier `.agents/skills/` . N'ouvre une skill **que** si
 | `test-coverage-report` | Bilan de couverture de tests par groupe avant une release (G5) |
 | `skills-structure-validator` | Valider l'arborescence et le frontmatter des skills lors d'une PR de skill (G5) |
 | `pr-validation` | Valider une PR selon les critères du projet |
+<!-- G5 : ajouter une ligne à chaque skill mergée -->
 
 Si une skill nécessaire n'existe pas, ne l'invente pas en cours de tâche : signale le manque dans la PR.
 
