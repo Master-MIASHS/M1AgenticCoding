@@ -76,8 +76,8 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
 - `interpretation` : les `details` du résultat (à la fin).
 - `economy` : `{ newBalance, xpGained, leveledUp }` renvoyé par le Core (à la
   fin).
-- **Jeux de cartes** (blackjack, vidéo poker, poker) : le brut serait le
-  paquet mélangé. Ces jeux fournissent donc `rules.view(...)` et l'UI reçoit
+- **Jeux de cartes** (blackjack, vidéo poker ; le poker suivra quand ses
+  règles seront livrées, #196) : le brut serait le paquet mélangé. Ces jeux fournissent donc `rules.view(...)` et l'UI reçoit
   `{ gameId, phase, view, economy? }`, **sans** `raw` ni `interpretation`.
   `view` ne contient que ce qui est visible (pas la carte cachée du croupier,
   pas la main de l'IA, pas les cartes à venir). PR #168.
