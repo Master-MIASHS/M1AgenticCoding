@@ -202,7 +202,7 @@ export function creerProfil(
  * pas (updateState l'interdit).
  *
  * @param {object} etat - État courant.
- * @param {{ bestBalance: number }} joueur - Joueur à enregistrer.
+ * @param {object} joueur - Joueur à enregistrer, construit avec la config du Core.
  * @returns {void}
  * @throws {Error} Si un profil existe, si une partie a déjà été jouée ou si
  *   le capital est inférieur au meilleur solde de l'état.
@@ -221,5 +221,14 @@ function verifierPartieNeuve(etat, joueur) {
       `creerProfil : le capital (${joueur.bestBalance}) est inférieur au meilleur solde ` +
         `de l'état (${etat.bestBalance}), qui ne peut pas baisser`,
     );
+  }
+  const memesJeux = etat.unlockedGames.length === joueur.unlockedGames.length &&
+    etat.unlockedGames.every((id) => joueur.unlockedGames.includes(id)) &&
+    joueur.unlockedGames.every((id) => etat.unlockedGames.includes(id));
+  if (etat.balance !== joueur.balance || etat.bestBalance !== joueur.bestBalance ||
+      etat.role !== joueur.role || !memesJeux ||
+      (etat.ownedItemIds !== undefined &&
+        (!Array.isArray(etat.ownedItemIds) || etat.ownedItemIds.length !== 0))) {
+    throw new Error('creerProfil : état déjà utilisé, création du profil refusée');
   }
 }
