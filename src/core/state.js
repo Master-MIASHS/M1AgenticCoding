@@ -40,6 +40,7 @@ function validateState(state) {
     isRecord(state) &&
     Number.isFinite(state.balance) &&
     Number.isFinite(state.bestBalance) &&
+    state.bestBalance >= state.balance &&
     Number.isFinite(state.xp) &&
     state.xp >= 0 &&
     Number.isInteger(state.level) &&
@@ -204,6 +205,8 @@ export function getState() {
 
 /**
  * Replaces the current state after full validation.
+ * The restored best balance must cover its own balance; it may be lower
+ * than the current best balance when loading an older consistent save.
  * This internal operation is used by save restoration, not exposed to the UI.
  *
  * @param {object} savedState
