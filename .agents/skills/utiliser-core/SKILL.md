@@ -14,6 +14,7 @@ Ne pas copier un module interne pour contourner un export manquant.
 Repères à la rédaction (à revérifier, pas des garanties permanentes) :
 - `getState()` est public.
 - `exportSave()` / `importSave()` sont publics (#130, contrôle d’intégrité FNV-1a retenu dans #132).
+- `getShopCatalog()`, `getShopInventory()` et `purchaseShopItem()` sont publics (#205).
 - `roll()` est public ; `tirageEntier()`, `tirageAvecPoids()` et `melanger()` (#28) le sont depuis #115.
 - L’écriture interne `updateState` est intégrée par #139.
 - L’adaptateur `createProgressionStore` est proposé dans #144 (ticket #143).
@@ -110,6 +111,34 @@ try {
 - Pas encore tranché : l’import accepte aujourd’hui une sauvegarde avec moins d’XP
   ou un niveau plus bas, et le démarrage avec un `casino_state` corrompu est en cours
   de correction (n°27). Vérifier le comportement courant avant de s’appuyer dessus.
+
+### Boutique : getShopCatalog(), getShopInventory(), purchaseShopItem()
+
+Utiliser pour l’écran Boutique (G4), selon `src/pages/Shop/SHOP_CORE_CONTRACT.md`.
+
+```js
+import { getShopCatalog, getShopInventory, purchaseShopItem } from '<chemin-relatif>/services/coreService.js';
+
+const articles = getShopCatalog();                // [{ id, name, description, category, price, visual?, available }]
+const { ownedItemIds } = getShopInventory();       // articles déjà achetés
+const resultat = purchaseShopItem(article.id);     // { status, itemId, balance, message? }
+```
+
+| `status` | Sens |
+|---|---|
+| `purchased` | Achat fait : solde débité et article ajouté, en une seule écriture |
+| `already-owned` | Article déjà possédé |
+| `unavailable` | Article présent mais `available: false` |
+| `insufficient-funds` | Solde inférieur au prix (le solde ne passe jamais sous 0) |
+| `rejected` | Identifiant inconnu ou invalide |
+
+- Seul `purchased` modifie l’état. `balance` est toujours le solde après l’opération :
+  l’afficher, puis relire l’inventaire. Le meilleur solde, l’XP et le niveau ne changent pas.
+- L’UI ne décide jamais d’un achat : elle envoie l’identifiant et affiche le statut.
+- Une erreur levée signifie un échec d’écriture : ne pas annoncer l’achat.
+- Le catalogue est **vide** tant que le G5 n’a pas fixé le contenu de la boutique
+  (décision ouverte, #205) : prévoir l’affichage d’un catalogue vide. Jamais de vrai argent.
+- L’effet d’un article (avatar, thème…) relève de l’affichage, pas du Core.
 
 ## G1 uniquement : écriture et progression internes
 

@@ -58,21 +58,47 @@ function cloneState(state) {
   return structuredClone(state);
 }
 
+/**
+ * Démarre avec l'état par défaut quand l'état enregistré est inutilisable.
+ * casino_state n'est pas écrasé ici : il ne sera remplacé qu'au prochain
+ * enregistrement réussi (tâche n°27, #239).
+ * @param {string} reason - Cause affichée dans l'avertissement.
+ * @param {unknown} error - Erreur d'origine, pour le diagnostic.
+ * @returns {object} Copie de l'état par défaut.
+ */
+function startFromDefault(reason, error) {
+  console.warn(
+    `state: ${reason} ; démarrage avec l'état par défaut (casino_state conservé jusqu'au prochain enregistrement).`,
+    error
+  );
+  return cloneState(DEFAULT_STATE);
+}
+
+/**
+ * Lit l'état enregistré au démarrage sans jamais faire échouer le chargement
+ * du module : un stockage inaccessible, un JSON invalide ou un schéma invalide
+ * donnent l'état par défaut avec un avertissement. Le démarrage accepte
+ * exactement les états qu'accepte la restauration d'une sauvegarde.
+ * @returns {object} État initial validé.
+ */
 function readInitialState() {
-  const storedState = globalThis.localStorage?.getItem(STORAGE_KEY);
+  let storedState;
+  try {
+    storedState = globalThis.localStorage?.getItem(STORAGE_KEY);
+  } catch (error) {
+    return startFromDefault('stockage local inaccessible', error);
+  }
   if (storedState === null || storedState === undefined) {
     return cloneState(DEFAULT_STATE);
   }
 
-  let parsedState;
   try {
-    parsedState = JSON.parse(storedState);
-  } catch {
-    throw new Error('state: stored state is not valid JSON.');
+    const parsedState = JSON.parse(storedState);
+    validateState(parsedState);
+    return cloneState(parsedState);
+  } catch (error) {
+    return startFromDefault('état enregistré illisible ou non conforme', error);
   }
-
-  validateState(parsedState);
-  return cloneState(parsedState);
 }
 
 let currentState = readInitialState();

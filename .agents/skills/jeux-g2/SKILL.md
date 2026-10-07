@@ -78,6 +78,24 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
   l'aligner avec le responsable du jeu dans la discussion #8. Si une donnée
   manque pour l'affichage, la demander au G2, ne jamais la deviner.
 
+### Blackjack (#189) : `renderPayload.view`
+
+Le blackjack fournit `rules.view()` : G3 lit `renderPayload.view`, jamais de
+`raw` (le paquet mélangé et la carte cachée ne sont pas envoyés, #168).
+
+```js
+// pendant la manche (phase 'playing')
+{ phase: 'playing', playerHand, playerTotal, dealerHand: [carteVisible], dealerHiddenCards: 1 }
+// à la fin (phase 'result')
+{ phase: 'result', playerHand, playerTotal, dealerHand, dealerTotal, outcome, natural }
+```
+
+- Cartes au format `{ rank, suit }` (contrat cartes).
+- `availableActions` : `['hit', 'stand', 'double']` à la distribution, puis
+  `['hit', 'stand']` après une carte ; `double` absent si le solde connu ne
+  couvre pas la mise doublée.
+- Blackjack naturel : la manche se termine dès `start(bets)` (`terminal: true`).
+
 ## 4. La `config` d'un jeu
 
 `config` est transmise **telle quelle** aux règles. Aucune valeur par défaut :
@@ -87,6 +105,7 @@ les règles lèvent une erreur si elle manque (règle 4, rien en dur).
 | --- | --- |
 | `wheel` | `{ bets: { <type>: { match: { <champ>: <valeur> }, multiplier } } }` |
 | `plinko` | `{ paytable: number[] }`, index = numéro de case |
+| `blackjack` | `{ paytable: { blackjack, win } }`, multiplicateurs mise incluse (ex. `{ blackjack: 2.5, win: 2 }`) ; égalité → 1, perte → 0 (#189) |
 
 🟠 La forme côté Core / admin est en discussion dans #122. La source finale
 sera `getGameConfig` via `coreService`.

@@ -6,7 +6,8 @@
 // exercised.
 // ---------------------------------------------------------------------------
 
-import { getState } from './state.js';
+import { DAILY_BONUS_CONFIG } from './config/economy.config.js';
+import { getState, updateState } from './state.js';
 
 const roundToCents = (value) => {
   const floatingPointCompensation = Number.EPSILON * Math.max(1, Math.abs(value));
@@ -105,15 +106,168 @@ export function getBalance() {
 }
 
 /**
- * Simule le montant du bonus quotidien sans créditer le solde.
- * @returns {number} Montant fictif du bonus.
+ * Verifie la configuration du bonus quotidien.
+ * @param {object} config - Reglages a verifier.
+ * @returns {{ amount: number, cooldownMs: number }} Copie validee.
+ */
+function validateDailyBonusConfig(config) {
+  if (!config || typeof config !== 'object' || Array.isArray(config) ||
+      typeof config.amount !== 'number' || !Number.isFinite(config.amount) || config.amount <= 0 ||
+      !Number.isSafeInteger(config.cooldownMs) || config.cooldownMs <= 0) {
+    throw new RangeError('economy: configuration du bonus quotidien invalide.');
+  }
+  return { amount: config.amount, cooldownMs: config.cooldownMs };
+}
+
+/**
+ * Lit et verifie la tranche d'etat necessaire au bonus quotidien.
+ * @param {object} value - Valeur fournie par le stockage injecte.
+ * @returns {{ balance: number, bestBalance: number, lastClaimAt: number|null }} Copie validee.
+ */
+function validateDailyBonusState(value) {
+  const validTimestamp = value?.lastClaimAt === null ||
+    (Number.isSafeInteger(value?.lastClaimAt) && value.lastClaimAt >= 0);
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      typeof value.balance !== 'number' || !Number.isFinite(value.balance) || value.balance < 0 ||
+      typeof value.bestBalance !== 'number' || !Number.isFinite(value.bestBalance) ||
+      value.bestBalance < value.balance || !validTimestamp) {
+    throw new TypeError('economy: stockage du bonus quotidien invalide.');
+  }
+  return {
+    balance: value.balance,
+    bestBalance: value.bestBalance,
+    lastClaimAt: value.lastClaimAt,
+  };
+}
+
+/**
+ * Cree la regle de bonus quotidien sur un stockage et une horloge injectes.
+ * Le stockage applique ensemble le solde, le meilleur solde et l'horodatage.
+ *
+ * @param {{
+ *   store: { read: function(): object, update: function(function(object): object): object },
+ *   config?: { amount: number, cooldownMs: number },
+ *   now?: function(): number
+ * }} dependencies - Dependances synchrones du bonus.
+ * @returns {{ claim: function(): object }} Service de reclamation.
+ */
+export function createDailyBonus({ store, config = DAILY_BONUS_CONFIG, now = Date.now } = {}) {
+  if (!store || typeof store.read !== 'function' || typeof store.update !== 'function') {
+    throw new TypeError('economy: stockage du bonus quotidien requis.');
+  }
+  if (typeof now !== 'function') {
+    throw new TypeError('economy: horloge du bonus quotidien requise.');
+  }
+  const settings = validateDailyBonusConfig(config);
+
+  return {
+    /**
+     * Reclame le bonus si le solde est nul et si le delai est ecoule.
+     * @returns {{
+     *   claimed: boolean,
+     *   amount?: number,
+     *   newBalance?: number,
+     *   nextClaimAt?: number,
+     *   reason?: 'balance_not_zero'|'cooldown',
+     *   remainingMs?: number
+     * }} Resultat structure de la reclamation.
+     */
+    claim() {
+      const claimedAt = now();
+      if (!Number.isSafeInteger(claimedAt) || claimedAt < 0) {
+        throw new RangeError('economy: horodatage du bonus quotidien invalide.');
+      }
+      const current = validateDailyBonusState(store.read());
+      if (current.balance !== 0) {
+        return { claimed: false, reason: 'balance_not_zero', remainingMs: 0 };
+      }
+
+      if (current.lastClaimAt !== null) {
+        const nextClaimAt = current.lastClaimAt + settings.cooldownMs;
+        if (!Number.isSafeInteger(nextClaimAt)) {
+          throw new RangeError('economy: horodatage hors de la plage numerique supportee.');
+        }
+        if (claimedAt < nextClaimAt) {
+          return {
+            claimed: false,
+            reason: 'cooldown',
+            remainingMs: nextClaimAt - claimedAt,
+          };
+        }
+      }
+
+      const newBalance = current.balance + settings.amount;
+      const nextClaimAt = claimedAt + settings.cooldownMs;
+      if (!Number.isFinite(newBalance) || !Number.isSafeInteger(nextClaimAt)) {
+        throw new RangeError('economy: bonus hors de la plage numerique supportee.');
+      }
+
+      const applied = store.update((stored) => {
+        const latest = validateDailyBonusState(stored);
+        if (latest.balance !== current.balance || latest.bestBalance !== current.bestBalance ||
+            latest.lastClaimAt !== current.lastClaimAt) {
+          throw new Error('economy: etat du bonus modifie pendant la reclamation.');
+        }
+        return {
+          balance: newBalance,
+          bestBalance: Math.max(latest.bestBalance, newBalance),
+          lastClaimAt: claimedAt,
+        };
+      });
+      const verified = validateDailyBonusState(applied);
+      if (verified.balance !== newBalance ||
+          verified.bestBalance !== Math.max(current.bestBalance, newBalance) ||
+          verified.lastClaimAt !== claimedAt) {
+        throw new Error('economy: le stockage n a pas applique le bonus quotidien.');
+      }
+      return { claimed: true, amount: settings.amount, newBalance, nextClaimAt };
+    },
+  };
+}
+
+let lastDailyBonusClaimAt = null;
+
+const coreDailyBonusStore = {
+  read() {
+    const { balance, bestBalance } = getState();
+    return { balance, bestBalance, lastClaimAt: lastDailyBonusClaimAt };
+  },
+  update(updater) {
+    let nextBonusState;
+    const updatedState = updateState((current) => {
+      nextBonusState = updater({
+        balance: current.balance,
+        bestBalance: current.bestBalance,
+        lastClaimAt: lastDailyBonusClaimAt,
+      });
+      return {
+        ...current,
+        balance: nextBonusState.balance,
+        bestBalance: nextBonusState.bestBalance,
+      };
+    });
+    lastDailyBonusClaimAt = nextBonusState.lastClaimAt;
+    return {
+      balance: updatedState.balance,
+      bestBalance: updatedState.bestBalance,
+      lastClaimAt: lastDailyBonusClaimAt,
+    };
+  },
+};
+
+const dailyBonus = createDailyBonus({ store: coreDailyBonusStore });
+
+/**
+ * Credite le bonus quotidien dans l'etat partage lorsque le joueur est eligible.
+ * @returns {object} Resultat structure de la reclamation.
  */
 export function claimDailyBonus() {
-  return 100;
+  return dailyBonus.claim();
 }
 
 /**
  * Simule une réponse de prêt sans créditer le solde ni enregistrer de dette.
+ * @deprecated Le projet utilise uniquement le bonus quotidien, sans pret.
  * @param {number} amount - Montant demandé.
  * @returns {{ approved: boolean, amount: number }} Réponse fictive du prêt.
  */
