@@ -20,6 +20,7 @@ import { assertCanModifyConfig } from './permissions.js';
 export { getState };
 export { roll, tirageEntier, tirageAvecPoids, melanger } from './rng.js';
 export { play, getBalance, claimDailyBonus, requestLoan } from './economy.js';
+export { getShopCatalog, getShopInventory, purchaseShopItem } from './shop.js';
 export {
   addXP,
   getLevel,
