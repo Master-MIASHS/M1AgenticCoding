@@ -55,3 +55,16 @@ Commande : `npm test` (fichier `tests/unit/creer-profil.test.js`).
 | `creerProfil` — refuse clairement un capital inférieur au meilleur solde de l'état | échec | succès |
 | `creerProfil` — fonctionne avec le vrai état du Core (`state.js`) | échec | succès |
 | `coreService` — expose `creerProfil` | échec | succès |
+
+## Correction de la relecture #227
+
+La façade `creerProfil(infos)` n’accepte pas les dépendances injectées du module
+interne `player.js`. Ces injections restent utilisables dans les tests internes.
+La création refuse aussi un solde/meilleur solde différent du capital initial,
+un rôle différent de celui d’un nouveau joueur, des jeux différents ou un
+inventaire non vide. Un état avec le même ensemble de jeux dans un autre ordre
+reste accepté. La garde est toujours vérifiée à l’intérieur de la transaction.
+Une configuration interne différente doit correspondre à l’état initialisé :
+la création de profil n’est pas une opération de modification du capital.
+La configuration administrable partagée et l’attachement d’une identité à une
+partie déjà utilisée restent des intégrations séparées.

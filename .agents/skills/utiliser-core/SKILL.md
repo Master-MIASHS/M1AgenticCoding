@@ -60,11 +60,14 @@ try {
 }
 ```
 
+- La façade publique accepte seulement les informations du profil. Le capital, les jeux
+  et le stockage sont choisis par le Core ; les options d’injection restent internes à G1.
 - Le Core valide tout : pseudo non vide (espaces retirés), date `AAAA-MM-JJ` existante
   et pas dans le futur. L’UI ne recalcule ni le capital ni les jeux de départ.
 - Une seule écriture : en cas d’erreur, l’état n’est pas modifié.
 - **Un seul profil, sur une partie neuve** : refus si un profil existe déjà ou si une
-  partie a déjà été jouée (la progression ne doit jamais être écrasée). Plusieurs
+  partie a déjà été jouée, le solde diffère du capital initial, un inventaire existe
+  ou les jeux/rôle diffèrent de ceux d’un nouveau joueur. Aucun acquis n’est réinitialisé. Plusieurs
   profils : tâche n°5, pas encore disponible.
 - Refus aussi si le capital réglé par l’admin est inférieur au meilleur solde de
   l’état par défaut (le meilleur solde ne baisse jamais) : à trancher au branchement.

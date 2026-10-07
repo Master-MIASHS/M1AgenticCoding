@@ -53,8 +53,8 @@ describe('creerProfil : partie neuve', () => {
     assert.deepStrictEqual(stockage.getState(), etat);
   });
 
-  it('utilise le capital de la config fournie', () => {
-    const stockage = fauxStockage();
+  it('utilise la config interne sur un état initialisé avec le même capital', () => {
+    const stockage = fauxStockage({ balance: 2500, bestBalance: 2500 });
     const etat = creerProfil({ pseudo: 'bob' }, { stockage, config: { capitalDeDepart: 2500 } });
     assert.strictEqual(etat.balance, 2500);
     assert.strictEqual(etat.bestBalance, 2500);
