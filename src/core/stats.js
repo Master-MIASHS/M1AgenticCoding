@@ -21,6 +21,32 @@ function arrondirAuCentime(montant) {
 }
 
 /**
+ * Vérifie les champs d'une entrée d'historique utilisés par les statistiques.
+ * Un historique corrompu est signalé plutôt que de produire de faux chiffres.
+ *
+ * @param {unknown} partie - Entrée à vérifier.
+ * @param {number} index - Position de l'entrée, pour le message d'erreur.
+ * @returns {void}
+ * @throws {Error} Si l'entrée n'est pas un objet, si `gameId` n'est pas une
+ *   chaîne non vide, ou si `bet` ou `payout` n'est pas un nombre fini ≥ 0.
+ */
+function validerPartie(partie, index) {
+  const estMontant = (valeur) => typeof valeur === 'number' && Number.isFinite(valeur) && valeur >= 0;
+  if (
+    partie === null ||
+    typeof partie !== 'object' ||
+    typeof partie.gameId !== 'string' ||
+    partie.gameId === '' ||
+    !estMontant(partie.bet) ||
+    !estMontant(partie.payout)
+  ) {
+    throw new Error(
+      `stats : entrée ${index} de l'historique invalide (gameId, bet et payout attendus)`,
+    );
+  }
+}
+
+/**
  * Calcule les statistiques d'un historique de parties.
  *
  * @param {Array<{ gameId: string, bet: number, payout: number }>} historique -
@@ -32,8 +58,13 @@ function arrondirAuCentime(montant) {
  *   aux joueurs (mise incluse), arrondis au centime ; joueurs ayant joué (un
  *   seul profil aujourd'hui) ; détail par jeu ; jeux triés du plus joué au
  *   moins joué (égalités par identifiant).
+ * @throws {Error} Si l'historique ou l'une de ses entrées est invalide.
  */
 export function calculerStatistiques(historique) {
+  if (!Array.isArray(historique)) {
+    throw new Error("stats : l'historique doit être un tableau");
+  }
+  historique.forEach(validerPartie);
   let totalWagered = 0;
   let totalWon = 0;
   const byGame = {};

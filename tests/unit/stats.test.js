@@ -86,3 +86,26 @@ describe('calculerStatistiques : joueurs actifs et détail par jeu', () => {
     assert.deepStrictEqual(stats.mostPlayed, []);
   });
 });
+
+describe('calculerStatistiques : historique invalide', () => {
+  it('rejette un historique qui n’est pas un tableau', () => {
+    for (const historique of [null, undefined, {}, 'parties']) {
+      assert.throws(() => calculerStatistiques(historique), /stats/);
+    }
+  });
+
+  it('rejette une entrée invalide, en indiquant sa position', () => {
+    const invalides = [
+      null,
+      partie({ gameId: '' }),
+      partie({ gameId: 3 }),
+      partie({ bet: -1 }),
+      partie({ bet: '10' }),
+      partie({ payout: NaN }),
+      partie({ payout: Infinity }),
+    ];
+    for (const entree of invalides) {
+      assert.throws(() => calculerStatistiques([partie(), entree]), /stats.*entrée 1/, JSON.stringify(entree));
+    }
+  });
+});
