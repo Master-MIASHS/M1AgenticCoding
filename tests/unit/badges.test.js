@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { BADGES_CONFIG } from '../../src/core/config/badges.config.js';
-import { validerDefinitionsBadges } from '../../src/core/badges.js';
+import { validerDefinitionsBadges, calculerBadges } from '../../src/core/badges.js';
 
 describe('badges.config', () => {
   it('définit seulement les deux badges cités par AGENTS.md', () => {
@@ -52,5 +52,40 @@ describe('validerDefinitionsBadges', () => {
     for (const liste of invalides) {
       assert.throws(() => validerDefinitionsBadges(liste), /badges/, JSON.stringify(liste));
     }
+  });
+});
+
+describe('calculerBadges', () => {
+  const definitions = [
+    definition({ id: 'a', nom: 'A', compteur: 'partiesJouees', seuil: 10 }),
+    definition({ id: 'b', nom: 'B', compteur: 'faillites', seuil: 5 }),
+  ];
+
+  it('renvoie la progression de chaque badge, dans l’ordre des définitions', () => {
+    assert.deepStrictEqual(calculerBadges({ partiesJouees: 3, faillites: 0 }, definitions), [
+      { id: 'a', nom: 'A', obtenu: false, actuel: 3, seuil: 10 },
+      { id: 'b', nom: 'B', obtenu: false, actuel: 0, seuil: 5 },
+    ]);
+  });
+
+  it('marque un badge obtenu au seuil et plafonne la progression', () => {
+    const [a, b] = calculerBadges({ partiesJouees: 10, faillites: 9 }, definitions);
+    assert.deepStrictEqual(a, { id: 'a', nom: 'A', obtenu: true, actuel: 10, seuil: 10 });
+    assert.deepStrictEqual(b, { id: 'b', nom: 'B', obtenu: true, actuel: 5, seuil: 5 });
+  });
+
+  it('compte 0 pour un compteur absent', () => {
+    assert.strictEqual(calculerBadges({ partiesJouees: 1 }, definitions)[1].actuel, 0);
+  });
+
+  it('rejette des compteurs ou des définitions invalides', () => {
+    for (const compteurs of [null, { partiesJouees: -1 }, { faillites: 1.5 }, { partiesJouees: '3' }]) {
+      assert.throws(() => calculerBadges(compteurs, definitions), /badges/, JSON.stringify(compteurs));
+    }
+    assert.throws(() => calculerBadges({ partiesJouees: 1 }, [definition({ seuil: 0 })]), /badges/);
+  });
+
+  it('utilise les définitions de la configuration par défaut', () => {
+    assert.deepStrictEqual(calculerBadges({ partiesJouees: 0, faillites: 0 }).map((b) => b.id), ['parties-1000', 'faillites-5']);
   });
 });

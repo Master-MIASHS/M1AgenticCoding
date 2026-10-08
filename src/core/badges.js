@@ -9,6 +9,8 @@
 //  * Conception détaillée : docs/design/badges.md
 // ---------------------------------------------------------------------------
 
+import { BADGES_CONFIG } from './config/badges.config.js';
+
 /** Compteurs du joueur sur lesquels un badge peut porter. */
 const COMPTEURS = Object.freeze(['partiesJouees', 'faillites']);
 
@@ -48,4 +50,33 @@ export function validerDefinitionsBadges(definitions) {
     }
     identifiants.add(definition.id);
   }
+}
+
+/**
+ * Calcule les badges d'un joueur à partir de ses compteurs.
+ *
+ * @param {{ partiesJouees?: number, faillites?: number }} compteurs -
+ *   Compteurs du joueur (entiers ≥ 0 ; un compteur absent vaut 0).
+ * @param {Array<object>} [definitions] - Définitions des badges
+ *   (BADGES_CONFIG.definitions par défaut).
+ * @returns {Array<{ id: string, nom: string, obtenu: boolean, actuel: number,
+ *   seuil: number }>} Un élément par définition, dans le même ordre ; `actuel`
+ *   est plafonné au seuil (progression à afficher).
+ * @throws {Error} Si les compteurs ou les définitions sont invalides.
+ */
+export function calculerBadges(compteurs, definitions = BADGES_CONFIG.definitions) {
+  validerDefinitionsBadges(definitions);
+  if (compteurs === null || typeof compteurs !== 'object' || Array.isArray(compteurs)) {
+    throw new Error('badges : les compteurs doivent être un objet');
+  }
+  for (const nom of COMPTEURS) {
+    const valeur = compteurs[nom];
+    if (valeur !== undefined && (!Number.isSafeInteger(valeur) || valeur < 0)) {
+      throw new Error(`badges : le compteur ${nom} doit être un entier ≥ 0`);
+    }
+  }
+  return definitions.map(({ id, nom, compteur, seuil }) => {
+    const valeur = compteurs[compteur] ?? 0;
+    return { id, nom, obtenu: valeur >= seuil, actuel: Math.min(valeur, seuil), seuil };
+  });
 }
