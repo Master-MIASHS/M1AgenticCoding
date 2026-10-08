@@ -80,3 +80,21 @@ export function calculerBadges(compteurs, definitions = BADGES_CONFIG.definition
     return { id, nom, obtenu: valeur >= seuil, actuel: Math.min(valeur, seuil), seuil };
   });
 }
+
+/**
+ * Lit les compteurs du joueur dans l'état.
+ *
+ * - `partiesJouees` : nombre d'entrées de l'historique (format #266) ;
+ * - `faillites` : champ `faillites` de l'état (solde tombé à 0), tenu par
+ *   play() (#131). Il vaut 0 tant que ce champ n'existe pas.
+ *
+ * @param {{ history: Array, faillites?: number }} etat - État du joueur.
+ * @returns {{ partiesJouees: number, faillites: number }} Compteurs.
+ * @throws {Error} Si l'état n'a pas d'historique (tableau).
+ */
+export function compteursDuJoueur(etat) {
+  if (etat === null || typeof etat !== 'object' || !Array.isArray(etat.history)) {
+    throw new Error("badges : l'état doit contenir un historique (tableau)");
+  }
+  return { partiesJouees: etat.history.length, faillites: etat.faillites ?? 0 };
+}

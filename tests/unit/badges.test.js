@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { BADGES_CONFIG } from '../../src/core/config/badges.config.js';
-import { validerDefinitionsBadges, calculerBadges } from '../../src/core/badges.js';
+import { validerDefinitionsBadges, calculerBadges, compteursDuJoueur } from '../../src/core/badges.js';
 
 describe('badges.config', () => {
   it('définit seulement les deux badges cités par AGENTS.md', () => {
@@ -87,5 +87,22 @@ describe('calculerBadges', () => {
 
   it('utilise les définitions de la configuration par défaut', () => {
     assert.deepStrictEqual(calculerBadges({ partiesJouees: 0, faillites: 0 }).map((b) => b.id), ['parties-1000', 'faillites-5']);
+  });
+});
+
+describe('compteursDuJoueur', () => {
+  it('compte les parties dans l’historique et lit les faillites de l’état', () => {
+    const etat = { history: [{ gameId: 'slots' }, { gameId: 'dice' }], faillites: 2 };
+    assert.deepStrictEqual(compteursDuJoueur(etat), { partiesJouees: 2, faillites: 2 });
+  });
+
+  it('compte 0 faillite tant que l’état ne tient pas ce compteur (#131)', () => {
+    assert.deepStrictEqual(compteursDuJoueur({ history: [] }), { partiesJouees: 0, faillites: 0 });
+  });
+
+  it('rejette un état sans historique', () => {
+    for (const etat of [null, {}, { history: 'parties' }]) {
+      assert.throws(() => compteursDuJoueur(etat), /badges/, JSON.stringify(etat));
+    }
   });
 });
