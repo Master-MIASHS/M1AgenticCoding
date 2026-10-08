@@ -51,3 +51,38 @@ describe('calculerStatistiques : totaux', () => {
     assert.strictEqual(stats.totalWon, 0.3);
   });
 });
+
+describe('calculerStatistiques : joueurs actifs et détail par jeu', () => {
+  it('compte 0 joueur actif sans partie, 1 dès qu’une partie existe (un seul profil)', () => {
+    assert.strictEqual(calculerStatistiques([]).activePlayers, 0);
+    assert.strictEqual(calculerStatistiques([partie()]).activePlayers, 1);
+  });
+
+  it('détaille les parties, mises et montants reversés par jeu', () => {
+    const stats = calculerStatistiques([
+      partie(),
+      partie({ roundId: 'r2', bet: 40, payout: 50 }),
+      partie({ roundId: 'r3', gameId: 'slots', bet: 10, payout: 0 }),
+    ]);
+    assert.deepStrictEqual(stats.byGame, {
+      roulette: { plays: 2, wagered: 50, won: 70 },
+      slots: { plays: 1, wagered: 10, won: 0 },
+    });
+  });
+
+  it('trie les jeux les plus joués, les égalités par identifiant', () => {
+    const stats = calculerStatistiques([
+      partie({ gameId: 'slots' }),
+      partie({ roundId: 'r2', gameId: 'dice' }),
+      partie({ roundId: 'r3', gameId: 'wheel' }),
+      partie({ roundId: 'r4', gameId: 'wheel' }),
+    ]);
+    assert.deepStrictEqual(stats.mostPlayed, ['wheel', 'dice', 'slots']);
+  });
+
+  it('renvoie un détail vide pour un historique vide', () => {
+    const stats = calculerStatistiques([]);
+    assert.deepStrictEqual(stats.byGame, {});
+    assert.deepStrictEqual(stats.mostPlayed, []);
+  });
+});
