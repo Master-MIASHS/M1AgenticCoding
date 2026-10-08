@@ -122,3 +122,47 @@ melanger(paquet) // → nouveau tableau, mêmes éléments, ordre aléatoire
 
 - Fisher-Yates non biaisé ; `liste` n'est jamais modifiée ; copie superficielle (mêmes références d'objets). **Erreur** si `liste` n'est pas un tableau.
 - Garanties détaillées et format des cartes : `docs/contracts/cards-contract.md`.
+
+## 5. Économie
+
+### `play(gameId, bet, gameResult)` 🟡
+
+```js
+play('roulette', 10, { outcome: 'win', multiplier: 2, details: {…} })
+// → { newBalance: 1010, xpGained: 10, leveledUp: false }
+```
+
+| Paramètre | Contrainte |
+|---|---|
+| `bet` | **Mise totale** de la manche (nombre fini > 0, ≤ solde). Mises multiples : leur somme, ou `details.totalBet` si la mise a augmenté en cours de partie (#166) |
+| `gameResult.multiplier` | Nombre fini ≥ 0, **mise incluse** : 2 = mise doublée, 1 = mise rendue, 0 = mise perdue |
+| `gameResult.outcome` | `'win'` si multiplicateur > 1, `'push'` s'il vaut 1, `'loss'` s'il est < 1 : un écart lève une erreur |
+| `gameResult.details` | Facultatif, opaque pour le Core |
+
+- Montant reversé = mise × multiplicateur, arrondi **une seule fois au centime**.
+- Appelée **une seule fois par manche**, à l'étape finale, par l'orchestrateur du G2.
+- **Erreurs** : mise non finie, ≤ 0 ou supérieure au solde ; `gameResult` absent ; `outcome` inconnu ou incohérent ; multiplicateur non fini ou négatif ; montant hors des nombres supportés.
+- **Limite actuelle** : le résultat est **calculé mais pas enregistré** (solde, XP, meilleur solde et historique inchangés) et `xpGained` vaut toujours 10. Branchement réel en cours (#131) : voir § 10.
+
+### `getBalance()` ✅
+
+```js
+getBalance() // → 1000
+```
+
+### `claimDailyBonus()` ✅
+
+```js
+claimDailyBonus()
+// → { claimed: true, amount: 100, newBalance: 100, nextClaimAt: 1760…}
+// → { claimed: false, reason: 'balance_not_zero', remainingMs: 0 }
+// → { claimed: false, reason: 'cooldown', remainingMs: 3600000 }
+```
+
+- Relance d'un joueur ruiné (invariant « jamais bloqué à 0 ») : crédite le bonus **uniquement si le solde vaut 0**, au plus une fois par délai (100 jetons et 24 h par défaut, lus dans `config/economy.config.js`).
+- Solde et meilleur solde mis à jour en une seule écriture ; l'XP ne change pas. Un refus n'écrit rien.
+- Limite : la date du dernier bonus n'est pas conservée après rechargement de la page.
+
+### `requestLoan(amount)` 🧪 déprécié
+
+- Mock historique (`{ approved: true, amount }`, rien n'est crédité). Décision G5 du 05/10 : **bonus quotidien, pas de prêt**. Ne pas l'utiliser.
