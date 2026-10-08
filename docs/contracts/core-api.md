@@ -237,3 +237,28 @@ purchaseShopItem('avatar_chapeau') // → { status, itemId, balance, message? }
 
 - `balance` est toujours le solde après l'opération. Le meilleur solde, l'XP et le niveau ne changent pas.
 - Une **erreur levée** signifie un échec d'écriture : ne pas annoncer l'achat.
+
+## 8. Sauvegarde
+
+### `exportSave()` ✅
+
+```js
+exportSave() // → '{"version":1,"hash":"…","data":{…état du joueur…}}'
+```
+
+- Chaîne JSON `{ version, hash, data }` à proposer en téléchargement (l'UI gère le fichier). Aucune erreur attendue.
+- Ne contient que la partie du joueur (pas les réglages admin).
+
+### `importSave(texte)` ✅
+
+```js
+try {
+  const etat = importSave(texteDuFichier); // copie de l'état restauré
+} catch (erreur) {
+  // sauvegarde refusée : la partie en cours n'a pas changé
+}
+```
+
+- **Erreurs** (rien n'est modifié) : texte qui n'est pas du JSON ; version non prise en charge (seule la version 1 l'est) ; forme invalide ; **empreinte (hash) qui ne correspond pas** ; état non conforme ; échec d'écriture.
+- Une sauvegarde acceptée **remplace toute la partie** (solde, XP, niveau, jeux, historique) : prévenir le joueur avant.
+- L'empreinte FNV-1a détecte une sauvegarde abîmée, **pas la triche** : ne pas la présenter comme une protection.
