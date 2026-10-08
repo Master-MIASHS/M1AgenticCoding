@@ -15,6 +15,9 @@ Repères à la rédaction (à revérifier, pas des garanties permanentes) :
 - `getState()` est public.
 - `exportSave()` / `importSave()` sont publics (#130, contrôle d’intégrité FNV-1a retenu dans #132).
 - `getShopCatalog()`, `getShopInventory()` et `purchaseShopItem()` sont publics (#205).
+- Réglages admin publics (#260) : `getStartingCapital()`, `getEvenementsBonus()`,
+  `getMultiplicateurBonus()` ; réservés à l’admin : `setStartingCapital()`,
+  `lancerEvenementBonus()`, `arreterEvenementBonus()`.
 - `roll()` est public ; `tirageEntier()`, `tirageAvecPoids()` et `melanger()` (#28) le sont depuis #115.
 - L’écriture interne `updateState` est intégrée par #139.
 - L’adaptateur `createProgressionStore` est intégré par #144 (ticket #143).
@@ -139,6 +142,38 @@ const resultat = purchaseShopItem(article.id);     // { status, itemId, balance,
 - Le catalogue est **vide** tant que le G5 n’a pas fixé le contenu de la boutique
   (décision ouverte, #205) : prévoir l’affichage d’un catalogue vide. Jamais de vrai argent.
 - L’effet d’un article (avatar, thème…) relève de l’affichage, pas du Core.
+
+### Réglages admin : capital de départ et événements bonus
+
+Utiliser pour l’écran Admin (G4) et pour afficher un bonus en cours.
+
+```js
+import {
+  getStartingCapital, setStartingCapital,
+  getEvenementsBonus, getMultiplicateurBonus, lancerEvenementBonus, arreterEvenementBonus,
+} from '<chemin-relatif>/services/coreService.js';
+
+getStartingCapital();                 // 1000 par défaut, sinon la valeur réglée
+getMultiplicateurBonus('gains');      // 1 sans événement en cours ('gains' ou 'xp')
+try {
+  setStartingCapital(500);            // admin uniquement
+  lancerEvenementBonus({ id: 'week-end', cible: 'gains', multiplicateur: 2, debut, fin }); // dates en ms
+} catch (erreur) {
+  // rôle non admin, valeur invalide ou chevauchement : rien n’a été modifié
+}
+```
+
+- Lectures publiques ; `setStartingCapital`, `lancerEvenementBonus` et
+  `arreterEvenementBonus` sont **réservés à l’admin** : le rôle est vérifié dans le Core
+  (n°24). Masquer un bouton ne suffit pas, et un refus lève une erreur.
+- Un événement : `cible` `'gains'` ou `'xp'`, `multiplicateur` > 1, période `[debut, fin)`.
+  Un seul événement à la fois par cible. Aucun événement par défaut.
+- Ces réglages sont enregistrés (ils survivent au rechargement), hors de la partie du
+  joueur : une sauvegarde exportée ne les contient pas.
+- Le nouveau capital ne change pas les soldes existants ; son usage pour l’état initial
+  et `creerProfil` est le branchement #253.
+- G1 (`play()`) : lire `getMultiplicateurBonus(cible)` depuis `config/events.config.js`
+  au moment du règlement (arbitrage G5 du 07/10), dans la même transaction.
 
 ## G1 uniquement : écriture et progression internes
 
