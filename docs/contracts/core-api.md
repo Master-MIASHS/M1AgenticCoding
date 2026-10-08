@@ -49,3 +49,38 @@ Toute évolution de ce contrat passe par une issue adressée au G1 et au G5 (rè
 | `importSave(texte)` | Importer une sauvegarde | public | ✅ |
 | `setGameConfig(gameId, config)` | Régler un jeu | **admin** | 🟡 |
 | `getGlobalStats()` | Statistiques globales | public | 🧪 |
+
+## 3. État et profil
+
+### `getState()` ✅
+
+```js
+getState() // → { balance, bestBalance, xp, level, unlockedGames, history, role, pseudo?, birthDate?, ownedItemIds? }
+```
+
+| Champ | Type | Sens |
+|---|---|---|
+| `balance` | nombre fini ≥ 0 | Solde de jetons fictifs |
+| `bestBalance` | nombre fini ≥ `balance` | Meilleur solde atteint (score du classement), ne diminue jamais |
+| `xp` | nombre fini ≥ 0 | XP cumulée, ne diminue jamais |
+| `level` | entier ≥ 1 | Niveau, ne diminue jamais |
+| `unlockedGames` | `string[]` | Identifiants des jeux débloqués |
+| `history` | `Array` | Historique des parties (vide tant que `play()` n'enregistre rien, voir § 5) |
+| `role` | `'player'` \| `'admin'` | Rôle du joueur (`'player'` par défaut) |
+| `pseudo`, `birthDate` | chaîne ; date `AAAA-MM-JJ` ou `null` | **Présents seulement après `creerProfil()`** : prévoir un affichage par défaut |
+| `ownedItemIds` | `string[]` | **Présent seulement après un premier achat** (voir § 7) |
+
+- Copie indépendante ; aucune erreur attendue (au démarrage, un état enregistré illisible est remplacé par l'état par défaut avec un avertissement, #240).
+- `xpForNextLevel` n'existe pas encore (voir § 10).
+
+### `creerProfil(infos)` ✅
+
+```js
+creerProfil({ pseudo: 'Olti', dateNaissance: '2002-03-15' }) // dateNaissance facultative
+// → copie de l'état enregistré, avec pseudo et birthDate
+```
+
+- Construit le joueur (capital de départ lu dans la configuration, jeux de niveau 1) et l'enregistre **en une seule écriture**.
+- Seul `infos` est accepté : l'appelant ne choisit ni le capital ni les jeux.
+- **Erreurs** (rien n'est enregistré) : pseudo absent ou vide (espaces retirés) ; date au mauvais format, inexistante ou future ; **profil déjà existant** ; **état déjà utilisé** (partie jouée, solde dépensé, article acheté, jeux ou rôle différents d'un nouveau joueur) ; capital inférieur au meilleur solde de l'état.
+- Un seul profil pour l'instant (plusieurs profils : non disponible).
