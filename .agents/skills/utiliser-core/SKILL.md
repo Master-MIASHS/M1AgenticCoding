@@ -17,6 +17,7 @@ Repères à la rédaction (à revérifier, pas des garanties permanentes) :
 - `getShopCatalog()`, `getShopInventory()` et `purchaseShopItem()` sont publics (#205).
 - `roll()` est public ; `tirageEntier()`, `tirageAvecPoids()` et `melanger()` (#28) le sont depuis #115.
 - `creerProfil()` est public (#226, construit avec `creerJoueur`, #134).
+- `choisirAction()` (IA du poker) est public (#196).
 - L’écriture interne `updateState` est intégrée par #139.
 - L’adaptateur `createProgressionStore` est intégré par #144 (ticket #143).
 - Le branchement par défaut de la progression utilise cet adaptateur (#237) ; vérifier que la PR correspondante est intégrée dans la branche utilisée.
@@ -107,6 +108,32 @@ une entrée légitime refusée.
 `semer` n’est pas une API UI. Dans les tests internes G1 de reproductibilité seulement : importer
 `semer` depuis `src/core/rng.js`, poser une graine et appeler `semer(null)` dans un
 `finally`. Tout hasard passe par le Core, jamais par `Math.random()`.
+
+### IA du poker : choisirAction(payload)
+
+Utiliser dans l’orchestrateur du poker (G2), à chaque tour de parole du bot (#196).
+
+```js
+// core = coreService injecté dans l’orchestrateur (jamais d’import de src/core/)
+const decision = core.choisirAction({
+  stage, communityCards, pot, currentBet, minRaise,
+  playerState: { chips, currentContribution },          // jamais la main du joueur
+  aiState: { hand, chips, currentContribution },
+  availableActions: ['fold', 'call', 'raise'],          // calculées par le G2
+  aiHandStrength: 0.62,                                 // force de la main du bot, 0 à 1, évaluée par le G2
+});
+// → { type: 'call' } ou { type: 'raise', amount: 80 }
+```
+
+- `type` est toujours dans `availableActions` ; `amount` (relance seulement) est entre
+  `minRaise` et `aiState.chips`. Le G2 applique la décision avec ses propres règles.
+- Le Core n’évalue jamais les cartes : c’est le G2 qui calcule `aiHandStrength`
+  (`evaluatePokerHand` n’accepte que 5 cartes ; preflop et turn/river à couvrir côté G2).
+- Hypothèses à confirmer par le G2 (#196) : `amount` et `minRaise` dans la même unité,
+  pas de tapis (si `aiState.chips < minRaise`, le bot ne relance pas).
+- Le hasard du bot (bluff, taille de relance) passe par `rng.js` : reproductible en
+  test G1 avec `semer()`. Les jetons du bot restent dans la session du G2.
+- Payload invalide ou `aiHandStrength` absente → erreur explicite, rien n’est décidé.
 
 ### Exporter et importer une sauvegarde : exportSave() / importSave()
 
