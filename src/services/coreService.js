@@ -38,6 +38,7 @@ import {
   getGlobalStats,
   exportSave,
   importSave,
+  creerProfil,
 } from '../core/core.js';
 
 export {
@@ -68,4 +69,5 @@ export {
   getGlobalStats,
   exportSave,
   importSave,
+  creerProfil,
 };

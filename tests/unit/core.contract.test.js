@@ -32,6 +32,7 @@ const EXPECTED_API = [
   'getGlobalStats',
   'exportSave',
   'importSave',
+  'creerProfil',
 ];
 
 function createSave(data, version = 1) {
