@@ -73,6 +73,25 @@ try {
   l’état par défaut (le meilleur solde ne baisse jamais) : à trancher au branchement.
 - Après la création, relire `getState()` : `pseudo` et `birthDate` y figurent.
 
+### Badges du joueur : getBadges()
+
+Utiliser pour afficher les badges au classement et sur le profil (G4).
+
+```js
+import { getBadges } from '<chemin-relatif>/services/coreService.js';
+
+getBadges();
+// → [{ id: 'parties-1000', nom: '1000 parties jouées', obtenu: false, actuel: 12, seuil: 1000 },
+//    { id: 'faillites-5', nom: 'A survécu à la faillite 5 fois', obtenu: false, actuel: 0, seuil: 5 }]
+```
+
+- Le Core attribue les badges ; l’UI affiche `nom`, `obtenu` et la progression `actuel / seuil`
+  sans recalculer. Aucun argument : l’appelant ne choisit pas les définitions.
+- Seuls les deux badges d’`AGENTS.md` existent ; d’autres s’ajoutent dans
+  `config/badges.config.js` (contenu décidé par le G5).
+- `actuel` des parties = nombre de parties de l’historique ; celui des faillites reste à 0
+  tant que `play()` ne tient pas le compteur `faillites` (#131).
+
 ### Tirer du hasard brut : roll(), tirageEntier(), tirageAvecPoids(), melanger()
 
 | Fonction | Quand l’utiliser | Retour / précaution |
