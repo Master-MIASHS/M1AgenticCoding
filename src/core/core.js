@@ -20,6 +20,21 @@ import { creerProfil as creerProfilInterne } from './player.js';
 
 export { getState };
 export { roll, tirageEntier, tirageAvecPoids, melanger } from './rng.js';
+import { choisirAction as choisirActionInterne } from './ai/poker.js';
+
+/**
+ * Choisit l'action du bot de poker (#196) à partir du payload du G2.
+ * Seul le payload est transmis : l'appelant ne peut pas imposer la
+ * configuration de l'IA (leçon de #227).
+ *
+ * @param {object} payload - Situation du tour, avec `aiHandStrength` (0 à 1)
+ *   évaluée par le G2.
+ * @returns {{ type: string, amount?: number }} Décision du bot.
+ * @throws {Error} Si le payload est invalide.
+ */
+export function choisirAction(payload) {
+  return choisirActionInterne(payload);
+}
 export { play, getBalance, claimDailyBonus, requestLoan } from './economy.js';
 export { getShopCatalog, getShopInventory, purchaseShopItem } from './shop.js';
 export {

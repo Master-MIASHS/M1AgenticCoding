@@ -10,6 +10,7 @@ import { computeIntegrityHash } from '../../src/core/storage.js';
 const EXPECTED_API = [
   'getState',
   'roll',
+  'choisirAction',
   'play',
   'getBalance',
   'claimDailyBonus',
