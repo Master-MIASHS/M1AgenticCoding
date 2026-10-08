@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { addXP, getLevel, calculateLevel, createProgression } from '../../src/core/progression.js';
-import { getState } from '../../src/core/state.js';
+import { getState, restoreState } from '../../src/core/state.js';
 import { createProgressionMock } from '../../src/core/progression.mock.js';
 import { TEMPORARY_LEVEL_THRESHOLDS } from '../../src/core/config/progression.config.js';
 
@@ -34,13 +34,18 @@ describe('Calcul XP → niveau', () => {
 });
 
 describe('Gestion XP avec adaptateur de progression', () => {
-  it('branche les fonctions existantes sur le mock sans modifier le state Core', () => {
+  it('branche les fonctions existantes sur l’état Core sans modifier les autres champs', () => {
     const before = getState();
-    assert.deepEqual(addXP(100), { xp: 100, level: 2 });
-    assert.equal(getLevel(), 2);
-    assert.deepEqual(addXP(150), { xp: 250, level: 3 });
-    assert.equal(getLevel(), 3);
-    assert.deepEqual(getState(), before);
+    try {
+      restoreState({ ...before, xp: 0, level: 1 });
+      assert.deepEqual(addXP(100), { xp: 100, level: 2 });
+      assert.equal(getLevel(), 2);
+      assert.deepEqual(addXP(150), { xp: 250, level: 3 });
+      assert.equal(getLevel(), 3);
+      assert.deepEqual(getState(), { ...before, xp: 250, level: 3 });
+    } finally {
+      restoreState(before);
+    }
   });
 
   it('cumule les gains et franchit plusieurs niveaux en un appel', () => {
