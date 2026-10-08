@@ -250,3 +250,127 @@
 .admin__retry:hover {
   filter: brightness(1.1);
 }
+
+/* --------------------------------------------------------------------- */
+/* New Administrative additions                                           */
+/* --------------------------------------------------------------------- */
+
+.admin__input {
+  padding: var(--space-2);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.admin__form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-3);
+}
+
+.admin__bonus-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.admin__bonus-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.admin__btn-stop {
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-danger);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.admin__mod-container {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: var(--space-4);
+}
+
+.admin__player-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.admin__player-item {
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.875rem;
+}
+
+.admin__player-item:hover {
+  background: var(--color-bg);
+}
+
+.admin__player-item.selected {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.admin__status {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.admin__status.active { color: var(--color-success); }
+.admin__status.banned { color: var(--color-danger); }
+
+.admin__mod-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.admin__btn-status {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-success);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.admin__btn-status--banned {
+  background: var(--color-danger);
+}
