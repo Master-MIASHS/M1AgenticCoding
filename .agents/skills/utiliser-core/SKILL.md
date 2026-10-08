@@ -1,6 +1,6 @@
 ---
 name: utiliser-core
-description: Utiliser la lecture d’état, le RNG et la sauvegarde (export/import) du Core de Casino Fantôme depuis G2/G3/G4 via coreService, ou préparer le branchement interne G1 de l’état atomique et de la progression. Vérifier la disponibilité des exports avant intégration.
+description: Utiliser la lecture d’état, la progression XP/niveaux, le RNG et la sauvegarde (export/import) du Core de Casino Fantôme depuis G2/G3/G4 via coreService, ou préparer le branchement interne G1 de l’état atomique et de la progression. Vérifier la disponibilité des exports avant intégration.
 ---
 
 # Utiliser le Core
@@ -72,6 +72,34 @@ try {
 - Refus aussi si le capital réglé par l’admin est inférieur au meilleur solde de
   l’état par défaut (le meilleur solde ne baisse jamais) : à trancher au branchement.
 - Après la création, relire `getState()` : `pseudo` et `birthDate` y figurent.
+
+### XP et niveaux : addXP(amount), getLevel()
+
+Pour G2/G3/G4, vérifier les exports de `coreService.js`, puis passer exclusivement
+par cette façade. Ne pas recalculer un niveau dans l'UI ni importer la configuration
+interne. `addXP(amount)` retourne `{ xp, level }` ; `getLevel()` retourne un nombre.
+
+Depuis la PR #238, ces fonctions sont branchées sur l'état partagé via
+`createProgressionStore`. Chaque opération relit la progression courante ;
+`addXP()` persiste XP et niveau ensemble avant de retourner la paire. `getLevel()`
+calcule depuis l'état courant sans écriture. Après un ajout réussi, relire
+`getState()` pour l'affichage. Une restauration acceptée est visible par cette
+instance dès la prochaine lecture, sans conserver un ancien snapshot du joueur.
+
+Avec `localStorage`, les écritures sont sauvegardées ; sans ce stockage, l'état
+reste en mémoire. Une erreur de stockage est propagée et l'opération ne doit pas
+être présentée comme réussie.
+
+`amount` doit être un nombre fini positif ou nul ; les décimales et zéro sont
+acceptés. Une chaîne, `NaN`, `Infinity`, un gain négatif ou un cumul qui déborde
+lèvent une `RangeError`. Le niveau ne diminue pas lors des opérations de
+progression, même si le solde baisse ou si un niveau supérieur est déjà acquis.
+
+Pour afficher une progression, utiliser une lecture cohérente du Core, puis
+relire après l'opération réussie. Ne jamais écrire directement dans `localStorage`.
+L'attribution automatique d'XP par partie relève du règlement atomique #131,
+séparément du branchement persistant. Ne pas appeler `addXP()` après `play()` si
+ce règlement applique déjà l'XP : cela créditerait deux fois la même partie.
 
 ### Tirer du hasard brut : roll(), tirageEntier(), tirageAvecPoids(), melanger()
 
@@ -197,6 +225,57 @@ calcul ou persistance est propagée ; ne pas afficher de succès si elle survien
 L’atomicité couvre une opération synchrone dans une instance, pas plusieurs onglets.
 La restauration est distincte ; ne pas utiliser ce setter pour contourner ses règles.
 
+### Calculer et tester la progression : calculateLevel(), createProgression()
+
+Imports internes **G1 uniquement** : `src/core/progression.js`,
+`src/core/progression.mock.js` et `src/core/config/progression.config.js`.
+
+`calculateLevel(xp, thresholds?)` est un calcul pur. L'XP cumulée doit être un
+nombre fini positif ou nul. La courbe doit être un tableau non vide, commencer à
+zéro et contenir des nombres finis positifs ou nuls strictement croissants.
+Une entrée invalide lève une `RangeError`. Le seuil est inclus : 100 XP atteint
+le niveau 2 avec la courbe actuelle. Le calcul est borné au dernier niveau de
+la courbe ; il ne connaît pas le niveau déjà acquis du joueur.
+
+`TEMPORARY_LEVEL_THRESHOLDS` contient actuellement `[0, 100, 250, 500, 1000]`.
+Ces valeurs restent **temporaires** ; elles ne constituent pas une courbe
+collectivement validée. Lire la configuration plutôt que recopier ces nombres
+dans une règle métier.
+
+```js
+// Exemple de test interne G1 ; pas un import autorisé pour l'UI.
+import { calculateLevel, createProgression } from './progression.js';
+import { createProgressionMock } from './progression.mock.js';
+
+calculateLevel(100); // 2, avec la courbe temporaire actuelle
+const progression = createProgression(createProgressionMock({ xp: 90, level: 1 }));
+progression.addXP(10); // { xp: 100, level: 2 }
+progression.getLevel(); // 2
+```
+
+`createProgression(store, thresholds?)` attend un adaptateur synchrone
+`read()` / `write({ xp, level })`. Chaque opération relit la paire courante ; le
+niveau stocké doit être un entier sûr supérieur ou égal à 1. Le niveau retourné
+est le maximum entre le niveau acquis et celui calculé depuis l'XP. Par exemple,
+un joueur ayant `{ xp: 0, level: 4 }` conserve le niveau 4 après un gain de 10 XP.
+
+La courbe est validée et **copiée à la création** de l'instance. Modifier ensuite
+le tableau d'origine ne reconfigure pas cette instance. Le branchement d'une
+configuration administrable doit donc suivre le contrat validé, sans recréer
+arbitrairement une instance ni perdre le niveau acquis.
+
+`addXP()` écrit XP et niveau ensemble et retourne la paire après écriture.
+Les erreurs de lecture ou d'écriture de l'adaptateur sont propagées : ne pas
+annoncer un succès en cas d'échec de persistance. `getLevel()` ne persiste pas le
+niveau calculé. Le mock permet des tests isolés ; il n'est pas un stockage réel.
+Tester les seuils exacts, les décimales, les entrées invalides, la conservation
+d'un niveau acquis et la propagation des erreurs d'écriture.
+
+Les calculs d'XP par partie (#247/#248) et du seuil du prochain niveau
+(#249/#250), ainsi que son exposition publique (#252), sont des sujets séparés.
+Une PR ouverte ne rend pas leurs fonctions disponibles : vérifier les fichiers
+et exports présents avant de les utiliser ou de les documenter comme intégrés.
+
 ### createProgressionStore({ getState, updateState })
 
 Utiliser pour brancher le calcul de progression de Reda sur un stockage synchrone
@@ -214,10 +293,7 @@ les deux champs, ignore les autres, refuse les diminutions et propage les erreur
 XP finie ≥ 0 (décimales acceptées), niveau entier sûr ≥ 1. Le calcul du niveau
 reste à `createProgression`. Les dépendances injectées doivent être synchrones.
 
-Le branchement de l’instance publique est autorisé par Reda et réalisé dans #237.
-`addXP` persiste XP/niveau ensemble et propage les erreurs de stockage ; `getLevel`
-relit la progression courante. Sans localStorage, l’état reste en mémoire.
-Ce branchement ne déclenche aucun gain automatique par partie. Pour régler une partie, ne pas enchaîner
+Pour régler une partie, ne pas enchaîner
 une écriture de solde puis une écriture XP : #131 prévoit une transaction globale
 comprenant solde, XP/niveau, meilleur solde et historique.
 
@@ -227,8 +303,6 @@ comprenant solde, XP/niveau, meilleur solde et historique.
 - Tester via coreService pour les consommateurs, et avec des dépendances injectées
   pour les modules internes.
 - Vérifier erreurs, copies indépendantes et absence d’écriture partielle.
-- Ne pas appeler addXP après play si le contrat de play applique déjà l’XP : éviter
-  le double gain. Vérifier le comportement effectif, encore en évolution.
 - Exécuter les tests concernés, puis tests/lint/build avant la PR.
 
 Coordination : #61 (état), #70 (cartes), #115 (exports), #131 (règlement),
