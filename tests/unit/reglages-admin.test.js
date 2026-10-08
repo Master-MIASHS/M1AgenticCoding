@@ -74,3 +74,35 @@ describe('événements bonus partagés et enregistrés', () => {
     assert.strictEqual(events.getMultiplicateurBonus('gains'), 1);
   });
 });
+
+const JOUEUR = '../../src/core/config/player.config.js';
+
+describe('capital de départ partagé et enregistré', () => {
+  it('vaut le défaut (1000), puis le capital réglé, même après rechargement', async () => {
+    const config = await recharger(JOUEUR);
+    assert.strictEqual(config.getCapitalDeDepartActuel(), 1000);
+    assert.strictEqual(config.reglerCapitalDeDepart(500), 500);
+    assert.strictEqual(config.getCapitalDeDepartActuel(), 500);
+    assert.strictEqual(navigateur.get('casino_config_joueur'), '{"capitalDeDepart":500}');
+    assert.strictEqual((await recharger(JOUEUR)).getCapitalDeDepartActuel(), 500);
+  });
+
+  it('refuse un capital invalide sans rien enregistrer', async () => {
+    const config = await recharger(JOUEUR);
+    const avant = navigateur.get('casino_config_joueur');
+    for (const montant of [0, -1, NaN, '700']) {
+      assert.throws(() => config.reglerCapitalDeDepart(montant), /player\.config/);
+    }
+    assert.strictEqual(navigateur.get('casino_config_joueur'), avant);
+  });
+
+  it('revient au défaut si l’enregistrement est corrompu, sans planter', async () => {
+    navigateur.set('casino_config_joueur', '{"capitalDeDepart":-3}');
+    let config;
+    const avertissements = await compterAvertissements(async () => {
+      config = await recharger(JOUEUR);
+    });
+    assert.strictEqual(avertissements, 1);
+    assert.strictEqual(config.getCapitalDeDepartActuel(), 1000);
+  });
+});
