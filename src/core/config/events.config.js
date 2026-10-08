@@ -11,8 +11,11 @@
 //    l'enregistrement dans casino_state relève du branchement (n°8).
 //  * Hors périmètre : vérification du rôle admin (n°24), exposition dans
 //    core.js / coreService.js.
-//  * Conception détaillée : docs/design/evenements-bonus.md
+//  * Conception détaillée : docs/design/evenements-bonus.md et, pour
+//    l'instance partagée enregistrée, docs/design/reglages-admin.md (#260).
 // ---------------------------------------------------------------------------
+
+import { createStockageLocal } from './stockage-local.js';
 
 /** Cibles possibles d'un événement bonus. */
 export const CIBLES = Object.freeze(['gains', 'xp']);
@@ -235,4 +238,56 @@ export function createEvenementsBonus(store, { now = Date.now } = {}) {
       return actif === undefined ? 1 : actif.multiplicateur;
     },
   };
+}
+
+// Événements de l'application, partagés et enregistrés (#260) : un réglage
+// admin global, hors de casino_state, conservé après rechargement. C'est
+// cette instance que lit play() pour le multiplicateur (#131).
+const evenementsDuCore = createEvenementsBonus(
+  createStockageLocal('casino_config_evenements', [], { valider: validerListeEvenements }),
+);
+
+/**
+ * Renvoie le multiplicateur bonus en cours pour une cible (1 sans événement).
+ * Lu au moment du règlement d'une partie (arbitrage G5 du 07/10).
+ *
+ * @param {'gains'|'xp'} cible - Cible du bonus.
+ * @returns {number} Multiplicateur à appliquer.
+ * @throws {Error} Si la cible est inconnue.
+ */
+export function getMultiplicateurBonus(cible) {
+  return evenementsDuCore.getMultiplicateurActif(cible);
+}
+
+/**
+ * Renvoie tous les événements bonus enregistrés.
+ * @returns {Array<object>} Copie indépendante des événements.
+ */
+export function getEvenementsBonus() {
+  return evenementsDuCore.getEvenements();
+}
+
+/**
+ * Lance et enregistre un événement bonus (sans vérification de rôle : la
+ * façade core.js la fait avant d'appeler cette fonction).
+ *
+ * @param {object} evenement - Événement à lancer.
+ * @returns {object} Copie de l'événement enregistré.
+ * @throws {Error} Si l'événement est invalide, en conflit, ou si
+ *   l'enregistrement échoue (rien n'est alors modifié).
+ */
+export function lancerEvenementBonus(evenement) {
+  return evenementsDuCore.lancerEvenement(evenement);
+}
+
+/**
+ * Arrête et retire un événement bonus enregistré (sans vérification de
+ * rôle : la façade core.js la fait).
+ *
+ * @param {string} id - Identifiant de l'événement.
+ * @returns {object} Copie de l'événement retiré.
+ * @throws {Error} Si aucun événement ne porte cet identifiant.
+ */
+export function arreterEvenementBonus(id) {
+  return evenementsDuCore.arreterEvenement(id);
 }
