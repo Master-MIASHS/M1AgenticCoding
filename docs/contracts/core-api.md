@@ -262,3 +262,33 @@ try {
 - **Erreurs** (rien n'est modifié) : texte qui n'est pas du JSON ; version non prise en charge (seule la version 1 l'est) ; forme invalide ; **empreinte (hash) qui ne correspond pas** ; état non conforme ; échec d'écriture.
 - Une sauvegarde acceptée **remplace toute la partie** (solde, XP, niveau, jeux, historique) : prévenir le joueur avant.
 - L'empreinte FNV-1a détecte une sauvegarde abîmée, **pas la triche** : ne pas la présenter comme une protection.
+
+## 9. Configuration, statistiques et permissions
+
+### `setGameConfig(gameId, config)` 🟡 **admin**
+
+```js
+setGameConfig('roulette', { probabilities: {…}, multipliers: {…} }) // → { ok: true, gameId: 'roulette' }
+```
+
+- **Réservée à l'admin** : le rôle est lu dans l'état (#211) ; sinon erreur « permission refusée » et rien n'est modifié.
+- **Limites** : la configuration est gardée **en mémoire seulement** (perdue au rechargement) et n'est pas encore validée ; il n'existe pas encore de lecture publique `getGameConfig` (#254, #265).
+
+### `getGlobalStats()` 🧪
+
+```js
+getGlobalStats() // → { totalPlays: 0, totalWagered: 0, totalWon: 0, activePlayers: 0 }
+```
+
+- Renvoie aujourd'hui **des zéros fictifs**. Les vraies valeurs seront calculées à partir de l'historique des parties.
+
+### Rôles et permissions
+
+| Rôle | Droits (cumulatifs) |
+|---|---|
+| `player` | Jouer, voir ses statistiques, le classement, dépenser en boutique |
+| `moderator` | `player` + modération (prévu par `AGENTS.md`, pas encore accepté dans l'état) |
+| `admin` | `moderator` + réglages (`setGameConfig` et réglages admin à venir) |
+
+- Le rôle est **toujours lu dans l'état**, jamais passé en argument. Par défaut `player`.
+- **Limite** : aucune fonction publique ne permet encore de devenir admin ; les fonctions **admin** sont donc refusées dans l'application tant qu'un parcours admin n'existe pas.
