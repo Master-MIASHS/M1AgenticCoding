@@ -112,8 +112,8 @@ function BonusEventsSection() {
     id: '',
     cible: 'gains',
     multiplicateur: 2,
-    debut: Date.now(),
-    fin: Date.now() + 86400000,
+    debut: 0,
+    fin: 0,
   });
   const [feedback, setFeedback] = useState(null);
 
@@ -127,6 +127,12 @@ function BonusEventsSection() {
 
   useState(() => {
     loadEvents();
+    const now = Date.now();
+    setNewEvent(prev => ({
+      ...prev,
+      debut: now,
+      fin: now + 86400000,
+    }));
   }, [loadEvents]);
 
   const handleLaunch = (e) => {
@@ -213,7 +219,8 @@ function BonusEventsSection() {
             />
           </label>
         </div>
-        <button type="submit" className="admin__submit">Lancer l'événement</button>
+          <button type="submit" className="admin__submit">Lancer l&apos;événement</button>
+
       </form>
 
       <ul className="admin__bonus-list">
@@ -365,7 +372,7 @@ function ModerationSection() {
               </div>
             </>
           ) : (
-            <p className="admin__empty">Sélectionnez un joueur pour le modifier</p>
+            <p className="admin__empty">S&apos;il vous plaît, sélectionnez un joueur pour le modifier</p>
           )}
         </div>
       </div>
