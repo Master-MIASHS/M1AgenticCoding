@@ -200,6 +200,8 @@ getUnlockedGames() // → ['slots', 'dice']
 ### `getHistory()` 🧪
 
 - Renvoie aujourd'hui `[]`. Les entrées seront créées par `play()` (#131, format préparé dans #266) : `{ roundId, gameId, bet, outcome, payout, netGain, playedAt }`.
+- `roundId` : chaîne non vide pour les nouveaux règlements ; `null` explicite pour les anciens appels qui n'en transmettent pas (convention validée dans #229). `playedAt` : date ISO UTC.
+- L'historique sert à l'affichage et aux statistiques : il est **distinct du registre anti-double règlement** (#218), car il pourra être tronqué.
 
 ## 7. Boutique
 
