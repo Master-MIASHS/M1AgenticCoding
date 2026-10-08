@@ -292,3 +292,27 @@ getGlobalStats() // → { totalPlays: 0, totalWagered: 0, totalWon: 0, activePla
 
 - Le rôle est **toujours lu dans l'état**, jamais passé en argument. Par défaut `player`.
 - **Limite** : aucune fonction publique ne permet encore de devenir admin ; les fonctions **admin** sont donc refusées dans l'application tant qu'un parcours admin n'existe pas.
+
+## 10. Évolutions en cours (pas encore sur `main`)
+
+À ne pas utiliser avant leur fusion ; les noms et formes sont ceux des PR ouvertes au 08/10.
+
+| Fonction ou changement | Ce qui change | Suivi |
+|---|---|---|
+| `play()` réel | Enregistre en une seule écriture le solde, le meilleur solde, l'XP et le niveau, l'historique ; refuse un double règlement (`roundId`) ; applique le bonus actif | #131, #218 (avec #248, #262, #266) |
+| `getStartingCapital()` | Lire le capital de départ effectif | #262 |
+| `setStartingCapital(amount)` | Régler le capital de départ (**admin**) | #262 |
+| `getEvenementsBonus()` | Lire les événements bonus | #262 |
+| `getMultiplicateurBonus(cible)` | Multiplicateur en cours, `'gains'` ou `'xp'` (1 sans événement) | #262 |
+| `lancerEvenementBonus(evenement)` | Lancer un événement bonus (**admin**) | #262 |
+| `arreterEvenementBonus(id)` | Arrêter un événement bonus (**admin**) | #262 |
+| `choisirAction(payload)` | Action du bot de poker, à partir du payload du G2 | #264, #196 |
+| `getGameConfig(gameId)` | Lire la configuration d'un jeu | #254, #265 |
+| `xpForNextLevel` dans `getState()` | Seuil total d'XP du niveau suivant, `null` au niveau maximal | #250 |
+| `getUnlockedGames()` recalculée | Jeux débloqués selon le niveau, sans perdre les acquis | #263 |
+| Capital effectif pour un nouveau joueur | L'état initial et `creerProfil` utilisent le capital réglé par l'admin | #253 |
+
+## 11. Faire évoluer ce contrat
+
+- Toute modification de ce contrat passe par une **issue adressée au G1 et au G5** (règle 6), puis une PR relue par les deux groupes.
+- Le test `tests/unit/core-api-contract.test.js` vérifie que chaque fonction exposée par `coreService` est listée dans ce contrat (§ 2 ou § 10), et que chaque fonction du § 2 existe bien : une fonction ajoutée ou retirée sans mise à jour du contrat fait échouer la CI.
