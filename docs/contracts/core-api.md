@@ -200,3 +200,40 @@ getUnlockedGames() // → ['slots', 'dice']
 ### `getHistory()` 🧪
 
 - Renvoie aujourd'hui `[]`. Les entrées seront créées par `play()` (#131, format préparé dans #266) : `{ roundId, gameId, bet, outcome, payout, netGain, playedAt }`.
+
+## 7. Boutique
+
+Contrat proposé par le G4 (`src/pages/Shop/SHOP_CORE_CONTRACT.md`), implémenté par #206.
+
+### `getShopCatalog()` ✅
+
+```js
+getShopCatalog() // → [{ id, name, description, category, price, visual?, available }]
+```
+
+- Lu dans `config/shop.config.js`. **Vide pour l'instant** : le contenu de la boutique est une décision ouverte (#20). Prix en jetons fictifs, entiers ≥ 0.
+
+### `getShopInventory()` ✅
+
+```js
+getShopInventory() // → { ownedItemIds: ['avatar_chapeau'] }
+```
+
+- `[]` tant que rien n'est acheté. **Erreur** si l'inventaire enregistré est corrompu.
+
+### `purchaseShopItem(itemId)` ✅
+
+```js
+purchaseShopItem('avatar_chapeau') // → { status, itemId, balance, message? }
+```
+
+| `status` | Cas | Écriture |
+|---|---|---|
+| `rejected` | Identifiant inconnu ou invalide | aucune |
+| `unavailable` | Article avec `available: false` | aucune |
+| `already-owned` | Article déjà possédé | aucune |
+| `insufficient-funds` | Solde inférieur au prix | aucune |
+| `purchased` | Solde débité **et** article ajouté, en une seule écriture | une |
+
+- `balance` est toujours le solde après l'opération. Le meilleur solde, l'XP et le niveau ne changent pas.
+- Une **erreur levée** signifie un échec d'écriture : ne pas annoncer l'achat.
