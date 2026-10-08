@@ -310,6 +310,7 @@ getGlobalStats() // → { totalPlays: 0, totalWagered: 0, totalWon: 0, activePla
 | `lancerEvenementBonus(evenement)` | Lancer un événement bonus (**admin**) | #262 |
 | `arreterEvenementBonus(id)` | Arrêter un événement bonus (**admin**) | #262 |
 | `choisirAction(payload)` | Action du bot de poker, à partir du payload du G2 | #264, #196 |
+| `getBadges()` | Badges du joueur et progression : `[{ id, nom, obtenu, actuel, seuil }]` (les deux badges d'`AGENTS.md`) | #273, #272 |
 | `getGameConfig(gameId)` | Lire la configuration d'un jeu | Fiabilisation de la configuration (copies, mises à jour partielles) : #265 (@nafiamedreda) ; **exposition** dans `core.js` / `coreService` : #158, #254 (@ahmed-abc73) |
 | `xpForNextLevel` dans `getState()` | Seuil total d'XP du niveau suivant, `null` au niveau maximal | **Calcul** : #250 (@nafiamedreda) ; **exposition** dans `getState()` : #252 (@ahmed-abc73) |
 | `getUnlockedGames()` recalculée | Jeux débloqués selon le niveau, sans perdre les acquis | **Calcul pur** : #263 (@nafiamedreda), sans branchement automatique à l'état ni à l'API ; branchement à prévoir |
