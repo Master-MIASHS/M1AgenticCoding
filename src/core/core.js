@@ -14,11 +14,6 @@ import { getState } from './state.js';
 import {
   getGlobalStats,
   setGameConfig as setGameConfigUnchecked,
-  getStartingCapital,
-  setStartingCapital,
-  getEvenementsBonus,
-  lancerEvenementBonus,
-  arreterEvenementBonus,
 } from './config/games.config.js';
 import { assertCanModifyConfig } from './permissions.js';
 
@@ -33,7 +28,7 @@ export {
   getLeaderboard,
   getHistory,
 } from './progression.js';
-export { getGlobalStats, getStartingCapital, setStartingCapital, getEvenementsBonus, lancerEvenementBonus, arreterEvenementBonus };
+export { getGlobalStats };
 export { exportSave, importSave } from './storage.js';
 
 /**

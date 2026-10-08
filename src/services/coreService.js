@@ -30,11 +30,6 @@ import {
   getHistory,
   setGameConfig,
   getGlobalStats,
-  getStartingCapital,
-  setStartingCapital,
-  getEvenementsBonus,
-  lancerEvenementBonus,
-  arreterEvenementBonus,
   exportSave,
   importSave,
 } from '../core/core.js';
@@ -59,11 +54,6 @@ export {
   getHistory,
   setGameConfig,
   getGlobalStats,
-  getStartingCapital,
-  setStartingCapital,
-  getEvenementsBonus,
-  lancerEvenementBonus,
-  arreterEvenementBonus,
   exportSave,
   importSave,
 };
