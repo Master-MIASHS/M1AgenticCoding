@@ -17,14 +17,14 @@ export { resolve } from './rules.js';
  *
  * Returns the drawn number, an integer between 0 and 36, produced by
  * `core.tirageEntier(0, 36)` guarded by the Core (safe integers, [0, 1) RNG,
- * no Math.random() here). `context` is accepted for signature parity with the
- * orchestrator's draw(core, context) and currently unused: the roulette layout
- * needs no parameters beyond the wheel bounds.
+ * no Math.random() here). Only `core` is declared: the orchestrator passes a
+ * second `context` argument that this draw ignores (the roulette layout needs
+ * no parameters beyond the wheel bounds), so declaring it would only trigger
+ * an unused-variable lint warning.
  *
  * @param {{ tirageEntier: Function }} core - the Core facade passed by createGame.
- * @param {object} [context] - unused, kept for createGame's draw signature.
  * @returns {number}
  */
-export function draw(core, context) {
+export function draw(core) {
   return core.tirageEntier(0, 36);
 }
