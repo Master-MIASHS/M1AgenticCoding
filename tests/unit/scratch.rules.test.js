@@ -7,6 +7,9 @@
 // #8, empty `multipliers` in src/core/config/games.config.js). It is therefore
 // INJECTED through config.payouts - no tuning value is hardcoded here (AGENTS.md
 // rule 4). The table below is a test fixture, not a game decision.
+//
+// OUTCOME: deduced from the multiplier (> 1 win, = 1 push, < 1 loss), exactly
+// like the Core settlement: the config carries only the multiplier.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -20,10 +23,10 @@ import { resolve, getTotalStake } from '../../src/games/scratch/rules.js';
 const CONFIG = {
   payouts: {
     bands: [
-      { max: 0.5, symbol: 'rien', outcome: 'loss', multiplier: 0 },
-      { max: 0.8, symbol: 'petit', outcome: 'win', multiplier: 2 },
-      { max: 0.95, symbol: 'moyen', outcome: 'win', multiplier: 5 },
-      { max: 1, symbol: 'jackpot', outcome: 'win', multiplier: 20 },
+      { max: 0.5, symbol: 'rien', multiplier: 0 },
+      { max: 0.8, symbol: 'petit', multiplier: 2 },
+      { max: 0.95, symbol: 'moyen', multiplier: 5 },
+      { max: 1, symbol: 'jackpot', multiplier: 20 },
     ],
   },
 };
@@ -88,15 +91,14 @@ describe('scratch resolve - validation des entrées', () => {
     const malformed = (bands) =>
       assert.throws(() => resolve(raw(0.1), { bets: BETS, config: { payouts: { bands } } }), TypeError);
 
-    malformed([{ max: 0.5, outcome: 'win', multiplier: 2 }]); // no symbol
-    malformed([{ max: 0.5, symbol: 'x', multiplier: 2 }]); // no outcome
-    malformed([{ max: 0.5, symbol: 'x', outcome: 'maybe', multiplier: 2 }]); // bad outcome
-    malformed([{ max: 0.5, symbol: 'x', outcome: 'win' }]); // no multiplier
-    malformed([{ max: 0.5, symbol: 'x', outcome: 'win', multiplier: -1 }]); // negative
-    malformed([{ max: 1.5, symbol: 'x', outcome: 'win', multiplier: 2 }]); // max > 1
+    malformed([{ max: 0.5, multiplier: 2 }]); // no symbol
+    malformed([{ max: 0.5, symbol: 'x' }]); // no multiplier
+    malformed([{ max: 0.5, symbol: 'x', multiplier: 'x2' }]); // not a number
+    malformed([{ max: 0.5, symbol: 'x', multiplier: -1 }]); // negative
+    malformed([{ max: 1.5, symbol: 'x', multiplier: 2 }]); // max > 1
     malformed([
-      { max: 0.8, symbol: 'b', outcome: 'win', multiplier: 2 },
-      { max: 0.5, symbol: 'a', outcome: 'win', multiplier: 2 },
+      { max: 0.8, symbol: 'b', multiplier: 2 },
+      { max: 0.5, symbol: 'a', multiplier: 2 },
     ]); // not sorted
   });
 });
@@ -185,10 +187,54 @@ describe('scratch resolve - cas limites', () => {
 
   it('gère une table où toutes les bandes sont perdantes', () => {
     const losing = {
-      payouts: { bands: [{ max: 1, symbol: 'rien', outcome: 'loss', multiplier: 0 }] },
+      payouts: { bands: [{ max: 1, symbol: 'rien', multiplier: 0 }] },
     };
     const result = resolve(raw(0.99), { bets: BETS, config: losing });
     assert.equal(result.outcome, 'loss');
     assert.equal(result.multiplier, 0);
+  });
+});
+
+describe('scratch resolve - outcome déduit du multiplicateur (economy.js)', () => {
+  it('multiplier > 1 => win', () => {
+    const result = resolve(raw(0.6), { bets: BETS, config: CONFIG });
+    assert.equal(result.multiplier, 2);
+    assert.equal(result.outcome, 'win');
+  });
+
+  it('multiplier = 1 => push', () => {
+    const even = {
+      payouts: { bands: [{ max: 1, symbol: 'egal', multiplier: 1 }] },
+    };
+    const result = resolve(raw(0.42), { bets: BETS, config: even });
+    assert.equal(result.multiplier, 1);
+    assert.equal(result.outcome, 'push');
+  });
+
+  it('multiplier < 1 => loss', () => {
+    const result = resolve(raw(0.1), { bets: BETS, config: CONFIG });
+    assert.equal(result.multiplier, 0);
+    assert.equal(result.outcome, 'loss');
+  });
+
+  it('ignore un éventuel outcome porté par la config (jamais cru)', () => {
+    // Un ancien champ `outcome` en contradiction avec le multiplicateur ne
+    // doit pas faire échouer le règlement : seul le multiplicateur compte.
+    const legacy = {
+      payouts: {
+        bands: [
+          { max: 0.5, symbol: 'rien', outcome: 'win', multiplier: 0 }, // -> loss
+          { max: 1, symbol: 'plein', outcome: 'loss', multiplier: 5 }, // -> win
+        ],
+      },
+    };
+
+    const lost = resolve(raw(0.1), { bets: BETS, config: legacy });
+    assert.equal(lost.outcome, 'loss');
+    assert.equal(lost.multiplier, 0);
+
+    const won = resolve(raw(0.9), { bets: BETS, config: legacy });
+    assert.equal(won.outcome, 'win');
+    assert.equal(won.multiplier, 5);
   });
 });

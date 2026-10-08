@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // Games - Slots rules (Groupe 2, issue #31, perimeter P4)
-// Pure interpretation of raw reels into a gameResult.
+// Pure interpretation of the drawn reels into a gameResult.
 //
 // ABSOLUTE RULES honored by this module:
 //   * Zero imports: no Core, no coreService, no React, no Math.random().
@@ -9,36 +9,34 @@
 //   * The rules never decide anything by themselves: they receive the RAW
 //     result produced by the Core and only interpret it.
 //
-// RAW SHAPE (hypothesis, to confirm with the G2 integration referent):
-// the Core's roll() exposes a single float (`value`) and ignores `params`, so
-// the three reels are read from `raw.values`, an array of three floats in
-// [0, 1). The shape of the raw rolls is an open question: see issue #73 and
-// issue #27 (RNG, G1).
+// RAW SHAPE: roll() only exposes a single float, so the three reel symbols
+// are drawn by the game's own `draw(core, context)` (src/games/slots/draw.js,
+// contrat G2 § 4.1, écart 8) through core.tirageAvecPoids(). resolve() reads
+// `{ gameId: 'slots', symbols: [s1, s2, s3] }` and only maps the symbols to
+// the paytable; it never touches the random source.
 //
-// PAYOUT TABLE: the project has not defined the Slots paytable yet (no table in
-// discussion #8, empty `multipliers` in src/core/config/games.config.js). Per
-// AGENTS.md rule 4, no tuning value is hardcoded here: both the symbol
-// distribution and the paytable are INJECTED through `config`, and resolve()
-// throws when either is missing.
+// OUTCOME: deduced from the multiplier, exactly like the Core settlement
+// (src/core/economy.js): > 1 => win, = 1 => push, < 1 => loss. The config
+// carries ONLY the multiplier, so an admin typo in an optional legacy
+// `outcome` field can never contradict the settlement (relecture #216).
+//
+// PAYOUT TABLE: the project has not defined the Slots paytable yet (no table
+// in discussion #8, empty `multipliers` in src/core/config/games.config.js).
+// Per AGENTS.md rule 4, no tuning value is hardcoded here: the paytable is
+// INJECTED through `config.payouts` and resolve() throws when it is missing.
 // ---------------------------------------------------------------------------
 
 /**
- * @typedef {object} ReelBand
- * @property {number} max - exclusive upper bound of the band, in [0, 1].
- * @property {string} symbol - reel symbol for this band.
- */
-
-/**
  * @typedef {object} SlotsConfig
- * @property {{ bands: ReelBand[] }} symbols - injected reel -> symbol mapping.
- * @property {Record<string, { outcome: 'win' | 'loss' | 'push', multiplier: number }>} payouts
- *   - injected paytable, keyed by the reel symbols concatenated.
+ * @property {Record<string, { multiplier: number }>} payouts
+ *   - injected paytable, keyed by the reel symbols concatenated. Only the
+ *     multiplier is read: the outcome is deduced from it.
  */
 
 /**
  * @typedef {object} SlotsRaw
  * @property {string} gameId - always 'slots'.
- * @property {number[]} values - three raw rolls in [0, 1), one per reel.
+ * @property {string[]} symbols - the three drawn reel symbols.
  * @property {number} [nonce] - raw integer, kept for auditing.
  */
 
@@ -55,70 +53,51 @@ function isFiniteNumber(value) {
 }
 
 /**
- * Validates the raw roll and extracts its three reels.
+ * Deduces the outcome from the multiplier, using the exact rule the Core
+ * applies when settling (src/core/economy.js): > 1 => win, < 1 => loss,
+ * = 1 => push.
  *
- * @param {unknown} raw - candidate raw roll.
- * @returns {number[]} exactly three values in [0, 1).
- * @throws {TypeError} when raw is not an object with a numeric `values` array.
- * @throws {RangeError} when there are not exactly three reels, or one is out of range.
+ * @param {number} multiplier - validated payout multiplier.
+ * @returns {'win' | 'loss' | 'push'} the matching outcome.
+ */
+function outcomeFromMultiplier(multiplier) {
+  if (multiplier > 1) return 'win';
+  if (multiplier < 1) return 'loss';
+  return 'push';
+}
+
+/**
+ * Validates the raw draw and extracts the three drawn reel symbols.
+ *
+ * @param {unknown} raw - candidate raw draw.
+ * @returns {string[]} exactly three non-empty symbols.
+ * @throws {TypeError} when raw is not an object with a `symbols` array of
+ *   non-empty strings.
+ * @throws {RangeError} when there are not exactly three reels.
  */
 export function getReels(raw) {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
-    throw new TypeError('slots/rules: raw must be an object produced by roll()');
+    throw new TypeError('slots/rules: raw must be an object produced by the slots draw');
   }
-  const { values } = raw;
-  if (!Array.isArray(values) || values.length === 0 || !values.every(isFiniteNumber)) {
-    throw new TypeError('slots/rules: raw.values must be an array of numbers in [0, 1)');
+  const { symbols } = raw;
+  if (!Array.isArray(symbols) || symbols.length === 0) {
+    throw new TypeError('slots/rules: raw.symbols must be an array of non-empty strings');
   }
-  if (values.length !== 3) {
+  if (symbols.some((symbol) => typeof symbol !== 'string' || symbol.length === 0)) {
+    throw new TypeError('slots/rules: raw.symbols must be an array of non-empty strings');
+  }
+  if (symbols.length !== 3) {
     throw new RangeError('slots/rules: slots has exactly 3 reels');
   }
-  for (const value of values) {
-    if (value < 0 || value >= 1) {
-      throw new RangeError('slots/rules: every reel must be in [0, 1)');
-    }
-  }
-  return values;
+  return symbols;
 }
 
 /**
- * Validates the injected reel -> symbol distribution.
+ * Validates the injected paytable. Only `multiplier` is read: any legacy
+ * `outcome` field carried by the config is ignored, never trusted.
  *
  * @param {unknown} config - candidate config.
- * @returns {ReelBand[]} the validated, ordered bands.
- * @throws {TypeError} when the distribution is missing or malformed.
- */
-function assertValidSymbols(config) {
-  const bands = config?.symbols?.bands;
-  if (!Array.isArray(bands) || bands.length === 0) {
-    throw new TypeError(
-      'slots/rules: config.symbols.bands is required (reel distribution not defined by the project yet)',
-    );
-  }
-  let previousMax = 0;
-  for (const band of bands) {
-    if (typeof band !== 'object' || band === null) {
-      throw new TypeError('slots/rules: each symbol band must be an object');
-    }
-    if (!isFiniteNumber(band.max) || band.max <= 0 || band.max > 1) {
-      throw new TypeError('slots/rules: symbol band max must be a number in (0, 1]');
-    }
-    if (band.max <= previousMax) {
-      throw new TypeError('slots/rules: symbol bands must be sorted by ascending exclusive max');
-    }
-    if (typeof band.symbol !== 'string' || band.symbol.length === 0) {
-      throw new TypeError('slots/rules: symbol band symbol must be a non-empty string');
-    }
-    previousMax = band.max;
-  }
-  return bands;
-}
-
-/**
- * Validates the injected paytable.
- *
- * @param {unknown} config - candidate config.
- * @returns {Record<string, { outcome: string, multiplier: number }>} validated paytable.
+ * @returns {Record<string, { multiplier: number }>} validated paytable.
  * @throws {TypeError} when the paytable is missing or malformed.
  */
 function assertValidPayouts(config) {
@@ -131,9 +110,6 @@ function assertValidPayouts(config) {
   for (const [combination, payout] of Object.entries(payouts)) {
     if (typeof payout !== 'object' || payout === null) {
       throw new TypeError(`slots/rules: payout for "${combination}" must be an object`);
-    }
-    if (!['win', 'loss', 'push'].includes(payout.outcome)) {
-      throw new TypeError(`slots/rules: payout "${combination}".outcome must be win, loss or push`);
     }
     if (!isFiniteNumber(payout.multiplier) || payout.multiplier < 0) {
       throw new TypeError(`slots/rules: payout "${combination}".multiplier must be a number >= 0`);
@@ -167,54 +143,35 @@ export function getTotalStake(bets) {
 }
 
 /**
- * Maps a raw reel value to its symbol.
+ * Interprets three drawn reels into a gameResult.
  *
- * @param {number} value - raw reel in [0, 1).
- * @param {ReelBand[]} bands - validated, ascending bands.
- * @returns {string} the reel symbol.
- * @throws {RangeError} when no band contains the value (gap in the distribution).
- */
-function findSymbol(value, bands) {
-  for (const band of bands) {
-    if (value < band.max) {
-      return band.symbol;
-    }
-  }
-  throw new RangeError('slots/rules: no symbol band contains a reel (gap in the distribution)');
-}
-
-/**
- * Interprets three raw reels into a gameResult.
- *
- * @param {SlotsRaw} raw - raw result from `coreService.roll()`.
+ * @param {SlotsRaw} raw - raw draw produced by `src/games/slots/draw.js`.
  * @param {{ bets: Array<{ type: string, amount: number }>, config?: SlotsConfig }} context
- * @returns {GameResult} `{ outcome, multiplier, details }`.
+ * @returns {GameResult} `{ outcome, multiplier, details }`, the outcome being
+ *   deduced from the payout multiplier.
  * @throws {TypeError} on an invalid raw, bets, missing config, or a combination
  *   absent from the paytable.
- * @throws {RangeError} when the reel count or a reel value is out of range.
+ * @throws {RangeError} when the reel count is not exactly three.
  * @example
- * resolve({ gameId: 'slots', values: [0.1, 0.1, 0.1] }, { bets: [{ type: 'mise', amount: 20 }], config });
- * // => { outcome: 'win', multiplier: 50, details: { reels: [...], symbols: ['A','A','A'], combination: 'AAA', stake: 20 } }
+ * resolve({ gameId: 'slots', symbols: ['A', 'A', 'A'] }, { bets: [{ type: 'mise', amount: 20 }], config });
+ * // => { outcome: 'win', multiplier: 50, details: { symbols: ['A','A','A'], combination: 'AAA', stake: 20 } }
  */
 export function resolve(raw, { bets, config } = {}) {
-  const reels = getReels(raw);
+  const symbols = getReels(raw);
   const stake = getTotalStake(bets);
-  const symbolBands = assertValidSymbols(config);
   const payouts = assertValidPayouts(config);
 
-  const symbols = reels.map((value) => findSymbol(value, symbolBands));
   const combination = symbols.join('');
-
   const payout = payouts[combination];
   if (payout === undefined) {
     throw new TypeError(`slots/rules: no payout for combination "${combination}"`);
   }
 
+  const { multiplier } = payout;
   return {
-    outcome: payout.outcome,
-    multiplier: payout.multiplier,
+    outcome: outcomeFromMultiplier(multiplier),
+    multiplier,
     details: {
-      reels,
       symbols,
       combination,
       stake,

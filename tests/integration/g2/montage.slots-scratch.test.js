@@ -2,20 +2,21 @@
 // Tests d'intégration G2 - montage des VRAIES règles slots / scratch (#31)
 // sur l'orchestrateur et le vrai mock du Core (issue #68)
 // ---------------------------------------------------------------------------
-// Chaîne testée : start(bets) -> roll() (fixture) -> rules.resolve() ->
+// Chaîne testée : start(bets) -> tirage -> rules.resolve() ->
 // gameResult -> coreService.play() (vrai Core G1) -> réponse pour G3.
 //
-// Scratch lit directement le float public de roll() (`raw.value`). Slots
-// attend trois rouleaux (`raw.values`) alors que roll() n'en renvoie qu'un :
-// la fixture joue ici la forme qu'un `draw` de jeu devra produire (écart 8,
-// #68), puis un test relève le VRAI Core avec un draw maison.
+// Scratch lit directement le float public de roll() (`raw.value`). Slots a
+// besoin de trois symboles : son propre draw (src/games/slots/draw.js,
+// écart 8, #68) les tire via core.tirageAvecPoids() — un test le monte sur le
+// VRAI Core, les autres rejouent des tirages préparés via la fixture.
 //
 // Les tables de gains et la distribution des symboles sont INJECTÉES via
 // `config` (règle absolue 4) : les valeurs ci-dessous sont arbitraires et
 // propres au test, seule la forme compte encore (point ouvert #122).
 //
 // Chaque partie n'appelle play() qu'UNE fois (§ 4.3), et outcome / multiplier
-// vont toujours ensemble côté Core (win > 1, loss < 1, push = 1).
+// vont toujours ensemble côté Core (win > 1, loss < 1, push = 1) : les règles
+// déduisent l'outcome du multiplicateur, jamais de la config.
 // ---------------------------------------------------------------------------
 
 import { test, describe } from 'node:test';
@@ -25,6 +26,7 @@ import * as coreService from '../../../src/services/coreService.js';
 import { createGame } from '../../../src/games/_template/createGame.js';
 import * as slotsRules from '../../../src/games/slots/rules.js';
 import * as scratchRules from '../../../src/games/scratch/rules.js';
+import { drawSlots } from '../../../src/games/slots/draw.js';
 import { makeFixtureRoll, makeFixtureDraw } from '../../fixtures/g2/rolls.js';
 
 // Solde du mock d'état G1 (src/core/state.js) au moment de l'écriture.
@@ -32,7 +34,8 @@ const START_BALANCE = coreService.getState().balance;
 const MISE = { type: 'mise', amount: 10 };
 
 // Deux symboles par rouleau : A sous 0,5, B au-dessus. Les huit combinaisons
-// sont présentes pour ne pas lever "no payout for combination".
+// sont présentes pour ne pas lever "no payout for combination". Seul le
+// multiplicateur est porté par la config : l'outcome en est déduit.
 const SLOTS_CONFIG = {
   symbols: {
     bands: [
@@ -41,23 +44,23 @@ const SLOTS_CONFIG = {
     ],
   },
   payouts: {
-    AAA: { outcome: 'win', multiplier: 5 },
-    BBB: { outcome: 'win', multiplier: 2 },
-    ABA: { outcome: 'push', multiplier: 1 },
-    AAB: { outcome: 'loss', multiplier: 0 },
-    ABB: { outcome: 'loss', multiplier: 0 },
-    BAA: { outcome: 'loss', multiplier: 0 },
-    BAB: { outcome: 'loss', multiplier: 0 },
-    BBA: { outcome: 'loss', multiplier: 0 },
+    AAA: { multiplier: 5 },
+    BBB: { multiplier: 2 },
+    ABA: { multiplier: 1 },
+    AAB: { multiplier: 0 },
+    ABB: { multiplier: 0 },
+    BAA: { multiplier: 0 },
+    BAB: { multiplier: 0 },
+    BBA: { multiplier: 0 },
   },
 };
 
 const SCRATCH_CONFIG = {
   payouts: {
     bands: [
-      { max: 0.4, symbol: 'brebis', outcome: 'loss', multiplier: 0 },
-      { max: 0.8, symbol: 'trèfle', outcome: 'win', multiplier: 2 },
-      { max: 1, symbol: 'couronne', outcome: 'win', multiplier: 5 },
+      { max: 0.4, symbol: 'brebis', multiplier: 0 },
+      { max: 0.8, symbol: 'trèfle', multiplier: 2 },
+      { max: 1, symbol: 'couronne', multiplier: 5 },
     ],
   },
 };
@@ -84,7 +87,7 @@ function makeTestCore(fixture) {
 
 describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
   test('trois A : jackpot x5, solde réglé par le Core', () => {
-    const raw = { gameId: 'slots', values: [0.1, 0.1, 0.1], nonce: 1 };
+    const raw = { gameId: 'slots', symbols: ['A', 'A', 'A'], nonce: 1 };
     const { core, playCalls } = makeTestCore(makeFixtureDraw([raw]));
     const game = createGame({ id: 'slots', rules: slotsRules, config: SLOTS_CONFIG, core });
 
@@ -100,7 +103,7 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
   });
 
   test('combinaison perdante : la mise est retenue', () => {
-    const raw = { gameId: 'slots', values: [0.1, 0.1, 0.9], nonce: 1 };
+    const raw = { gameId: 'slots', symbols: ['A', 'A', 'B'], nonce: 1 };
     const { core } = makeTestCore(makeFixtureDraw([raw]));
     const game = createGame({ id: 'slots', rules: slotsRules, config: SLOTS_CONFIG, core });
 
@@ -113,7 +116,7 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
   });
 
   test('combinaison en égalité : la mise est rendue', () => {
-    const raw = { gameId: 'slots', values: [0.1, 0.9, 0.1], nonce: 1 };
+    const raw = { gameId: 'slots', symbols: ['A', 'B', 'A'], nonce: 1 };
     const { core } = makeTestCore(makeFixtureDraw([raw]));
     const game = createGame({ id: 'slots', rules: slotsRules, config: SLOTS_CONFIG, core });
 
@@ -125,15 +128,15 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
   });
 
   test('G3 reçoit les rouleaux tirés et leur interprétation', () => {
-    const values = [0.9, 0.9, 0.9];
-    const raw = { gameId: 'slots', values, nonce: 1 };
+    const symbols = ['B', 'B', 'B'];
+    const raw = { gameId: 'slots', symbols, nonce: 1 };
     const { core, rollCalls } = makeTestCore(makeFixtureDraw([raw]));
     const game = createGame({ id: 'slots', rules: slotsRules, config: SLOTS_CONFIG, core });
 
     const res = game.start([MISE]);
 
     assert.equal(rollCalls.length, 1, 'un seul tirage par partie');
-    assert.deepEqual(res.renderPayload.raw.values, values, 'les rouleaux partent tels quels à G3');
+    assert.deepEqual(res.renderPayload.raw.symbols, symbols, 'les rouleaux partent tels quels à G3');
     assert.equal(res.renderPayload.interpretation.combination, 'BBB');
     assert.deepEqual(
       res.renderPayload.interpretation,
@@ -143,7 +146,7 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
   });
 
   test('gameResult au format du contrat : { outcome, multiplier, details }', () => {
-    const raw = { gameId: 'slots', values: [0.1, 0.1, 0.1], nonce: 1 };
+    const raw = { gameId: 'slots', symbols: ['A', 'A', 'A'], nonce: 1 };
     const { core } = makeTestCore(makeFixtureDraw([raw]));
     const game = createGame({ id: 'slots', rules: slotsRules, config: SLOTS_CONFIG, core });
 
@@ -152,39 +155,56 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
     assert.deepEqual(Object.keys(gameResult).sort(), ['details', 'multiplier', 'outcome']);
     assert.deepEqual(Object.keys(gameResult.details).sort(), [
       'combination',
-      'reels',
       'stake',
       'symbols',
     ]);
   });
 
-  test('le VRAI Core tire les trois rouleaux (draw maison, écart 8)', () => {
-    // roll() ne renvoie qu'un float : le jeu devra produire les trois rouleaux
-    // lui-même, via son draw (écart 8, #68) — la disposition des symboles
-    // appartient encore à #122. Ici on ne vérifie que des invariants.
+  test('un outcome de config en contradiction avec le multiplicateur ne fait pas échouer play()', () => {
+    // Relecture #216 : l'outcome vient du multiplicateur, la config ne porte
+    // que ce dernier — economy.js n'a donc jamais de paire incohérente à rejeter.
+    const incoherent = {
+      symbols: SLOTS_CONFIG.symbols,
+      payouts: { AAA: { outcome: 'loss', multiplier: 5 } },
+    };
+    const raw = { gameId: 'slots', symbols: ['A', 'A', 'A'], nonce: 1 };
+    const { core, playCalls } = makeTestCore(makeFixtureDraw([raw]));
+    const game = createGame({ id: 'slots', rules: slotsRules, config: incoherent, core });
+
+    const res = game.start([MISE]);
+
+    assert.equal(res.gameResult.outcome, 'win', 'outcome déduit du multiplicateur 5');
+    assert.equal(playCalls.length, 1, 'play() est appelé sans lever d\'erreur');
+    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 40);
+  });
+
+  test('le VRAI Core tire les trois rouleaux via tirageAvecPoids (draw du jeu, écart 8)', () => {
+    // Aucun draw maison : le draw officiel du jeu demande ses trois symboles
+    // à core.tirageAvecPoids(), avec la distribution configurée en poids.
     const game = createGame({
       id: 'slots',
       rules: slotsRules,
       config: SLOTS_CONFIG,
-      draw: (core) => ({
-        gameId: 'slots',
-        values: [core.roll('slots').value, core.roll('slots').value, core.roll('slots').value],
-      }),
+      draw: drawSlots,
     });
 
     for (let i = 0; i < 20; i += 1) {
       const res = game.start([MISE]);
-      const { values } = res.renderPayload.raw;
+      const { symbols } = res.renderPayload.raw;
 
-      assert.equal(values.length, 3, 'trois rouleaux');
+      assert.equal(symbols.length, 3, 'trois rouleaux');
       assert.ok(
-        values.every((value) => value >= 0 && value < 1),
-        'chaque rouleau est un float dans [0, 1)'
+        symbols.every((symbol) => symbol === 'A' || symbol === 'B'),
+        'chaque symbole vient de la distribution configurée'
       );
-      const combination = values.map((value) => (value < 0.5 ? 'A' : 'B')).join('');
+      const combination = symbols.join('');
       const payout = SLOTS_CONFIG.payouts[combination];
-      assert.equal(res.gameResult.outcome, payout.outcome);
       assert.equal(res.gameResult.multiplier, payout.multiplier);
+      assert.equal(
+        res.gameResult.outcome,
+        payout.multiplier > 1 ? 'win' : payout.multiplier < 1 ? 'loss' : 'push',
+        'outcome toujours déduit du multiplicateur'
+      );
       assert.equal(
         res.renderPayload.economy.newBalance,
         START_BALANCE + 10 * (payout.multiplier - 1)
@@ -254,8 +274,12 @@ describe('G2 - montage scratch (#31) : orchestrateur + règles + Core', () => {
 
       assert.ok(value >= 0 && value < 1, 'le brut est un float dans [0, 1)');
       const band = SCRATCH_CONFIG.payouts.bands.find((candidate) => value < candidate.max);
-      assert.equal(res.gameResult.outcome, band.outcome);
       assert.equal(res.gameResult.multiplier, band.multiplier);
+      assert.equal(
+        res.gameResult.outcome,
+        band.multiplier > 1 ? 'win' : band.multiplier < 1 ? 'loss' : 'push',
+        'outcome toujours déduit du multiplicateur'
+      );
       assert.equal(
         res.renderPayload.economy.newBalance,
         START_BALANCE + 10 * (band.multiplier - 1)

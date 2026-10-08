@@ -9,6 +9,11 @@
 //   * The rules never decide anything by themselves: they receive the RAW
 //     result produced by the Core and only interpret it.
 //
+// OUTCOME: deduced from the multiplier, exactly like the Core settlement
+// (src/core/economy.js): > 1 => win, = 1 => push, < 1 => loss. The config
+// carries ONLY the multiplier, so an admin typo in an optional legacy
+// `outcome` field can never contradict the settlement (relecture #216).
+//
 // PAYOUT TABLE: the project has not defined the Scratch paytable yet (no table
 // in discussion #8, empty `multipliers` in src/core/config/games.config.js).
 // Per AGENTS.md rule 4, no tuning value is hardcoded here: the table is
@@ -19,7 +24,6 @@
  * @typedef {object} ScratchBand
  * @property {number} max - exclusive upper bound of the band, in [0, 1].
  * @property {string} symbol - game-specific symbol of the band (display).
- * @property {'win' | 'loss' | 'push'} outcome - result of the round.
  * @property {number} multiplier - 0 if loss, 1 if push, > 1 if win.
  */
 
@@ -48,6 +52,20 @@ function isFiniteNumber(value) {
 }
 
 /**
+ * Deduces the outcome from the multiplier, using the exact rule the Core
+ * applies when settling (src/core/economy.js): > 1 => win, < 1 => loss,
+ * = 1 => push.
+ *
+ * @param {number} multiplier - validated band multiplier.
+ * @returns {'win' | 'loss' | 'push'} the matching outcome.
+ */
+function outcomeFromMultiplier(multiplier) {
+  if (multiplier > 1) return 'win';
+  if (multiplier < 1) return 'loss';
+  return 'push';
+}
+
+/**
  * Validates the raw roll produced by the Core.
  *
  * @param {unknown} raw - candidate raw roll.
@@ -69,7 +87,8 @@ function assertValidRaw(raw) {
 }
 
 /**
- * Validates the injected payout table.
+ * Validates the injected payout table. Only `multiplier` is read: any legacy
+ * `outcome` field carried by the config is ignored, never trusted.
  *
  * @param {unknown} config - candidate config.
  * @returns {ScratchBand[]} the validated, ordered bands.
@@ -92,9 +111,6 @@ function assertValidPayouts(config) {
     }
     if (band.max <= previousMax) {
       throw new TypeError('scratch/rules: bands must be sorted by ascending exclusive max');
-    }
-    if (!['win', 'loss', 'push'].includes(band.outcome)) {
-      throw new TypeError('scratch/rules: band.outcome must be "win", "loss" or "push"');
     }
     if (!isFiniteNumber(band.multiplier) || band.multiplier < 0) {
       throw new TypeError('scratch/rules: band.multiplier must be a number >= 0');
@@ -153,7 +169,8 @@ function findBand(value, bands) {
  *
  * @param {ScratchRaw} raw - raw result from `coreService.roll()`.
  * @param {{ bets: Array<{ type: string, amount: number }>, config?: ScratchConfig }} context
- * @returns {GameResult} `{ outcome, multiplier, details }`.
+ * @returns {GameResult} `{ outcome, multiplier, details }`, the outcome being
+ *   deduced from the band multiplier.
  * @throws {TypeError} on an invalid raw, bets or missing payout table.
  * @throws {RangeError} when raw.value is outside [0, 1).
  * @example
@@ -166,9 +183,10 @@ export function resolve(raw, { bets, config } = {}) {
   const bands = assertValidPayouts(config);
   const band = findBand(raw.value, bands);
 
+  const { multiplier } = band;
   return {
-    outcome: band.outcome,
-    multiplier: band.multiplier,
+    outcome: outcomeFromMultiplier(multiplier),
+    multiplier,
     details: {
       symbol: band.symbol,
       value: raw.value,
