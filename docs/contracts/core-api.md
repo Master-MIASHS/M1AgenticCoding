@@ -84,3 +84,41 @@ creerProfil({ pseudo: 'Olti', dateNaissance: '2002-03-15' }) // dateNaissance fa
 - Seul `infos` est accepté : l'appelant ne choisit ni le capital ni les jeux.
 - **Erreurs** (rien n'est enregistré) : pseudo absent ou vide (espaces retirés) ; date au mauvais format, inexistante ou future ; **profil déjà existant** ; **état déjà utilisé** (partie jouée, solde dépensé, article acheté, jeux ou rôle différents d'un nouveau joueur) ; capital inférieur au meilleur solde de l'état.
 - Un seul profil pour l'instant (plusieurs profils : non disponible).
+
+## 4. Hasard
+
+Seule source de hasard du projet (règle 2) : aucune de ces fonctions ne décide d'un gain ou d'une perte, c'est le jeu (G2) qui interprète la valeur tirée.
+
+### `roll(gameId, params?)` ✅
+
+```js
+roll('slots') // → { gameId: 'slots', value: 0.4183…, nonce: 418392 }
+```
+
+- `value` : flottant dans `[0, 1)`. `nonce` : entier brut, **non garanti unique** (ne pas l'utiliser comme identifiant). `params` est ignoré.
+
+### `tirageEntier(min, max)` ✅
+
+```js
+tirageEntier(0, 36) // → entier entre 0 et 36 inclus
+```
+
+- **Erreur** si une borne n'est pas un entier sûr (`Number.isSafeInteger`), si `min > max` ou si la largeur de l'intervalle dépasse les entiers sûrs.
+
+### `tirageAvecPoids(elements, poids)` ✅
+
+```js
+tirageAvecPoids(['rouge', 'noir', 'vert'], [18, 18, 1]) // → 'noir'
+```
+
+- Renvoie **l'élément tiré, pas son index** (pour un index : passer `[0, 1, …, n-1]`). Un élément de poids 0 n'est jamais tiré. Les poids n'ont pas besoin de sommer à 1.
+- **Erreur** si les tableaux sont vides ou de longueurs différentes, si un poids n'est pas un nombre fini ≥ 0, ou si la somme est nulle ou infinie.
+
+### `melanger(liste)` ✅
+
+```js
+melanger(paquet) // → nouveau tableau, mêmes éléments, ordre aléatoire
+```
+
+- Fisher-Yates non biaisé ; `liste` n'est jamais modifiée ; copie superficielle (mêmes références d'objets). **Erreur** si `liste` n'est pas un tableau.
+- Garanties détaillées et format des cartes : `docs/contracts/cards-contract.md`.
