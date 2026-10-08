@@ -63,6 +63,8 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
 - `gameResult.multiplier` **inclut la mise** : total reversé = mise totale ×
   `multiplier`, arrondi au centième par le Core. Pas de champ `payout`.
 - `playerAction` est une valeur de `availableActions`, jamais une chaîne libre.
+  Vidéo poker : `hold-0` … `hold-4` (bascule la carte gardée), puis `draw`
+  (validé G3, #8).
 
 ## 3. `renderPayload`
 
@@ -77,6 +79,13 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
 - 🟠 Le contenu **par jeu** n'est pas encore figé (contrat § 5.2). Il faut
   l'aligner avec le responsable du jeu dans la discussion #8. Si une donnée
   manque pour l'affichage, la demander au G2, ne jamais la deviner.
+- **Jeux de cartes** (blackjack, vidéo poker ; le poker suivra quand ses
+  règles seront livrées, #196) : ils fournissent `rules.view(...)` et l'UI
+  reçoit `{ gameId, phase, view, economy? }`, **sans** `raw` ni
+  `interpretation` (#168). `view` ne contient que ce qui est visible.
+- La **disposition** d'un jeu (segments de la roue, types de pari…) n'est pas
+  dans le `renderPayload` : c'est de la configuration, à lire via
+  `coreService.getGameConfig(id)` quand il sera exposé (#158).
 
 ### Blackjack (#189) : `renderPayload.view`
 
@@ -106,28 +115,48 @@ les règles lèvent une erreur si elle manque (règle 4, rien en dur).
 | `wheel` | `{ bets: { <type>: { match: { <champ>: <valeur> }, multiplier } } }` |
 | `plinko` | `{ paytable: number[] }`, index = numéro de case |
 | `blackjack` | `{ paytable: { blackjack, win } }`, multiplicateurs mise incluse (ex. `{ blackjack: 2.5, win: 2 }`) ; égalité → 1, perte → 0 (#189) |
+| `video-poker` | « Jacks or Better » 9/6 (#125) : `paytable` par `category` de `evaluatePokerHand()`, mise incluse : 10 → 250, 9 → 50, 8 → 25, 7 → 9, 6 → 6, 5 → 4, 4 → 3, 3 → 2, 2 → 1 seulement pour une paire de valets ou mieux (sinon 0), 1 → 0 |
 
-🟠 La forme côté Core / admin est en discussion dans #122. La source finale
-sera `getGameConfig` via `coreService`.
+Forme côté Core / admin, **validée dans #122** (G1, G2, G4) :
+
+- roue : `{ paytable: { <type>: { match, multiplier } }, segments: [{ id,
+  label, color, …champs de match, weight }] }`. L'ordre du tableau donne
+  l'ordre d'affichage, et `weight` est le poids du tirage (distinct des
+  gains). G2 assemble `{ bets: config.paytable }` pour `rules.js` ;
+- plinko : `{ paytable: number[], weights: number[] }`, de même longueur.
+
+La source finale sera `getGameConfig` via `coreService` (#158, pas encore
+exposé).
 
 ## 5. Brancher un nouveau jeu (G2)
 
 1. `src/games/<jeu>/rules.js`, **pur** : aucun import du Core, pas de
    `Math.random()`.
-   - instantané : `resolve(raw, { bets, config })` → `gameResult`
-   - multi-étapes : `start(raw, { bets, config })` → session avec
+   - instantané : `resolve(raw, { bets, config, balance })` → `gameResult`
+   - multi-étapes : `start(raw, { bets, config, balance })` → session avec
      `needsDraw: true`, puis `step(session, action, raw)` → session (toujours
      `needsDraw: true`) ou `gameResult` (fin)
 2. Si le brut attendu n'est pas `roll()` → `{ value }`, fournir un
    `draw(core, context)` dans le fichier du jeu (**pas** dans `rules.js`), qui
    appelle la bonne primitive : `core.tirageEntier`, `core.tirageAvecPoids`,
    `core.melanger` (PR #141 pour `draw`, PR #115 pour les primitives).
-3. Cartes : `{ rank, suit }` et utilitaires de `src/games/cardUtils.js`
+   Jeux de cartes : `core.melanger(buildDeck(n))` (de `src/games/deck.js`) au
+   début de la manche, `null` pendant les actions (pioche au curseur dans la
+   session). Modèles : `blackjack/index.js`, `video-poker/draw.js`.
+3. **Mise qui augmente** (double, relance) : la session en cours porte
+   `totalBet`, et le résultat final `details.totalBet`. L'orchestrateur règle
+   ce montant (#166). Une hausse au-delà du solde est refusée : l'action lève
+   une erreur, la session reste inchangée et la manche continue (#199).
+   `balance` (le solde, en simple donnée) permet aux règles de masquer une
+   action non payable.
+4. **Ce que voit G3** : un jeu de cartes fournit `view({ phase, raw,
+   session, gameResult })` (§ 3, #168).
+5. Cartes : `{ rank, suit }` et utilitaires de `src/games/cardUtils.js`
    (`blackjackTotal`, `baccaratTotal`, `evaluatePokerHand`, `hasPair`,
    `RANKS`, `SUITS`).
-4. Tests unitaires des règles + un test de montage dans
-   `tests/integration/g2/` (modèle : `montage.wheel-plinko.test.js`, fixtures
-   `tests/fixtures/g2/rolls.js`).
+6. Tests unitaires des règles + un test de montage dans
+   `tests/integration/g2/` (modèles : `montage.wheel-plinko.test.js`,
+   `montage.blackjack.test.js` ; fixtures `tests/fixtures/g2/rolls.js`).
 
 ## À ne jamais faire
 
