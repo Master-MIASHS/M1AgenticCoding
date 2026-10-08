@@ -48,7 +48,7 @@ L'IA ne lit que `availableActions`, `minRaise` et `aiState.chips`, plus la force
 | `actionsCandidates(situation)` | Actions que le bot peut réellement jouer, parmi `availableActions` |
 | `montantDeRelance(situation, niveau, config)` | Montant d'une relance, toujours entre `minRaise` et `aiState.chips` |
 | `deciderAction(force, situation, options)` | Décision complète : `{ type }` ou `{ type: 'raise', amount }` |
-| `choisirAction(payload, options)` | Point d'entrée du contrat : lit la force dans le payload, puis appelle `deciderAction` (**après la réponse du G2**, voir « Points ouverts ») |
+| `choisirAction(payload, options)` | Point d'entrée du contrat : lit la force dans `payload.aiHandStrength`, puis appelle `deciderAction`. Exposée par la façade **sans** `options` (`core.js` → `coreService`) |
 
 ### Déroulement d'une décision
 
@@ -75,11 +75,13 @@ Le **bluff** n'est pas un cas à part : c'est le poids de `raise` au niveau faib
 | Action inconnue dans `availableActions` → erreur | Détecte tout de suite un écart de contrat au lieu de l'ignorer. |
 | Erreurs `Error` avec message en français | Cohérent avec `rng.js`, `player.js` et le contrat des cartes. |
 
-## Points ouverts (questions au G2 dans #196)
+## Points ouverts (questions au G2 dans #196) et hypothèses retenues
 
-1. **Force de la main.** Format à fixer avec le G2 (ex. catégorie 1 à 10 de `evaluatePokerHand`, ramenée dans `[0, 1]`). `evaluatePokerHand` exige exactement 5 cartes : elle ne couvre ni le **preflop** (2 cartes), ni le **turn** et la **river** (6 et 7 cartes, meilleure main de 5 à choisir). Tant que ce point n'est pas tranché, `choisirAction` n'est pas écrite ; `deciderAction` prend la force en paramètre.
-2. **Unité de `amount`** : total misé après la relance, ou supplément ? `minRaise` dans la même unité ? Les bornes actuelles `[minRaise, aiState.chips]` reprennent le contrat validé ; elles seront ajustées si besoin.
-3. **Tapis** : si `aiState.chips < minRaise`, le bot ne relance pas (choix prudent). Si le G2 autorise le tapis, on l'ajoutera.
+Sans réponse du G2 au 08/10 (dernier cours le 12/10), `choisirAction` est livrée avec les hypothèses ci-dessous, signalées dans #196 et dans la PR : elles s'ajustent sans changer le reste du module.
+
+1. **Force de la main.** Format à fixer avec le G2 (ex. catégorie 1 à 10 de `evaluatePokerHand`, ramenée dans `[0, 1]`). `evaluatePokerHand` exige exactement 5 cartes : elle ne couvre ni le **preflop** (2 cartes), ni le **turn** et la **river** (6 et 7 cartes, meilleure main de 5 à choisir). **Hypothèse retenue :** le G2 transmet `aiHandStrength`, un nombre de 0 (main la plus faible) à 1 (la plus forte), qu'il calcule avec ses propres règles ; un payload sans cette valeur est refusé avec un message clair. Une fonction G2 « meilleure main de 5 parmi 7 » est proposée par @fcassius (#68, v0.7.1).
+2. **Unité de `amount`** : total misé après la relance, ou supplément ? `minRaise` dans la même unité ? Les bornes actuelles `[minRaise, aiState.chips]` reprennent le contrat validé ; elles seront ajustées si besoin. **Hypothèse retenue :** `amount` et `minRaise` sont dans la même unité, celle du G2.
+3. **Tapis** : si `aiState.chips < minRaise`, le bot ne relance pas (choix prudent). Si le G2 autorise le tapis, on l'ajoutera. **Hypothèse retenue :** pas de tapis.
 
 ## Risques
 
