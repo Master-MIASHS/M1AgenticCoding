@@ -1,17 +1,21 @@
 // ---------------------------------------------------------------------------
 // Core - Création d'un nouveau joueur (Groupe 1, tâche n°3)
 // ---------------------------------------------------------------------------
-// Construit un joueur valide, prêt à être enregistré dans l'état.
+// Construit un joueur valide et crée le profil du joueur dans l'état.
 //
-//  * Fonctions PURES : rien n'est écrit dans l'état ni dans localStorage.
-//    L'enregistrement relève de l'état réel et du branchement (n°1, n°8).
+//  * validerPseudo, validerDateNaissance, jeuxDeDepart et creerJoueur sont
+//    PURES : elles n'écrivent rien.
+//  * Seule creerProfil écrit dans l'état, en une seule écriture updateState
+//    (#226), et uniquement sur une partie neuve.
 //  * Aucune valeur de réglage en dur (règle 4 d'AGENTS.md) : le capital de
 //    départ vient de config/player.config.js.
-//  * Conception détaillée : docs/design/nouveau-joueur.md
+//  * Conception détaillée : docs/design/nouveau-joueur.md et
+//    docs/design/creer-profil.md
 // ---------------------------------------------------------------------------
 
 import { GAMES } from './config/games.config.js';
 import { PLAYER_CONFIG } from './config/player.config.js';
+import { getState, updateState } from './state.js';
 
 // Un nouveau joueur commence toujours au niveau 1 (schéma de casino_state).
 const NIVEAU_DE_DEPART = 1;
@@ -154,4 +158,77 @@ export function creerJoueur(
     unlockedGames: jeuxDeDepart(jeux),
     role: 'player',
   };
+}
+
+/**
+ * Crée le profil du joueur : construit le joueur avec creerJoueur, puis
+ * l'enregistre dans l'état en une seule écriture (updateState, #139).
+ * `pseudo` et `birthDate` sont ajoutés à l'état et visibles via getState().
+ *
+ * @param {{ pseudo: string, dateNaissance?: string|null }} infos - Informations
+ *   saisies par le joueur.
+ * @param {object} [options] - Dépendances injectables (tests, réglage admin).
+ * @param {{ getState: function(): object,
+ *   updateState: function(function(object): object): object }} [options.stockage] -
+ *   Accès à l'état (état réel du Core par défaut).
+ * @param {{ capitalDeDepart: number }} [options.config] - Configuration du joueur.
+ * @param {Object<string, { id: string, unlockLevel: number }>} [options.jeux] - Jeux.
+ * @param {Date} [options.maintenant] - Date du jour.
+ * @returns {object} Copie de l'état enregistré.
+ * @throws {Error} Si les informations, la configuration ou l'écriture échouent.
+ */
+export function creerProfil(
+  infos,
+  {
+    stockage = { getState, updateState },
+    config = PLAYER_CONFIG,
+    jeux = GAMES,
+    maintenant = new Date(),
+  } = {},
+) {
+  const joueur = creerJoueur(infos, { config, jeux, maintenant });
+  verifierPartieNeuve(stockage.getState(), joueur);
+  // Revérifié sur l'état transmis par updateState : la décision et
+  // l'écriture portent sur le même état.
+  return stockage.updateState((courant) => {
+    verifierPartieNeuve(courant, joueur);
+    return { ...courant, ...joueur };
+  });
+}
+
+/**
+ * Vérifie que le profil peut être créé sans écraser une partie : aucun
+ * profil existant, aucune partie jouée, et un meilleur solde qui ne baisse
+ * pas (updateState l'interdit).
+ *
+ * @param {object} etat - État courant.
+ * @param {object} joueur - Joueur à enregistrer, construit avec la config du Core.
+ * @returns {void}
+ * @throws {Error} Si un profil existe, si une partie a déjà été jouée ou si
+ *   le capital est inférieur au meilleur solde de l'état.
+ */
+function verifierPartieNeuve(etat, joueur) {
+  if (etat.pseudo !== undefined) {
+    throw new Error('creerProfil : un profil existe déjà (plusieurs profils : tâche n°5)');
+  }
+  if (etat.xp > 0 || etat.level > 1 || etat.history.length > 0) {
+    throw new Error(
+      'creerProfil : une partie a déjà été jouée, le profil ne peut pas écraser sa progression',
+    );
+  }
+  if (joueur.bestBalance < etat.bestBalance) {
+    throw new Error(
+      `creerProfil : le capital (${joueur.bestBalance}) est inférieur au meilleur solde ` +
+        `de l'état (${etat.bestBalance}), qui ne peut pas baisser`,
+    );
+  }
+  const memesJeux = etat.unlockedGames.length === joueur.unlockedGames.length &&
+    etat.unlockedGames.every((id) => joueur.unlockedGames.includes(id)) &&
+    joueur.unlockedGames.every((id) => etat.unlockedGames.includes(id));
+  if (etat.balance !== joueur.balance || etat.bestBalance !== joueur.bestBalance ||
+      etat.role !== joueur.role || !memesJeux ||
+      (etat.ownedItemIds !== undefined &&
+        (!Array.isArray(etat.ownedItemIds) || etat.ownedItemIds.length !== 0))) {
+    throw new Error('creerProfil : état déjà utilisé, création du profil refusée');
+  }
 }
