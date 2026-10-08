@@ -65,6 +65,47 @@ function useAdminData() {
   return { data: result.data, error: result.error, refresh };
 }
 
+function GlobalSettingsSection() {
+  const [capital, setCapital] = useState('');
+  const [feedback, setFeedback] = useState(null);
+
+  const handleUpdateCapital = (e) => {
+    e.preventDefault();
+    try {
+      coreService.setStartingCapital(Number(capital));
+      setFeedback({ type: 'success', message: 'Capital de départ mis à jour !' });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
+  return (
+    <section className="admin__section" aria-labelledby="admin-settings-title">
+      <h2 id="admin-settings-title" className="admin__section-title">
+        Paramètres globaux
+      </h2>
+      <form className="admin__form" onSubmit={handleUpdateCapital}>
+        <label className="admin__field">
+          <span className="admin__field-label">Capital de départ</span>
+          <input
+            type="number"
+            className="admin__input"
+            value={capital}
+            onChange={(e) => setCapital(e.target.value)}
+            placeholder="ex: 1000"
+          />
+        </label>
+        <button type="submit" className="admin__submit">Enregistrer</button>
+        {feedback && (
+          <p className={`admin__feedback admin__feedback--${feedback.type}`}>
+            {feedback.message}
+          </p>
+        )}
+      </form>
+    </section>
+  );
+}
+
 function GlobalStatsSection({ stats }) {
   const rows = statsToDisplay(stats);
 
@@ -191,6 +232,7 @@ function Admin() {
   } else {
     body = (
       <>
+        <GlobalSettingsSection />
         <GlobalStatsSection stats={data.stats} />
 
         <section className="admin__section" aria-labelledby="admin-config-title">
