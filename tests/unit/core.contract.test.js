@@ -22,6 +22,7 @@ const EXPECTED_API = [
   'getUnlockedGames',
   'getLeaderboard',
   'getHistory',
+  'getBadges',
   'setGameConfig',
   'getGlobalStats',
   'exportSave',

@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import { BADGES_CONFIG } from './config/badges.config.js';
+import { getState } from './state.js';
 
 /** Compteurs du joueur sur lesquels un badge peut porter. */
 const COMPTEURS = Object.freeze(['partiesJouees', 'faillites']);
@@ -97,4 +98,16 @@ export function compteursDuJoueur(etat) {
     throw new Error("badges : l'état doit contenir un historique (tableau)");
   }
   return { partiesJouees: etat.history.length, faillites: etat.faillites ?? 0 };
+}
+
+/**
+ * Renvoie les badges du joueur courant, calculés à partir de l'état avec les
+ * définitions de la configuration. Exposée par core.js → coreService : aucun
+ * argument n'est accepté (l'appelant ne choisit pas les définitions).
+ *
+ * @returns {ReturnType<typeof calculerBadges>} Badges et progression.
+ * @throws {Error} Si l'état enregistré est incohérent (compteur invalide).
+ */
+export function getBadges() {
+  return calculerBadges(compteursDuJoueur(getState()));
 }
