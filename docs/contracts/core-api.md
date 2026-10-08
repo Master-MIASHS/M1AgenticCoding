@@ -14,12 +14,12 @@ Toute évolution de ce contrat passe par une issue adressée au G1 et au G5 (rè
 
 1. **Accès par la façade uniquement.** G3 et G4 importent depuis `src/services/coreService.js`. Le G2 reçoit le Core par injection (`draw(core, context)`, orchestrateur `createGame`) et n'importe jamais `src/core/`.
 2. **Synchrone.** Toutes les fonctions sont synchrones ; aucune ne renvoie de `Promise`.
-3. **Copies indépendantes.** Les objets et tableaux renvoyés sont des copies : les modifier ne change pas l'état du Core. Relire après une opération.
+3. **Copies indépendantes.** Les objets et tableaux renvoyés sont des copies : les modifier ne change pas l'état du Core. Relire après une opération. **Exception actuelle** : `setGameConfig` conserve les objets reçus sans les copier (§ 9, correction en cours dans #265).
 4. **Erreurs explicites, aucune écriture partielle.** Une entrée invalide ou une opération refusée lève une `Error` (ou `TypeError` / `RangeError`) et **ne modifie rien**. Les écritures passent par une mise à jour atomique de l'état (`updateState`, #139) : tout ou rien.
 5. **Le Core décide, l'UI affiche** (règle 3). Les fonctions publiques ne prennent jamais d'option injectable (configuration, stockage, horloge) : l'appelant ne peut pas choisir un capital, un catalogue ou un réglage.
 6. **Permissions dans le Core** (règle 5). Les fonctions marquées **admin** lisent le rôle dans l'état et lèvent une erreur si ce n'est pas `admin`. Masquer un bouton ne suffit pas.
 7. **Jetons fictifs uniquement** (règle 1) et **hasard uniquement par le RNG du Core** (règle 2).
-8. **Invariants garantis par le Core** : l'XP, le niveau et le meilleur solde ne diminuent jamais ; le solde ne passe jamais sous 0 par un achat ou un règlement.
+8. **Invariants garantis par le Core** : l'XP, le niveau et le meilleur solde ne diminuent jamais ; le solde ne passe jamais sous 0 par un achat ou un règlement. **Exception actuelle** : `importSave` remplace toute la partie et peut donc faire baisser ces acquis (décision G1/G5 ouverte : #258).
 
 **Statut des fonctions :** ✅ réel · 🟡 partiel (limite indiquée) · 🧪 mock (valeur fictive, à ne pas présenter comme réelle).
 
@@ -262,6 +262,7 @@ try {
 - **Erreurs** (rien n'est modifié) : texte qui n'est pas du JSON ; version non prise en charge (seule la version 1 l'est) ; forme invalide ; **empreinte (hash) qui ne correspond pas** ; état non conforme ; échec d'écriture.
 - Une sauvegarde acceptée **remplace toute la partie** (solde, XP, niveau, jeux, historique) : prévenir le joueur avant.
 - L'empreinte FNV-1a détecte une sauvegarde abîmée, **pas la triche** : ne pas la présenter comme une protection.
+- **Limite actuelle** : l'import d'une sauvegarde plus ancienne peut **faire baisser** l'XP, le niveau et le meilleur solde de la session (exception à l'invariant du § 1 ; décision ouverte : #258).
 
 ## 9. Configuration, statistiques et permissions
 
@@ -272,7 +273,7 @@ setGameConfig('roulette', { probabilities: {…}, multipliers: {…} }) // → {
 ```
 
 - **Réservée à l'admin** : le rôle est lu dans l'état (#211) ; sinon erreur « permission refusée » et rien n'est modifié.
-- **Limites** : la configuration est gardée **en mémoire seulement** (perdue au rechargement) et n'est pas encore validée ; il n'existe pas encore de lecture publique `getGameConfig` (#254, #265).
+- **Limites** : la configuration est gardée **en mémoire seulement** (perdue au rechargement) et n'est pas encore validée. Les objets `probabilities` et `multipliers` reçus sont **conservés tels quels, sans copie** (les modifier ensuite change la configuration), et une section omise est **remplacée par `{}`** au lieu d'être conservée. La fiabilisation (copies, mises à jour partielles) est dans #265. Il n'existe pas encore de lecture publique `getGameConfig` (§ 10).
 
 ### `getGlobalStats()` 🧪
 
