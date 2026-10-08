@@ -12,7 +12,7 @@
 // like the Core settlement: the config carries only the multiplier.
 //
 // The paytable is NOT defined by the project yet, so it is INJECTED through
-// config.payouts (AGENTS.md rule 4). The table below is a test fixture, not
+// config.paytable (AGENTS.md rule 4). The table below is a test fixture, not
 // a game decision.
 
 import { describe, it } from 'node:test';
@@ -39,7 +39,7 @@ const raw = (symbols) => ({ gameId: 'slots', symbols, nonce: 7 });
 const BETS = [{ type: 'mise', amount: 20 }];
 
 /** @param {object} [overrides] */
-const config = (overrides = {}) => ({ payouts: PAYOUTS, ...overrides });
+const config = (overrides = {}) => ({ paytable: PAYOUTS, ...overrides });
 
 describe('slots getReels', () => {
   it('retourne les trois symboles de raw.symbols', () => {
@@ -86,10 +86,10 @@ describe('slots getTotalStake', () => {
 });
 
 describe('slots resolve - validation des entrées', () => {
-  it('exige la table de gains injectée dans config.payouts', () => {
+  it('exige la table de gains injectée dans config.paytable', () => {
     assert.throws(() => resolve(raw(['A', 'B', 'C']), { bets: BETS }), TypeError);
     assert.throws(
-      () => resolve(raw(['A', 'B', 'C']), { bets: BETS, config: config({ payouts: undefined }) }),
+      () => resolve(raw(['A', 'B', 'C']), { bets: BETS, config: config({ paytable: undefined }) }),
       TypeError,
     );
   });
@@ -99,9 +99,9 @@ describe('slots resolve - validation des entrées', () => {
   });
 
   it('rejette une table de gains mal formée', () => {
-    const malformed = (payouts) =>
+    const malformed = (paytable) =>
       assert.throws(
-        () => resolve(raw(['A', 'B', 'C']), { bets: BETS, config: config({ payouts }) }),
+        () => resolve(raw(['A', 'B', 'C']), { bets: BETS, config: config({ paytable }) }),
         TypeError,
       );
 
@@ -186,7 +186,7 @@ describe('slots resolve - outcome déduit du multiplicateur (economy.js)', () =>
     // Un ancien champ `outcome` en contradiction avec le multiplicateur ne
     // doit pas faire échouer le règlement : seul le multiplicateur compte.
     const legacy = config({
-      payouts: {
+      paytable: {
         AAA: { outcome: 'win', multiplier: 0 }, // incohérent : -> loss déduit
         BBB: { outcome: 'loss', multiplier: 5 }, // incohérent : -> win déduit
       },
@@ -241,7 +241,7 @@ describe('slots resolve - cas limites', () => {
   });
 
   it('gère une table où toutes les combinaisons sont perdantes', () => {
-    const losing = config({ payouts: { AAA: { multiplier: 0 } } });
+    const losing = config({ paytable: { AAA: { multiplier: 0 } } });
     const result = resolve(raw(['A', 'A', 'A']), { bets: BETS, config: losing });
     assert.equal(result.outcome, 'loss');
     assert.equal(result.multiplier, 0);

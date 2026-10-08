@@ -17,7 +17,7 @@
 // PAYOUT TABLE: the project has not defined the Scratch paytable yet (no table
 // in discussion #8, empty `multipliers` in src/core/config/games.config.js).
 // Per AGENTS.md rule 4, no tuning value is hardcoded here: the table is
-// INJECTED through `config.payouts` and resolve() throws when it is missing.
+// INJECTED through `config.paytable` and resolve() throws when it is missing.
 // ---------------------------------------------------------------------------
 
 /**
@@ -29,7 +29,7 @@
 
 /**
  * @typedef {object} ScratchConfig
- * @property {{ bands: ScratchBand[] }} payouts - injected payout table.
+ * @property {{ bands: ScratchBand[] }} paytable - injected payout table.
  */
 
 /**
@@ -94,11 +94,11 @@ function assertValidRaw(raw) {
  * @returns {ScratchBand[]} the validated, ordered bands.
  * @throws {TypeError} when the table is missing or malformed.
  */
-function assertValidPayouts(config) {
-  const bands = config?.payouts?.bands;
+function assertValidPaytable(config) {
+  const bands = config?.paytable?.bands;
   if (!Array.isArray(bands) || bands.length === 0) {
     throw new TypeError(
-      'scratch/rules: config.payouts.bands is required (paytable not defined by the project yet)',
+      'scratch/rules: config.paytable.bands is required (paytable not defined by the project yet)',
     );
   }
   let previousMax = 0;
@@ -180,7 +180,7 @@ function findBand(value, bands) {
 export function resolve(raw, { bets, config } = {}) {
   assertValidRaw(raw);
   const stake = getTotalStake(bets);
-  const bands = assertValidPayouts(config);
+  const bands = assertValidPaytable(config);
   const band = findBand(raw.value, bands);
 
   const { multiplier } = band;

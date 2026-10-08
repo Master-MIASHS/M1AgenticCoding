@@ -43,7 +43,7 @@ const SLOTS_CONFIG = {
       { max: 1, symbol: 'B' },
     ],
   },
-  payouts: {
+  paytable: {
     AAA: { multiplier: 5 },
     BBB: { multiplier: 2 },
     ABA: { multiplier: 1 },
@@ -56,7 +56,7 @@ const SLOTS_CONFIG = {
 };
 
 const SCRATCH_CONFIG = {
-  payouts: {
+  paytable: {
     bands: [
       { max: 0.4, symbol: 'brebis', multiplier: 0 },
       { max: 0.8, symbol: 'trèfle', multiplier: 2 },
@@ -165,7 +165,7 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
     // que ce dernier — economy.js n'a donc jamais de paire incohérente à rejeter.
     const incoherent = {
       symbols: SLOTS_CONFIG.symbols,
-      payouts: { AAA: { outcome: 'loss', multiplier: 5 } },
+      paytable: { AAA: { outcome: 'loss', multiplier: 5 } },
     };
     const raw = { gameId: 'slots', symbols: ['A', 'A', 'A'], nonce: 1 };
     const { core, playCalls } = makeTestCore(makeFixtureDraw([raw]));
@@ -198,7 +198,7 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
         'chaque symbole vient de la distribution configurée'
       );
       const combination = symbols.join('');
-      const payout = SLOTS_CONFIG.payouts[combination];
+      const payout = SLOTS_CONFIG.paytable[combination];
       assert.equal(res.gameResult.multiplier, payout.multiplier);
       assert.equal(
         res.gameResult.outcome,
@@ -273,7 +273,7 @@ describe('G2 - montage scratch (#31) : orchestrateur + règles + Core', () => {
       const { value } = res.renderPayload.raw;
 
       assert.ok(value >= 0 && value < 1, 'le brut est un float dans [0, 1)');
-      const band = SCRATCH_CONFIG.payouts.bands.find((candidate) => value < candidate.max);
+      const band = SCRATCH_CONFIG.paytable.bands.find((candidate) => value < candidate.max);
       assert.equal(res.gameResult.multiplier, band.multiplier);
       assert.equal(
         res.gameResult.outcome,

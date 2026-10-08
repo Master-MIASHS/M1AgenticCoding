@@ -5,7 +5,7 @@
 //
 // The payout table is NOT defined by the project yet (no table in discussion
 // #8, empty `multipliers` in src/core/config/games.config.js). It is therefore
-// INJECTED through config.payouts - no tuning value is hardcoded here (AGENTS.md
+// INJECTED through config.paytable - no tuning value is hardcoded here (AGENTS.md
 // rule 4). The table below is a test fixture, not a game decision.
 //
 // OUTCOME: deduced from the multiplier (> 1 win, = 1 push, < 1 loss), exactly
@@ -21,7 +21,7 @@ import { resolve, getTotalStake } from '../../src/games/scratch/rules.js';
  * A value falls in a band when it is strictly lower than that band's `max`.
  */
 const CONFIG = {
-  payouts: {
+  paytable: {
     bands: [
       { max: 0.5, symbol: 'rien', multiplier: 0 },
       { max: 0.8, symbol: 'petit', multiplier: 2 },
@@ -78,18 +78,18 @@ describe('scratch resolve - validation des entrées', () => {
     );
   });
 
-  it('exige la table de gains injectée dans config.payouts', () => {
+  it('exige la table de gains injectée dans config.paytable', () => {
     assert.throws(() => resolve(raw(0.1), { bets: BETS }), TypeError);
     assert.throws(() => resolve(raw(0.1), { bets: BETS, config: {} }), TypeError);
     assert.throws(
-      () => resolve(raw(0.1), { bets: BETS, config: { payouts: { bands: [] } } }),
+      () => resolve(raw(0.1), { bets: BETS, config: { paytable: { bands: [] } } }),
       TypeError,
     );
   });
 
   it('rejette une table de gains mal formée', () => {
     const malformed = (bands) =>
-      assert.throws(() => resolve(raw(0.1), { bets: BETS, config: { payouts: { bands } } }), TypeError);
+      assert.throws(() => resolve(raw(0.1), { bets: BETS, config: { paytable: { bands } } }), TypeError);
 
     malformed([{ max: 0.5, multiplier: 2 }]); // no symbol
     malformed([{ max: 0.5, symbol: 'x' }]); // no multiplier
@@ -187,7 +187,7 @@ describe('scratch resolve - cas limites', () => {
 
   it('gère une table où toutes les bandes sont perdantes', () => {
     const losing = {
-      payouts: { bands: [{ max: 1, symbol: 'rien', multiplier: 0 }] },
+      paytable: { bands: [{ max: 1, symbol: 'rien', multiplier: 0 }] },
     };
     const result = resolve(raw(0.99), { bets: BETS, config: losing });
     assert.equal(result.outcome, 'loss');
@@ -204,7 +204,7 @@ describe('scratch resolve - outcome déduit du multiplicateur (economy.js)', () 
 
   it('multiplier = 1 => push', () => {
     const even = {
-      payouts: { bands: [{ max: 1, symbol: 'egal', multiplier: 1 }] },
+      paytable: { bands: [{ max: 1, symbol: 'egal', multiplier: 1 }] },
     };
     const result = resolve(raw(0.42), { bets: BETS, config: even });
     assert.equal(result.multiplier, 1);
@@ -221,7 +221,7 @@ describe('scratch resolve - outcome déduit du multiplicateur (economy.js)', () 
     // Un ancien champ `outcome` en contradiction avec le multiplicateur ne
     // doit pas faire échouer le règlement : seul le multiplicateur compte.
     const legacy = {
-      payouts: {
+      paytable: {
         bands: [
           { max: 0.5, symbol: 'rien', outcome: 'win', multiplier: 0 }, // -> loss
           { max: 1, symbol: 'plein', outcome: 'loss', multiplier: 5 }, // -> win

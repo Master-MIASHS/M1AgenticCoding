@@ -23,12 +23,12 @@
 // PAYOUT TABLE: the project has not defined the Slots paytable yet (no table
 // in discussion #8, empty `multipliers` in src/core/config/games.config.js).
 // Per AGENTS.md rule 4, no tuning value is hardcoded here: the paytable is
-// INJECTED through `config.payouts` and resolve() throws when it is missing.
+// INJECTED through `config.paytable` and resolve() throws when it is missing.
 // ---------------------------------------------------------------------------
 
 /**
  * @typedef {object} SlotsConfig
- * @property {Record<string, { multiplier: number }>} payouts
+ * @property {Record<string, { multiplier: number }>} paytable
  *   - injected paytable, keyed by the reel symbols concatenated. Only the
  *     multiplier is read: the outcome is deduced from it.
  */
@@ -100,14 +100,14 @@ export function getReels(raw) {
  * @returns {Record<string, { multiplier: number }>} validated paytable.
  * @throws {TypeError} when the paytable is missing or malformed.
  */
-function assertValidPayouts(config) {
-  const payouts = config?.payouts;
-  if (typeof payouts !== 'object' || payouts === null || Array.isArray(payouts)) {
+function assertValidPaytable(config) {
+  const paytable = config?.paytable;
+  if (typeof paytable !== 'object' || paytable === null || Array.isArray(paytable)) {
     throw new TypeError(
-      'slots/rules: config.payouts is required (paytable not defined by the project yet)',
+      'slots/rules: config.paytable is required (paytable not defined by the project yet)',
     );
   }
-  for (const [combination, payout] of Object.entries(payouts)) {
+  for (const [combination, payout] of Object.entries(paytable)) {
     if (typeof payout !== 'object' || payout === null) {
       throw new TypeError(`slots/rules: payout for "${combination}" must be an object`);
     }
@@ -115,7 +115,7 @@ function assertValidPayouts(config) {
       throw new TypeError(`slots/rules: payout "${combination}".multiplier must be a number >= 0`);
     }
   }
-  return payouts;
+  return paytable;
 }
 
 /**
@@ -159,10 +159,10 @@ export function getTotalStake(bets) {
 export function resolve(raw, { bets, config } = {}) {
   const symbols = getReels(raw);
   const stake = getTotalStake(bets);
-  const payouts = assertValidPayouts(config);
+  const paytable = assertValidPaytable(config);
 
   const combination = symbols.join('');
-  const payout = payouts[combination];
+  const payout = paytable[combination];
   if (payout === undefined) {
     throw new TypeError(`slots/rules: no payout for combination "${combination}"`);
   }
