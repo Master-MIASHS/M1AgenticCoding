@@ -142,6 +142,23 @@ try {
   ou un niveau plus bas, et le démarrage avec un `casino_state` corrompu est en cours
   de correction (n°27). Vérifier le comportement courant avant de s’appuyer dessus.
 
+### Statistiques globales : getGlobalStats()
+
+Utiliser pour la page Statistiques et le tableau de bord Admin (G4).
+
+```js
+import { getGlobalStats } from '<chemin-relatif>/services/coreService.js';
+
+const { totalPlays, totalWagered, totalWon, activePlayers, byGame, mostPlayed } = getGlobalStats();
+// byGame : { roulette: { plays, wagered, won }, … } ; mostPlayed : ['roulette', 'slots', …]
+```
+
+- Calculées par le Core à partir de l’historique des parties : l’UI affiche, sans recalculer.
+- `totalWon` = total reversé aux joueurs, mise incluse (comparable à `totalWagered`).
+  Montants arrondis au centime ; `activePlayers` vaut 0 ou 1 (un seul profil aujourd’hui).
+- Toutes les valeurs restent à 0 tant que `play()` n’enregistre pas l’historique (#131).
+- Une erreur signale un historique enregistré corrompu.
+
 ### Boutique : getShopCatalog(), getShopInventory(), purchaseShopItem()
 
 Utiliser pour l’écran Boutique (G4), selon `src/pages/Shop/SHOP_CORE_CONTRACT.md`.
