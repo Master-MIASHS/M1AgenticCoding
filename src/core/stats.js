@@ -9,6 +9,8 @@
 //  * Conception détaillée : docs/design/statistiques.md
 // ---------------------------------------------------------------------------
 
+import { getState } from './state.js';
+
 /**
  * Arrondit un montant au centime, avec la même compensation des erreurs de
  * calcul flottant que le règlement (calculateSettlement).
@@ -93,4 +95,16 @@ export function calculerStatistiques(historique) {
     byGame,
     mostPlayed,
   };
+}
+
+/**
+ * Renvoie les statistiques globales, calculées sur l'historique des parties
+ * de l'état. Exposée par core.js → coreService (même forme qu'avant pour le
+ * G4). Toutes les valeurs valent 0 tant que play() n'enregistre rien (#131).
+ *
+ * @returns {ReturnType<typeof calculerStatistiques>} Statistiques globales.
+ * @throws {Error} Si l'historique enregistré est corrompu.
+ */
+export function getGlobalStats() {
+  return calculerStatistiques(getState().history);
 }
