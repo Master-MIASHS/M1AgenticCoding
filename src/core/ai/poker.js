@@ -264,3 +264,37 @@ export function deciderAction(force, situation, { config = AI_POKER_CONFIG } = {
   }
   return { type };
 }
+
+/**
+ * Point d'entrée du contrat G2 (#196) : choisit l'action du bot à partir du
+ * payload envoyé par l'orchestrateur du poker à chaque tour de parole.
+ *
+ * La force de la main est **évaluée par le G2** (règles du poker) et
+ * transmise dans `aiHandStrength`, de 0 (la plus faible) à 1 (la plus forte) :
+ * le Core n'évalue jamais les cartes. Hypothèse proposée au G2 dans #196, à
+ * confirmer par @raphoulefoufou. La main du joueur humain n'est jamais lue.
+ *
+ * @param {{ aiHandStrength: number, availableActions: string[],
+ *   minRaise?: number, aiState: { chips: number } }} payload - Situation
+ *   transmise par le G2.
+ * @param {object} [options] - Dépendances injectables (tests uniquement ;
+ *   jamais exposées par la façade).
+ * @param {object} [options.config] - Configuration de l'IA.
+ * @returns {{ type: 'fold'|'check'|'call' } | { type: 'raise', amount: number }}
+ *   Décision du bot : `type` toujours dans `availableActions`, `amount`
+ *   entre `minRaise` et `aiState.chips`.
+ * @throws {Error} Si le payload, la force de la main ou la configuration est
+ *   invalide.
+ */
+export function choisirAction(payload, { config = AI_POKER_CONFIG } = {}) {
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('choisirAction : le payload doit être un objet');
+  }
+  const force = payload.aiHandStrength;
+  if (typeof force !== 'number' || !(force >= 0 && force <= 1)) {
+    throw new Error(
+      'choisirAction : aiHandStrength (force de la main évaluée par le G2) doit être un nombre entre 0 et 1',
+    );
+  }
+  return deciderAction(force, payload, { config });
+}

@@ -11,6 +11,7 @@ import {
   montantDeRelance,
   deciderAction,
   validerConfig,
+  choisirAction,
 } from '../../src/core/ai/poker.js';
 
 const NIVEAUX = ['faible', 'moyenne', 'forte'];
@@ -358,5 +359,49 @@ describe('validerConfig', () => {
     assert.throws(() => niveauDeForce(0.5, c), /validerConfig/);
     assert.throws(() => montantDeRelance(situation(), 'forte', c), /validerConfig/);
     assert.throws(() => deciderAction(0.5, situation(), { config: c }), /validerConfig/);
+  });
+});
+
+describe('choisirAction (contrat G2, #196)', () => {
+  it('lit la force de la main dans aiHandStrength et décide dans les bornes', () => {
+    avecGraine('choisir-action', () => {
+      for (const aiHandStrength of [0, 0.3, 0.6, 1]) {
+        const payload = situation({ aiHandStrength });
+        for (let i = 0; i < 50; i += 1) {
+          const decision = choisirAction(payload);
+          assert.ok(payload.availableActions.includes(decision.type));
+          if (decision.type === 'raise') {
+            assert.ok(decision.amount >= payload.minRaise && decision.amount <= payload.aiState.chips);
+          }
+        }
+      }
+    });
+  });
+
+  it('donne la même décision que deciderAction avec la même graine', () => {
+    const payload = situation({ aiHandStrength: 0.8 });
+    let attendu;
+    avecGraine('meme-decision', () => { attendu = deciderAction(0.8, payload); });
+    avecGraine('meme-decision', () => { assert.deepStrictEqual(choisirAction(payload), attendu); });
+  });
+
+  it('refuse un payload sans force de main valide, avec un message clair', () => {
+    for (const aiHandStrength of [undefined, null, '0.5', -0.1, 1.5]) {
+      assert.throws(() => choisirAction(situation({ aiHandStrength })), /aiHandStrength/, String(aiHandStrength));
+    }
+    assert.throws(() => choisirAction(null), /payload/);
+  });
+
+  it('ne lit jamais la main du joueur humain', () => {
+    const payload = situation({
+      aiHandStrength: 0.5,
+      playerState: { chips: 400, currentContribution: 20, hand: [{ rank: 'A', suit: 'spades' }] },
+    });
+    const sansMainJoueur = situation({ aiHandStrength: 0.5 });
+    let avec;
+    let sans;
+    avecGraine('main-joueur', () => { avec = choisirAction(payload); });
+    avecGraine('main-joueur', () => { sans = choisirAction(sansMainJoueur); });
+    assert.deepStrictEqual(avec, sans);
   });
 });
