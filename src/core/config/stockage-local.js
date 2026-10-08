@@ -7,6 +7,8 @@
 // casino_state (state.js n'est pas modifié).
 //
 //  * Sans localStorage (Node, tests) : mémoire seule.
+//  * Ne plante jamais au chargement : valeur par défaut et avertissement si
+//    l'enregistrement est illisible ou refusé (même règle que #240).
 //  * Conception détaillée : docs/design/reglages-admin.md
 // ---------------------------------------------------------------------------
 
@@ -16,7 +18,9 @@
  * @param {string} cle - Clé localStorage du réglage.
  * @param {*} valeurParDefaut - Valeur utilisée tant que rien n'est enregistré
  *   (donnée JSON).
- * @param {object} [options] - Dépendances injectables (tests).
+ * @param {object} [options] - Dépendances injectables.
+ * @param {function(*): void} [options.valider] - Lève une erreur si une
+ *   valeur (lue ou à écrire) est refusée ; règles du module propriétaire.
  * @param {{ getItem: function(string): (string|null),
  *   setItem: function(string, string): void }} [options.stockage] -
  *   localStorage du navigateur par défaut.
@@ -27,24 +31,61 @@
 export function createStockageLocal(
   cle,
   valeurParDefaut,
-  { stockage = globalThis.localStorage } = {},
+  { valider = () => {}, stockage = globalThis.localStorage } = {},
 ) {
   if (typeof cle !== 'string' || cle === '') {
     throw new Error('stockage-local : la clé doit être une chaîne non vide');
   }
 
-  let valeur = structuredClone(valeurParDefaut);
-  const enregistre = stockage?.getItem(cle);
-  if (enregistre !== null && enregistre !== undefined) {
-    valeur = JSON.parse(enregistre);
-  }
+  let valeur = lireValeurInitiale(cle, valeurParDefaut, valider, stockage);
 
   return {
     read: () => structuredClone(valeur),
     write: (suivante) => {
       const copie = structuredClone(suivante);
+      valider(copie);
+      // Enregistrer d'abord : si l'écriture échoue, la mémoire ne change pas.
       stockage?.setItem(cle, JSON.stringify(copie));
       valeur = copie;
     },
   };
+}
+
+/**
+ * Lit la valeur enregistrée sans jamais faire échouer le chargement (même
+ * règle que le démarrage robuste de state.js, #240) : stockage inaccessible,
+ * JSON illisible ou contenu refusé donnent la valeur par défaut avec un
+ * avertissement. La clé n'est pas effacée : elle ne sera remplacée qu'au
+ * prochain enregistrement réussi.
+ *
+ * @param {string} cle - Clé localStorage du réglage.
+ * @param {*} valeurParDefaut - Valeur par défaut (donnée JSON).
+ * @param {function(*): void} valider - Lève une erreur si la valeur est refusée.
+ * @param {object|undefined} stockage - localStorage, ou rien (mémoire seule).
+ * @returns {*} Valeur initiale validée (copie).
+ */
+function lireValeurInitiale(cle, valeurParDefaut, valider, stockage) {
+  const parDefaut = () => structuredClone(valeurParDefaut);
+  let enregistre;
+  try {
+    enregistre = stockage?.getItem(cle);
+  } catch (erreur) {
+    console.warn(`stockage-local : ${cle} inaccessible ; valeur par défaut utilisée.`, erreur);
+    return parDefaut();
+  }
+  if (enregistre === null || enregistre === undefined) {
+    return parDefaut();
+  }
+  try {
+    const lue = JSON.parse(enregistre);
+    valider(lue);
+    return lue;
+  } catch (erreur) {
+    console.warn(
+      `stockage-local : ${cle} illisible ou non conforme ; valeur par défaut utilisée ` +
+        '(clé conservée jusqu’au prochain enregistrement).',
+      erreur,
+    );
+    return parDefaut();
+  }
 }

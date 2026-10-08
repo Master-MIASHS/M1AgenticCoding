@@ -54,3 +54,70 @@ describe('createStockageLocal : lecture et écriture', () => {
     }
   });
 });
+
+/**
+ * Exécute une fonction en capturant les avertissements console.
+ * @param {function(): *} fonction - Code à exécuter.
+ * @returns {{ resultat: *, avertissements: Array<Array<*>> }} Résultat et avertissements.
+ */
+function avecAvertissements(fonction) {
+  const avertissements = [];
+  const original = console.warn;
+  console.warn = (...args) => avertissements.push(args);
+  try {
+    return { resultat: fonction(), avertissements };
+  } finally {
+    console.warn = original;
+  }
+}
+
+describe('createStockageLocal : ne jamais planter au chargement', () => {
+  const valider = (valeur) => {
+    if (!Array.isArray(valeur)) throw new Error('tableau attendu');
+  };
+
+  it('JSON illisible : avertissement, valeur par défaut, clé conservée', () => {
+    const navigateur = fauxLocalStorage({ 'cle-test': '{pas du json' });
+    const { resultat, avertissements } = avecAvertissements(
+      () => createStockageLocal('cle-test', [], { stockage: navigateur, valider }).read(),
+    );
+    assert.deepStrictEqual(resultat, []);
+    assert.strictEqual(avertissements.length, 1);
+    assert.match(String(avertissements[0][0]), /cle-test/);
+    assert.strictEqual(navigateur.donnees.get('cle-test'), '{pas du json');
+  });
+
+  it('contenu refusé par valider : avertissement, valeur par défaut, clé conservée', () => {
+    const navigateur = fauxLocalStorage({ 'cle-test': '{"pas":"un tableau"}' });
+    const { resultat, avertissements } = avecAvertissements(
+      () => createStockageLocal('cle-test', [], { stockage: navigateur, valider }).read(),
+    );
+    assert.deepStrictEqual(resultat, []);
+    assert.strictEqual(avertissements.length, 1);
+    assert.strictEqual(navigateur.donnees.get('cle-test'), '{"pas":"un tableau"}');
+  });
+
+  it('localStorage inaccessible en lecture : avertissement, valeur par défaut', () => {
+    const bloque = { getItem: () => { throw new Error('SecurityError'); }, setItem: () => {} };
+    const { resultat, avertissements } = avecAvertissements(
+      () => createStockageLocal('cle-test', 7, { stockage: bloque }).read(),
+    );
+    assert.strictEqual(resultat, 7);
+    assert.strictEqual(avertissements.length, 1);
+  });
+
+  it('valide aussi les valeurs écrites, sans rien enregistrer en cas de refus', () => {
+    const navigateur = fauxLocalStorage();
+    const stockage = createStockageLocal('cle-test', [], { stockage: navigateur, valider });
+    assert.throws(() => stockage.write('pas un tableau'), /tableau attendu/);
+    assert.strictEqual(navigateur.donnees.has('cle-test'), false);
+    assert.deepStrictEqual(stockage.read(), []);
+  });
+
+  it('une écriture qui échoue lève une erreur et ne change rien', () => {
+    const plein = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } };
+    const stockage = createStockageLocal('cle-test', [1], { stockage: plein });
+    assert.throws(() => stockage.write([2]), /QuotaExceededError/);
+    assert.deepStrictEqual(stockage.read(), [1]);
+  });
+});
