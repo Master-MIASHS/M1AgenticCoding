@@ -166,3 +166,37 @@ claimDailyBonus()
 ### `requestLoan(amount)` 🧪 déprécié
 
 - Mock historique (`{ approved: true, amount }`, rien n'est crédité). Décision G5 du 05/10 : **bonus quotidien, pas de prêt**. Ne pas l'utiliser.
+
+## 6. Progression, classement et historique
+
+### `addXP(amount)` ✅
+
+```js
+addXP(25) // → { xp: 125, level: 2 }
+```
+
+- Ajoute de l'XP et enregistre XP et niveau **ensemble** (#238). Le niveau est calculé avec les seuils de `config/progression.config.js` (**temporaires** : 0, 100, 250, 500, 1000) et ne diminue jamais.
+- **Erreur** si `amount` n'est pas un nombre fini ≥ 0, ou si l'écriture échoue (rien n'est modifié).
+- Quand `play()` appliquera l'XP (#131), ne **pas** appeler `addXP()` en plus après une partie : double gain.
+
+### `getLevel()` ✅
+
+```js
+getLevel() // → 2
+```
+
+### `getUnlockedGames()` 🟡
+
+```js
+getUnlockedGames() // → ['slots', 'dice']
+```
+
+- Copie de `unlockedGames` de l'état. **Limite** : la liste n'est pas encore recalculée quand le niveau monte (calcul en cours : #263).
+
+### `getLeaderboard()` 🧪
+
+- Renvoie aujourd'hui des **joueurs fictifs** (`[{ pseudo: 'alice', balance: 5000, level: 12 }, …]`). Forme cible (`AGENTS.md`) : pseudo, meilleur solde, niveau, badges.
+
+### `getHistory()` 🧪
+
+- Renvoie aujourd'hui `[]`. Les entrées seront créées par `play()` (#131, format préparé dans #266) : `{ roundId, gameId, bet, outcome, payout, netGain, playedAt }`.
