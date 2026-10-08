@@ -233,6 +233,151 @@ function BonusEventsSection() {
   );
 }
 
+function ModerationSection() {
+  const [players, setPlayers] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [balanceUpdate, setBalanceUpdate] = useState('');
+  const [roleUpdate, setRoleUpdate] = useState('');
+  const [feedback, setFeedback] = useState(null);
+
+  const loadPlayers = useCallback(() => {
+    try {
+      // Note: coreService.getPlayers() is not yet implemented by G1. 
+      // We simulate a list of players for the UI.
+      setPlayers([
+        { id: 'u1', pseudo: 'PlayerOne', balance: 1200, role: 'player', status: 'active' },
+        { id: 'u2', pseudo: 'GamblerX', balance: 50, role: 'player', status: 'banned' },
+        { id: 'u3', pseudo: 'AdminBoss', balance: 10000, role: 'admin', status: 'active' },
+      ]);
+    } catch (err) {
+      setFeedback({ type: 'error', message: 'Erreur chargement joueurs' });
+    }
+  }, []);
+
+  useState(() => {
+    loadPlayers();
+  }, [loadPlayers]);
+
+  const handleBalanceUpdate = (e) => {
+    e.preventDefault();
+    if (!selectedPlayer) return;
+    try {
+      // This function is the one we requested from G5/G1
+      if (coreService.updatePlayerBalance) {
+        coreService.updatePlayerBalance(selectedPlayer.id, Number(balanceUpdate));
+        setFeedback({ type: 'success', message: 'Solde mis à jour !' });
+      } else {
+        setFeedback({ type: 'error', message: 'Fonction updatePlayerBalance non implémentée par G1' });
+      }
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
+  const handleRoleUpdate = (e) => {
+    e.preventDefault();
+    if (!selectedPlayer) return;
+    try {
+      if (coreService.updatePlayerRole) {
+        coreService.updatePlayerRole(selectedPlayer.id, roleUpdate);
+        setFeedback({ type: 'success', message: 'Rôle mis à jour !' });
+      } else {
+        setFeedback({ type: 'error', message: 'Fonction updatePlayerRole non implémentée par G1' });
+      }
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
+  const handleStatusUpdate = (status) => {
+    if (!selectedPlayer) return;
+    try {
+      if (coreService.setPlayerStatus) {
+        coreService.setPlayerStatus(selectedPlayer.id, status);
+        setFeedback({ type: 'success', message: 'Statut mis à jour !' });
+      } else {
+        setFeedback({ type: 'error', message: 'Fonction setPlayerStatus non implémentée par G1' });
+      }
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
+  return (
+    <section className="admin__section" aria-labelledby="admin-mod-title">
+      <h2 id="admin-mod-title" className="admin__section-title">Modération des joueurs</h2>
+      <div className="admin__mod-container">
+        <ul className="admin__player-list">
+          {players.map(p => (
+            <li 
+              key={p.id} 
+              className={`admin__player-item ${selectedPlayer?.id === p.id ? 'selected' : ''}`}
+              onClick={() => setSelectedPlayer(p)}
+            >
+              <span>{p.pseudo}</span>
+              <span className={`admin__status ${p.status}`}>{p.status}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="admin__mod-details">
+          {selectedPlayer ? (
+            <>
+              <h3>Gestion de {selectedPlayer.pseudo}</h3>
+              <form className="admin__form" onSubmit={handleBalanceUpdate}>
+                <label className="admin__field">
+                  <span className="admin__field-label">Ajuster Solde (+/-)</span>
+                  <input 
+                    type="number" 
+                    className="admin__input" 
+                    value={balanceUpdate} 
+                    onChange={e => setBalanceUpdate(e.target.value)}
+                  />
+                </label>
+                <button type="submit" className="admin__submit">Appliquer</button>
+              </form>
+
+              <form className="admin__form" onSubmit={handleRoleUpdate}>
+                <label className="admin__field">
+                  <span className="admin__field-label">Changer Rôle</span>
+                  <select 
+                    className="admin__input" 
+                    value={roleUpdate} 
+                    onChange={e => setRoleUpdate(e.target.value)}
+                  >
+                    <option value="player">Joueur</option>
+                    <option value="moderator">Modérateur</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </label>
+                <button type="submit" className="admin__submit">Modifier Rôle</button>
+              </form>
+
+              <div className="admin__actions">
+                <button 
+                  className="admin__btn-status" 
+                  onClick={() => handleStatusUpdate('active')}
+                >Activer</button>
+                <button 
+                  className="admin__btn-status admin__btn-status--banned" 
+                  onClick={() => handleStatusUpdate('banned')}
+                >Bannir</button>
+              </div>
+            </>
+          ) : (
+            <p className="admin__empty">Sélectionnez un joueur pour le modifier</p>
+          )}
+        </div>
+      </div>
+      {feedback && (
+        <p className={`admin__feedback admin__feedback--${feedback.type}`}>
+          {feedback.message}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function GlobalStatsSection({ stats }) {
   const rows = statsToDisplay(stats);
 
@@ -361,6 +506,7 @@ function Admin() {
       <>
         <GlobalSettingsSection />
         <BonusEventsSection />
+        <ModerationSection />
         <GlobalStatsSection stats={data.stats} />
 
         <section className="admin__section" aria-labelledby="admin-config-title">
