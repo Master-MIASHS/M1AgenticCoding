@@ -119,12 +119,23 @@ function copierEvenement({ id, cible, multiplicateur, debut, fin }) {
  * @throws {Error} Si le contenu du stockage est invalide.
  */
 function lireEvenements(store) {
-  const contenu = store.read();
-  if (!Array.isArray(contenu)) {
+  return validerListeEvenements(store.read());
+}
+
+/**
+ * Vérifie une liste complète d'événements : chacun valide, identifiants
+ * uniques, aucun chevauchement sur une même cible.
+ *
+ * @param {Array<object>} liste - Événements à vérifier.
+ * @returns {Array<object>} Copie des événements (champs connus seulement).
+ * @throws {Error} Si la liste ou l'un de ses événements est invalide.
+ */
+export function validerListeEvenements(liste) {
+  if (!Array.isArray(liste)) {
     throw new Error('events.config : le stockage doit contenir un tableau d’événements');
   }
   const evenements = [];
-  for (const evenement of contenu) {
+  for (const evenement of liste) {
     validerEvenement(evenement);
     verifierCompatibilite(evenements, evenement);
     evenements.push(copierEvenement(evenement));
