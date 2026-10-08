@@ -22,16 +22,22 @@
 //      `draw(core, context)` that calls the right Core primitive
 //      (tirageEntier / tirageAvecPoids / melanger, contrat § 4.1, écart 8).
 //      `draw` lives in the game's own file, never in rules.js (rules stay pure)
-//   2. hand the raw result to the injected rules, together with the bets and
-//      the game config:
-//        - single-step games : rules.resolve(raw, { bets, config })
-//        - multi-step games  : rules.start(raw, { bets, config }) then, for
-//                              each player action,
+//   2. hand the raw result to the injected rules, together with the bets, the
+//      game config and the player's balance (plain data, rules stay pure):
+//        - single-step games : rules.resolve(raw, { bets, config, balance })
+//        - multi-step games  : rules.start(raw, { bets, config, balance })
+//                              then, for each player action,
 //                              rules.step(session, action, raw)    (§ 3.2)
 //   3. keep a multi-step game going while the rules return a session carrying
 //      `needsDraw: true`; an object WITHOUT `needsDraw` is terminal (§ 3.2)
 //   4. call coreService.play(gameId, totalBet, gameResult) exactly ONCE, on
 //      the terminal step only (§ 4.3)
+//   5. never let a stake exceed the balance: the opening bets are checked
+//      before any draw, and a raised stake (double, raise) before it is
+//      accepted. The rules report a raised stake as `totalBet` on a running
+//      session and as `details.totalBet` on the final result (#166). A raise
+//      the player cannot afford is REFUSED: the action throws, the session is
+//      left unchanged and the round goes on with the stake it had.
 //
 // `bets` is ALWAYS normalized to an array of { type, amount }, even for a
 // single bet; rules receive the normalized array.
@@ -45,7 +51,7 @@
 //   - the content of renderPayload (§ 5.2): the shape proposed in #8 is used,
 //     but nothing beyond the raw draw and the result details is filled in;
 //   - the opening of a multi-step round on the rules side (§ 3.2): the
-//     existing form rules.start(raw, { bets, config }) is kept;
+//     existing form rules.start(raw, { bets, config, balance }) is kept;
 //   - where availableActions come from: read from session.availableActions.
 //
 // ABSOLUTE RULE: this file never calls Math.random(); the only source of
@@ -103,9 +109,11 @@ function isPending(result) {
  * Creates a playable game from an id and a rules object.
  *
  * `rules` must expose either:
- *   - resolve(raw, { bets, config }) -> gameResult                 (single-step)
- *   - start(raw, { bets, config }) -> session AND
+ *   - resolve(raw, { bets, config, balance }) -> gameResult        (single-step)
+ *   - start(raw, { bets, config, balance }) -> session AND
  *     step(session, action, raw) -> session | gameResult            (multi-step)
+ * `balance` is the player's balance (undefined when the core has no
+ * getBalance()); a session reports a raised stake as `totalBet`.
  *
  * @param {{ id: string, rules: object, config?: object, core?: object, draw?: Function }} options
  *   `config` is forwarded as-is to the rules (undefined when not provided).
@@ -113,8 +121,9 @@ function isPending(result) {
  *   coreService facade.
  *   `draw(core, context)` returns the raw draw handed to the rules; it is the
  *   only code allowed to ask the Core for randomness on behalf of the game.
- *   `context` is { bets, config, params } on start(), plus { session, action }
- *   on action(). Defaults to core.roll(id, params).
+ *   `context` is { bets, config, balance, params } on start(), and
+ *   { bets, config, params, session, action } on action(). Defaults to
+ *   core.roll(id, params).
  * @returns {{ id: string, start: Function, action: Function, playRound: Function }}
  */
 export function createGame({
@@ -189,8 +198,19 @@ export function createGame({
    * @returns {number}
    */
   function finalStake(bets, gameResult) {
+    return checkStake(bets, gameResult?.details?.totalBet);
+  }
+
+  /**
+   * Validates a stake reported by the rules (`details.totalBet` on a result,
+   * `totalBet` on a running session) and returns the stake to settle.
+   *
+   * @param {Array<{ type: string, amount: number }>} bets
+   * @param {unknown} reported
+   * @returns {number}
+   */
+  function checkStake(bets, reported) {
     const opening = sumBets(bets);
-    const reported = gameResult?.details?.totalBet;
     if (reported === undefined) return opening;
     if (typeof reported !== 'number' || !Number.isFinite(reported) || reported < opening) {
       throw new RangeError(
@@ -198,6 +218,38 @@ export function createGame({
       );
     }
     return reported;
+  }
+
+  /**
+   * Current balance, when the injected core exposes getBalance() (the
+   * official coreService does). Undefined otherwise: no check is made.
+   *
+   * @returns {number | undefined}
+   */
+  function readBalance() {
+    if (typeof core.getBalance !== 'function') return undefined;
+    const balance = core.getBalance();
+    // A non-numeric balance would silently disable the check below.
+    if (typeof balance !== 'number' || !Number.isFinite(balance)) {
+      throw new TypeError(`createGame(${id}): core.getBalance() must return a finite number`);
+    }
+    return balance;
+  }
+
+  /**
+   * A stake can never exceed the balance. Checked BEFORE the round starts and
+   * before a raise is accepted, so that play() never fails at the very end.
+   *
+   * @param {number} stake
+   * @param {number | undefined} [balance] - already read balance, if any.
+   * @throws {RangeError} when the balance is known and too low.
+   */
+  function ensureAffordable(stake, balance = readBalance()) {
+    if (balance !== undefined && stake > balance) {
+      throw new RangeError(
+        `createGame(${id}): insufficient balance for a stake of ${stake} (balance ${balance})`
+      );
+    }
   }
 
   /**
@@ -219,7 +271,13 @@ export function createGame({
    */
   function start(bets, params = {}) {
     const normalizedBets = normalizeBets(bets);
-    const context = { bets: normalizedBets, config };
+    const balance = readBalance();
+    // Fail fast: no draw, no session for a round the player cannot afford.
+    ensureAffordable(sumBets(normalizedBets), balance);
+    // The balance is handed to the rules as plain data (they stay pure), so
+    // that they can hide an unaffordable raise (double...) from
+    // availableActions.
+    const context = { bets: normalizedBets, config, balance };
     sessionCount += 1;
     const sessionId = `${id}-${sessionCount}`;
 
@@ -266,6 +324,11 @@ export function createGame({
       action: playerAction,
     });
     const result = rules.step(entry.session, playerAction, raw);
+    // A raise the player cannot afford is refused: the session is left as it
+    // was and the round goes on.
+    ensureAffordable(
+      isPending(result) ? checkStake(entry.bets, result.totalBet) : finalStake(entry.bets, result)
+    );
     if (!isPending(result)) {
       return settle(sessionId, entry.bets, raw, result);
     }

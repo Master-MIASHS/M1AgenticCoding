@@ -14,6 +14,9 @@ const EXPECTED_API = [
   'getBalance',
   'claimDailyBonus',
   'requestLoan',
+  'getShopCatalog',
+  'getShopInventory',
+  'purchaseShopItem',
   'addXP',
   'getLevel',
   'getUnlockedGames',
@@ -23,6 +26,7 @@ const EXPECTED_API = [
   'getGlobalStats',
   'exportSave',
   'importSave',
+  'creerProfil',
 ];
 
 function createSave(data, version = 1) {

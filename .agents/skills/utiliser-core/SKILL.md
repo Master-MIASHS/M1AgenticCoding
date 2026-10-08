@@ -14,10 +14,12 @@ Ne pas copier un module interne pour contourner un export manquant.
 Repères à la rédaction (à revérifier, pas des garanties permanentes) :
 - `getState()` est public.
 - `exportSave()` / `importSave()` sont publics (#130, contrôle d’intégrité FNV-1a retenu dans #132).
+- `getShopCatalog()`, `getShopInventory()` et `purchaseShopItem()` sont publics (#205).
 - `roll()` est public ; `tirageEntier()`, `tirageAvecPoids()` et `melanger()` (#28) le sont depuis #115.
+- `creerProfil()` est public (#226, construit avec `creerJoueur`, #134).
 - L’écriture interne `updateState` est intégrée par #139.
-- L’adaptateur `createProgressionStore` est proposé dans #144 (ticket #143).
-- Le branchement par défaut de la progression reste une étape séparée.
+- L’adaptateur `createProgressionStore` est intégré par #144 (ticket #143).
+- Le branchement par défaut de la progression utilise cet adaptateur (#237) ; vérifier que la PR correspondante est intégrée dans la branche utilisée.
 
 ## G2/G3/G4 : accéder par la façade
 
@@ -37,10 +39,39 @@ const { balance, bestBalance, xp, level, unlockedGames, history, role } = snapsh
 ```
 
 Le résultat est une copie indépendante, pas une référence réactive. Le modifier
-ne met pas à jour le joueur. Relire après une opération réussie du Core. Ne pas
-inventer des champs comme `pseudo` ou `xpForNextLevel` avant leur disponibilité.
+ne met pas à jour le joueur. Relire après une opération réussie du Core.
+`pseudo` et `birthDate` n’existent qu’après `creerProfil()` (absents avant : prévoir
+un affichage par défaut). Ne pas inventer `xpForNextLevel` avant sa disponibilité.
 La lecture peut échouer si l’initialisation du stockage échoue dans la version
 utilisée : vérifier le comportement courant et le traitement d’erreur prévu.
+
+### Créer le profil du joueur : creerProfil()
+
+Utiliser sur l’écran de création de profil (G4), au premier lancement.
+
+```js
+import { creerProfil, getState } from '<chemin-relatif>/services/coreService.js';
+
+try {
+  const etat = creerProfil({ pseudo: saisie, dateNaissance: '2000-05-17' }); // date facultative
+  // etat.pseudo, etat.balance (capital de départ de la config)…
+} catch (erreur) {
+  // refus : afficher erreur.message, rien n’a été enregistré
+}
+```
+
+- La façade publique accepte seulement les informations du profil. Le capital, les jeux
+  et le stockage sont choisis par le Core ; les options d’injection restent internes à G1.
+- Le Core valide tout : pseudo non vide (espaces retirés), date `AAAA-MM-JJ` existante
+  et pas dans le futur. L’UI ne recalcule ni le capital ni les jeux de départ.
+- Une seule écriture : en cas d’erreur, l’état n’est pas modifié.
+- **Un seul profil, sur une partie neuve** : refus si un profil existe déjà ou si une
+  partie a déjà été jouée, le solde diffère du capital initial, un inventaire existe
+  ou les jeux/rôle diffèrent de ceux d’un nouveau joueur. Aucun acquis n’est réinitialisé. Plusieurs
+  profils : tâche n°5, pas encore disponible.
+- Refus aussi si le capital réglé par l’admin est inférieur au meilleur solde de
+  l’état par défaut (le meilleur solde ne baisse jamais) : à trancher au branchement.
+- Après la création, relire `getState()` : `pseudo` et `birthDate` y figurent.
 
 ### Tirer du hasard brut : roll(), tirageEntier(), tirageAvecPoids(), melanger()
 
@@ -111,10 +142,37 @@ try {
   ou un niveau plus bas, et le démarrage avec un `casino_state` corrompu est en cours
   de correction (n°27). Vérifier le comportement courant avant de s’appuyer dessus.
 
+### Boutique : getShopCatalog(), getShopInventory(), purchaseShopItem()
+
+Utiliser pour l’écran Boutique (G4), selon `src/pages/Shop/SHOP_CORE_CONTRACT.md`.
+
+```js
+import { getShopCatalog, getShopInventory, purchaseShopItem } from '<chemin-relatif>/services/coreService.js';
+
+const articles = getShopCatalog();                // [{ id, name, description, category, price, visual?, available }]
+const { ownedItemIds } = getShopInventory();       // articles déjà achetés
+const resultat = purchaseShopItem(article.id);     // { status, itemId, balance, message? }
+```
+
+| `status` | Sens |
+|---|---|
+| `purchased` | Achat fait : solde débité et article ajouté, en une seule écriture |
+| `already-owned` | Article déjà possédé |
+| `unavailable` | Article présent mais `available: false` |
+| `insufficient-funds` | Solde inférieur au prix (le solde ne passe jamais sous 0) |
+| `rejected` | Identifiant inconnu ou invalide |
+
+- Seul `purchased` modifie l’état. `balance` est toujours le solde après l’opération :
+  l’afficher, puis relire l’inventaire. Le meilleur solde, l’XP et le niveau ne changent pas.
+- L’UI ne décide jamais d’un achat : elle envoie l’identifiant et affiche le statut.
+- Une erreur levée signifie un échec d’écriture : ne pas annoncer l’achat.
+- Le catalogue est **vide** tant que le G5 n’a pas fixé le contenu de la boutique
+  (décision ouverte, #205) : prévoir l’affichage d’un catalogue vide. Jamais de vrai argent.
+- L’effet d’un article (avatar, thème…) relève de l’affichage, pas du Core.
+
 ## G1 uniquement : écriture et progression internes
 
-Ces exemples supposent #139 et #144 intégrées dans la base de travail ; #144
-reste à fusionner à la rédaction. Ils ne
+Ces exemples supposent #139 et #144 intégrées dans la base de travail. Ils ne
 constituent pas une autorisation d’import interne pour G2/G3/G4.
 
 ### updateState(updater)
@@ -156,8 +214,10 @@ les deux champs, ignore les autres, refuse les diminutions et propage les erreur
 XP finie ≥ 0 (décimales acceptées), niveau entier sûr ≥ 1. Le calcul du niveau
 reste à `createProgression`. Les dépendances injectées doivent être synchrones.
 
-Ne pas remplacer seul l’instance par défaut de Reda ni prétendre que cet exemple
-est déjà le branchement de production. Pour régler une partie, ne pas enchaîner
+Le branchement de l’instance publique est autorisé par Reda et réalisé dans #237.
+`addXP` persiste XP/niveau ensemble et propage les erreurs de stockage ; `getLevel`
+relit la progression courante. Sans localStorage, l’état reste en mémoire.
+Ce branchement ne déclenche aucun gain automatique par partie. Pour régler une partie, ne pas enchaîner
 une écriture de solde puis une écriture XP : #131 prévoit une transaction globale
 comprenant solde, XP/niveau, meilleur solde et historique.
 
