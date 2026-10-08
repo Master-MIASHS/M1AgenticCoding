@@ -296,7 +296,7 @@ getGlobalStats() // → { totalPlays: 0, totalWagered: 0, totalWon: 0, activePla
 
 ## 10. Évolutions en cours (pas encore sur `main`)
 
-À ne pas utiliser avant leur fusion ; les noms et formes sont ceux des PR ouvertes au 08/10.
+À ne pas utiliser avant leur fusion ; les noms et formes sont ceux des PR ouvertes au 08/10. Une PR de **calcul pur** ne rend pas une fonction disponible : seule son **exposition** dans `core.js` / `coreService` le fait.
 
 | Fonction ou changement | Ce qui change | Suivi |
 |---|---|---|
@@ -308,9 +308,9 @@ getGlobalStats() // → { totalPlays: 0, totalWagered: 0, totalWon: 0, activePla
 | `lancerEvenementBonus(evenement)` | Lancer un événement bonus (**admin**) | #262 |
 | `arreterEvenementBonus(id)` | Arrêter un événement bonus (**admin**) | #262 |
 | `choisirAction(payload)` | Action du bot de poker, à partir du payload du G2 | #264, #196 |
-| `getGameConfig(gameId)` | Lire la configuration d'un jeu | #254, #265 |
-| `xpForNextLevel` dans `getState()` | Seuil total d'XP du niveau suivant, `null` au niveau maximal | #250 |
-| `getUnlockedGames()` recalculée | Jeux débloqués selon le niveau, sans perdre les acquis | #263 |
+| `getGameConfig(gameId)` | Lire la configuration d'un jeu | Fiabilisation de la configuration (copies, mises à jour partielles) : #265 (@nafiamedreda) ; **exposition** dans `core.js` / `coreService` : #158, #254 (@ahmed-abc73) |
+| `xpForNextLevel` dans `getState()` | Seuil total d'XP du niveau suivant, `null` au niveau maximal | **Calcul** : #250 (@nafiamedreda) ; **exposition** dans `getState()` : #252 (@ahmed-abc73) |
+| `getUnlockedGames()` recalculée | Jeux débloqués selon le niveau, sans perdre les acquis | **Calcul pur** : #263 (@nafiamedreda), sans branchement automatique à l'état ni à l'API ; branchement à prévoir |
 | Capital effectif pour un nouveau joueur | L'état initial et `creerProfil` utilisent le capital réglé par l'admin | #253 |
 
 ## 11. Faire évoluer ce contrat
