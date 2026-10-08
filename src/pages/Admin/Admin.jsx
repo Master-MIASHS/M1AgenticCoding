@@ -106,6 +106,133 @@ function GlobalSettingsSection() {
   );
 }
 
+function BonusEventsSection() {
+  const [events, setEvents] = useState([]);
+  const [newEvent, setNewEvent] = useState({
+    id: '',
+    cible: 'gains',
+    multiplicateur: 2,
+    debut: Date.now(),
+    fin: Date.now() + 86400000,
+  });
+  const [feedback, setFeedback] = useState(null);
+
+  const loadEvents = useCallback(() => {
+    try {
+      setEvents(coreService.getEvenementsBonus());
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  }, []);
+
+  useState(() => {
+    loadEvents();
+  }, [loadEvents]);
+
+  const handleLaunch = (e) => {
+    e.preventDefault();
+    try {
+      coreService.lancerEvenementBonus(newEvent);
+      setFeedback({ type: 'success', message: 'Événement bonus lancé !' });
+      loadEvents();
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
+  const handleStop = (id) => {
+    try {
+      coreService.arreterEvenementBonus(id);
+      setFeedback({ type: 'success', message: 'Événement arrêté !' });
+      loadEvents();
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
+  return (
+    <section className="admin__section" aria-labelledby="admin-bonus-title">
+      <h2 id="admin-bonus-title" className="admin__section-title">
+        Événements Bonus
+      </h2>
+      <form className="admin__form" onSubmit={handleLaunch}>
+        <div className="admin__form-row">
+          <label className="admin__field">
+            <span className="admin__field-label">ID Événement</span>
+            <input
+              type="text"
+              className="admin__input"
+              value={newEvent.id}
+              onChange={(e) => setNewEvent({ ...newEvent, id: e.target.value })}
+              required
+            />
+          </label>
+          <label className="admin__field">
+            <span className="admin__field-label">Cible</span>
+            <select
+              className="admin__input"
+              value={newEvent.cible}
+              onChange={(e) => setNewEvent({ ...newEvent, cible: e.target.value })}
+            >
+              <option value="gains">Gains</option>
+              <option value="xp">XP</option>
+            </select>
+          </label>
+        </div>
+        <div className="admin__form-row">
+          <label className="admin__field">
+            <span className="admin__field-label">Multiplicateur</span>
+            <input
+              type="number"
+              className="admin__input"
+              value={newEvent.multiplicateur}
+              onChange={(e) => setNewEvent({ ...newEvent, multiplicateur: Number(e.target.value) })}
+              min="1.1"
+              step="0.1"
+              required
+            />
+          </label>
+          <label className="admin__field">
+            <span className="admin__field-label">Début (ms)</span>
+            <input
+              type="number"
+              className="admin__input"
+              value={newEvent.debut}
+              onChange={(e) => setNewEvent({ ...newEvent, debut: Number(e.target.value) })}
+              required
+            />
+          </label>
+          <label className="admin__field">
+            <span className="admin__field-label">Fin (ms)</span>
+            <input
+              type="number"
+              className="admin__input"
+              value={newEvent.fin}
+              onChange={(e) => setNewEvent({ ...newEvent, fin: Number(e.target.value) })}
+              required
+            />
+          </label>
+        </div>
+        <button type="submit" className="admin__submit">Lancer l'événement</button>
+      </form>
+
+      <ul className="admin__bonus-list">
+        {events.map((ev) => (
+          <li key={ev.id} className="admin__bonus-item">
+            <span><strong>{ev.id}</strong> ({ev.cible}) x{ev.multiplicateur}</span>
+            <button onClick={() => handleStop(ev.id)} className="admin__btn-stop">Arrêter</button>
+          </li>
+        ))}
+      </ul>
+      {feedback && (
+        <p className={`admin__feedback admin__feedback--${feedback.type}`}>
+          {feedback.message}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function GlobalStatsSection({ stats }) {
   const rows = statsToDisplay(stats);
 
@@ -233,6 +360,7 @@ function Admin() {
     body = (
       <>
         <GlobalSettingsSection />
+        <BonusEventsSection />
         <GlobalStatsSection stats={data.stats} />
 
         <section className="admin__section" aria-labelledby="admin-config-title">
