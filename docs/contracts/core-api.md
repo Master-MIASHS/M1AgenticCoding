@@ -165,7 +165,7 @@ claimDailyBonus()
 
 ### `requestLoan(amount)` 🧪 déprécié
 
-- Mock historique (`{ approved: true, amount }`, rien n'est crédité). Décision G5 du 05/10 : **bonus quotidien, pas de prêt**. Ne pas l'utiliser.
+- Mock historique (`{ approved: true, amount }`, rien n'est crédité). Le G5 a tranché **bonus quotidien, pas de prêt** ([@Nina253, discussion #9, 05/10](https://github.com/maximiliense/M1AgenticCoding/discussions/9#discussioncomment-18765157) ; cadrage d'[@ArthY07, 06/10](https://github.com/maximiliense/M1AgenticCoding/discussions/9#discussioncomment-18777141) ; mis en œuvre dans #217). `AGENTS.md` la liste encore parmi les décisions ouvertes : le report relève du G5. Ne pas utiliser `requestLoan`.
 
 ## 6. Progression, classement et historique
 
