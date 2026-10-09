@@ -11,10 +11,7 @@
 // ---------------------------------------------------------------------------
 
 import { getState } from './state.js';
-import {
-  getGlobalStats,
-  setGameConfig as setGameConfigUnchecked,
-} from './config/games.config.js';
+import { setGameConfig as setGameConfigUnchecked } from './config/games.config.js';
 import { assertCanModifyConfig } from './permissions.js';
 import {
   getCapitalDeDepartActuel,
@@ -54,7 +51,7 @@ export {
   getLeaderboard,
   getHistory,
 } from './progression.js';
-export { getGlobalStats };
+export { getGlobalStats } from './stats.js';
 export { exportSave, importSave } from './storage.js';
 /**
  * Crée un profil avec les dépendances choisies par le Core uniquement.
