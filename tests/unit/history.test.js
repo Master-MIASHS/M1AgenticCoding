@@ -30,6 +30,30 @@ describe('Préparation pure de l’historique (#229)', () => {
     assert.deepEqual(createHistoryEntry(input), input);
   });
 
+  it('refuse les montants incohérents sans modifier les données reçues', () => {
+    for (const netGain of [500, -500]) {
+      const input = Object.freeze({ ...entry, bet: 10, payout: 0, netGain });
+      assert.throws(() => createHistoryEntry(input), RangeError);
+      assert.equal(input.netGain, netGain);
+    }
+  });
+
+  it('tolère un écart au plus égal à un centime sans arrondir les montants', () => {
+    for (const netGain of [-0.01, 0.01]) {
+      const input = { ...entry, bet: 1, payout: 1, netGain };
+      assert.deepEqual(createHistoryEntry(input), input);
+    }
+    for (const netGain of [-0.010001, 0.010001]) {
+      assert.throws(() => createHistoryEntry({ ...entry, bet: 1, payout: 1, netGain }),
+        RangeError);
+    }
+  });
+
+  it('refuse un écart non fini même lorsque les montants sont finis', () => {
+    assert.throws(() => createHistoryEntry({ ...entry, bet: Number.MAX_VALUE,
+      payout: 0, netGain: Number.MAX_VALUE }), RangeError);
+  });
+
   it('retourne des objets indépendants sans modifier une entrée gelée', () => {
     const input = Object.freeze({ ...entry, details: { opaque: true } });
     const first = createHistoryEntry(input);

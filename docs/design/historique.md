@@ -15,6 +15,16 @@ le gain net fini et signé. `outcome` vaut `win`, `loss` ou `push`.
 d'horloge dans le calcul. Les montants sont conservés sans arrondi ni recalcul.
 L'issue #131 décrit ce format ; #229 confirme sa compatibilité économique.
 
+### Cohérence des montants (review G5 de #266)
+Le helper refuse par `RangeError` un écart supérieur à un centime entre `netGain`
+et `payout - bet`, y compris un dépassement numérique du calcul de l'écart.
+La tolérance de `0.01` demandée par Noah couvre l'arrondi économique au centime ;
+elle ne modifie ni ne recalcule les valeurs retournées. `outcome` reste fourni par
+le jeu et n'est pas déduit du signe de `netGain`.
+Amina doit transmettre les montants du règlement final, après tout bonus gains,
+en conservant cette relation avant l'écriture atomique. Aucun changement de
+`play()` ou de l'économie n'est inclus dans cette correction.
+
 ## Décisions et risques
 Retourner seulement les champs convenus dans un objet neuf composé de primitives,
 donc indépendant et sérialisable en JSON. Ne pas déduire outcome de netGain :
@@ -41,6 +51,7 @@ Avant implémentation : import manquant (rouge). Après : tous les cas verts.
 - Résultat indépendant, entrée gelée, champs supplémentaires non propagés.
 - RoundId opaque ou null explicite sérialisable ; refus des identifiants absents ou vides.
 - Mise invalide, payout négatif/non fini, netGain non fini, outcome invalide.
+- Cohérence des montants, borne inclusive d'un centime, dépassement et refus sans mutation.
 - ISO UTC canonique valide ; refus des dates impossibles/non UTC/non chaînes.
 - Sérialisation JSON fidèle ; appel pur sans accès au stockage ni à l'horloge.
 
@@ -58,3 +69,10 @@ UI ni API publique modifiée. Résultats exécutés consignés dans le compte re
 - Build Vite : réussi, 1135 modules transformés.
 - Relecture indépendante : aucun point bloquant ; test de précision complété.
 - Aucun branchement dans play(), state.js ou l'API publique dans ce lot.
+
+### Correction de review (9 octobre 2026)
+- Trois tests de régression échouent avant le contrôle des montants, puis passent.
+- Historique : 22 tests réussis. Suite complète : 597 tests, 594 réussis,
+  0 échec et 3 TODO préexistants (#159).
+- ESLint : 0 erreur, 2 avertissements préexistants ; build Vite réussi (1135 modules).
+- Seuls le helper, ses tests et ce document changent ; aucun changement économique.

@@ -16,7 +16,7 @@
  * @returns {{roundId: string|null, gameId: string, bet: number, outcome: string,
  *   payout: number, netGain: number, playedAt: string}} Objet neuf sérialisable en JSON.
  * @throws {TypeError} Si un champ est absent, mal typé ou non fini.
- * @throws {RangeError} Si la mise n'est pas positive ou le montant reversé est négatif.
+ * @throws {RangeError} Si les bornes ou la cohérence des montants (à un centime) sont invalides.
  */
 export function createHistoryEntry(input) {
   if (input === null || typeof input !== 'object' || Array.isArray(input)) {
@@ -37,6 +37,9 @@ export function createHistoryEntry(input) {
   }
   if (bet <= 0 || payout < 0) {
     throw new RangeError('history: bet must be positive and payout non-negative.');
+  }
+  if (Math.abs(netGain - (payout - bet)) > 0.01) {
+    throw new RangeError('history: netGain must match payout minus bet within one cent.');
   }
   if (!['win', 'loss', 'push'].includes(outcome)) {
     throw new TypeError('history: outcome must be win, loss or push.');
