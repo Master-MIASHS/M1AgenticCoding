@@ -2,6 +2,7 @@
 // Game registry (application level)
 // ---------------------------------------------------------------------------
 // Application-facing registry mapping a game id to its display metadata.
+// Names and types (hasard / cartes) follow the games table of AGENTS.md.
 //
 // It mirrors the Core /src/core/config/games.config.js (unlock levels) and
 // stays self-contained (no direct Core import) to keep the
@@ -9,16 +10,16 @@
 // ---------------------------------------------------------------------------
 
 export const GAME_REGISTRY = [
-  { id: 'slots', name: 'Slots', unlockLevel: 1, category: 'table' },
-  { id: 'dice', name: 'Dice', unlockLevel: 1, category: 'dice' },
-  { id: 'scratch', name: 'Scratch', unlockLevel: 2, category: 'instant' },
-  { id: 'blackjack', name: 'Blackjack', unlockLevel: 3, category: 'table' },
-  { id: 'wheel', name: 'Wheel', unlockLevel: 4, category: 'wheel' },
-  { id: 'roulette', name: 'Roulette', unlockLevel: 5, category: 'table' },
-  { id: 'baccarat', name: 'Baccarat', unlockLevel: 6, category: 'table' },
-  { id: 'plinko', name: 'Plinko', unlockLevel: 7, category: 'arcade' },
-  { id: 'video-poker', name: 'Video Poker', unlockLevel: 8, category: 'poker' },
-  { id: 'poker', name: 'Poker', unlockLevel: 12, category: 'poker' },
+  { id: 'slots', name: 'Machine à sous', unlockLevel: 1, category: 'hasard' },
+  { id: 'dice', name: 'Dés', unlockLevel: 1, category: 'hasard' },
+  { id: 'scratch', name: 'Cartes à gratter', unlockLevel: 2, category: 'hasard' },
+  { id: 'blackjack', name: 'Blackjack', unlockLevel: 3, category: 'cartes' },
+  { id: 'wheel', name: 'Roue de la fortune', unlockLevel: 4, category: 'hasard' },
+  { id: 'roulette', name: 'Roulette', unlockLevel: 5, category: 'hasard' },
+  { id: 'baccarat', name: 'Baccarat', unlockLevel: 6, category: 'hasard' },
+  { id: 'plinko', name: 'Plinko', unlockLevel: 7, category: 'hasard' },
+  { id: 'video-poker', name: 'Vidéo poker', unlockLevel: 8, category: 'cartes' },
+  { id: 'poker', name: "Poker contre l'IA", unlockLevel: 12, category: 'cartes' },
 ];
 
 /**
