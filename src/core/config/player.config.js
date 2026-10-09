@@ -5,7 +5,11 @@
 // le code, il se lit ici. Le défaut de 1000 jetons vient du glossaire
 // d'AGENTS.md ; l'admin peut le régler avec createPlayerConfig (#207). La
 // vérification du rôle admin relève de la tâche n°24.
+// Le réglage de l'application est partagé et enregistré (#260, voir
+// docs/design/reglages-admin.md).
 // ---------------------------------------------------------------------------
+
+import { createStockageLocal } from './stockage-local.js';
 
 /**
  * Configuration par défaut d'un nouveau joueur.
@@ -61,13 +65,25 @@ function validerCapital(montant) {
  */
 function lireReglages(store) {
   const reglages = store.read();
+  validerReglagesJoueur(reglages);
+  return { ...reglages };
+}
+
+/**
+ * Vérifie les réglages admin du joueur : un objet, avec un capital valide
+ * s'il est présent.
+ *
+ * @param {unknown} reglages - Réglages à vérifier.
+ * @returns {void}
+ * @throws {TypeError|RangeError} Si les réglages sont invalides.
+ */
+export function validerReglagesJoueur(reglages) {
   if (reglages === null || typeof reglages !== 'object' || Array.isArray(reglages)) {
     throw new TypeError('player.config : le stockage doit contenir un objet { capitalDeDepart }');
   }
   if (reglages.capitalDeDepart !== undefined) {
     validerCapital(reglages.capitalDeDepart);
   }
-  return { ...reglages };
 }
 
 /**
@@ -129,4 +145,34 @@ export function createPlayerConfig(store) {
       return montant;
     },
   };
+}
+
+// Réglage de l'application, partagé et enregistré (#260) : un réglage admin
+// global, hors de casino_state, conservé après rechargement. L'état initial
+// et creerProfil le liront au branchement (#253).
+const configJoueurDuCore = createPlayerConfig(
+  createStockageLocal('casino_config_joueur', {}, { valider: validerReglagesJoueur }),
+);
+
+/**
+ * Renvoie le capital de départ effectif : celui réglé par l'admin, sinon le
+ * défaut de PLAYER_CONFIG.
+ *
+ * @returns {number} Capital de départ d'un nouveau joueur.
+ */
+export function getCapitalDeDepartActuel() {
+  return configJoueurDuCore.getCapitalDeDepart();
+}
+
+/**
+ * Règle et enregistre le capital de départ des nouveaux joueurs (sans
+ * vérification de rôle : la façade core.js la fait). Les soldes existants
+ * ne changent pas.
+ *
+ * @param {number} montant - Nouveau capital, nombre fini strictement positif.
+ * @returns {number} Le capital enregistré.
+ * @throws {RangeError} Si le capital est invalide (rien n'est enregistré).
+ */
+export function reglerCapitalDeDepart(montant) {
+  return configJoueurDuCore.setCapitalDeDepart(montant);
 }
