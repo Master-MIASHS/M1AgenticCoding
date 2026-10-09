@@ -1,16 +1,17 @@
 name: Deploy GitHub Pages
 
 # Publie le site sur GitHub Pages à chaque fusion sur main.
-# Prérequis (admin du dépôt) : Settings → Pages → Source : « GitHub Actions ».
+# Pages est réglé sur « Deploy from a branch » → branche `gh_pages`, dossier `/`.
+# Le workflow compile le site (Vite) et pousse le contenu de `dist/` sur
+# `gh_pages` : GitHub Pages sert alors le site compilé, et non les sources.
+# La branche `gh_pages` est générée : ne pas y committer à la main.
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 # Un seul déploiement à la fois ; un déploiement en cours n'est pas annulé.
 concurrency:
@@ -18,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -39,19 +40,17 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
+      # Sans .nojekyll, Pages passe le site dans Jekyll, qui ignore les
+      # fichiers et dossiers commençant par « _ ».
+      - name: Disable Jekyll
+        run: touch dist/.nojekyll
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish dist/ to gh_pages
+        working-directory: dist
+        run: |
+          git init -q -b gh_pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "deploy: site compilé depuis ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" gh_pages
