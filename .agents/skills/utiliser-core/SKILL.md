@@ -114,6 +114,9 @@ Une sauvegarde dont `bestBalance < balance` est refusée, même avec un hash val
 L’import refusé conserve l’état courant et le stockage. Une ancienne sauvegarde
 cohérente peut toujours restaurer une XP ou un meilleur solde inférieurs à ceux
 de la session courante : la comparaison porte sur les deux soldes du fichier.
+Ce comportement est **provisoire**, en attente de l’arbitrage G1/G5 sur la
+[politique de restauration (#258)](https://github.com/maximiliense/M1AgenticCoding/issues/258).
+Ne pas en déduire une règle définitive autorisant la baisse des acquis.
 
 Utiliser pour permettre au joueur de télécharger sa partie ou d’en recharger une
 (écran Profil ou paramètres, G4). Le Core ne gère ni le fichier ni le bouton :
