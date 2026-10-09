@@ -36,7 +36,12 @@ import { creerProfil as creerProfilInterne } from './player.js';
  * Copie indépendante ; null si aucun niveau suivant n’est configuré.
  */
 export function getState() {
-  return { ...readState(), xpForNextLevel: calculateXPForNextLevel(getLevel()) };
+  const state = readState();
+  // Une ancienne sauvegarde peut contenir un entier non sûr. Il dépasse déjà
+  // toute longueur de tableau JS : aucun seuil suivant possible. Borner seulement
+  // l’entrée du calcul conserve la lecture sans réécrire le niveau enregistré.
+  const level = state.level > Number.MAX_SAFE_INTEGER ? Number.MAX_SAFE_INTEGER : getLevel();
+  return { ...state, xpForNextLevel: calculateXPForNextLevel(level) };
 }
 export { roll, tirageEntier, tirageAvecPoids, melanger } from './rng.js';
 import { choisirAction as choisirActionInterne } from './ai/poker.js';

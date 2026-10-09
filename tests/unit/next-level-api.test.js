@@ -52,6 +52,14 @@ describe('seuil du niveau suivant via coreService (#252)', () => {
     });
   }
 
+  it('garde lisible une ancienne sauvegarde dont le niveau dépasse les entiers sûrs', () => {
+    const data = { ...initial, level: Number.MAX_SAFE_INTEGER + 1 };
+    core.importSave(save(data));
+    assert.deepEqual(core.getState(), { ...data, xpForNextLevel: null });
+    assert.deepEqual(readState(), data);
+    assert.equal(writes, 1);
+  });
+
   it('recalcule après import sans champ, depuis le niveau effectif', () => {
     core.getLevel(); // Initialise le service avant l’import.
     const data = { ...initial, xp: 250, level: 1 };

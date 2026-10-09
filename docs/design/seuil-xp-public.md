@@ -15,6 +15,7 @@ Exposition du calcul de #250 après intégration de la progression persistante #
 - La façade `coreService.js` reste un réexport. Aucun import de progression depuis `state.js` : pas de nouvelle dépendance circulaire.
 - Le champ est dérivé à chaque lecture, sans écriture, et écrase seulement dans la copie publique une éventuelle ancienne valeur du même nom. Il n’est pas ajouté aux données persistées ou exportées. Une valeur déjà présente dans une ancienne sauvegarde reste un champ supplémentaire du stockage, sans devenir une source de vérité.
 - Les contrôles de permissions de `core.js` continuent de lire l’état interne : ils n’ont pas besoin du calcul d’XP.
+- Pour une ancienne sauvegarde dont le niveau dépasse les entiers sûrs (encore accepté par la restauration), borner uniquement l’entrée du helper à `Number.MAX_SAFE_INTEGER` : ce niveau dépasse déjà toute longueur possible de tableau JS, donc le résultat est `null`. Le niveau enregistré reste intact ; aucune politique d’import n’est modifiée.
 - `null` signifie aucun niveau suivant, y compris pour un niveau acquis supérieur à la courbe temporaire. Un nombre est un seuil total, jamais une quantité restante.
 
 ## Risques
@@ -27,6 +28,7 @@ Les tests qui assimilaient le snapshot public à la sauvegarde brute doivent dis
 
 - seuil total initial ; passage de niveau après `addXP` ; niveau acquis supérieur au calcul ; niveau maximal et au-delà → nombre attendu ou `null` ; échec avant exposition, succès après ;
 - anciennes sauvegardes sans champ, recalcul après import et après rechargement dans un processus neuf → seuil calculé depuis le niveau effectif ;
+- ancien niveau supérieur aux entiers sûrs → lecture conservée, seuil `null`, aucun changement du niveau enregistré ;
 - valeur dérivée ancienne ignorée → valeur courante ;
 - lecture sans écriture, état interne/export sans nouveau champ et snapshot indépendant → aucun effet de bord.
 
