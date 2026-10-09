@@ -7,8 +7,7 @@
 //
 // Les règles fusionnées par #140 lisent encore un float par lancer (brut de
 // roll()) : la fixture rejoue donc des { value } (0 -> total 2, 0.5 -> 7,
-// 0.99 -> 12). Les tests en `todo` documentent l'écart 10 (#159) : ils
-// devront passer, et perdre leur `todo`, une fois les règles alignées.
+// 0.99 -> 12). Le brut [d1, d2] du contrat (§ 4.1) reste à faire dans #159.
 // ---------------------------------------------------------------------------
 
 import { test, describe } from 'node:test';
@@ -20,8 +19,6 @@ import { diceRules } from '../../../src/games/dice/rules.js';
 import { makeFixtureRoll } from '../../fixtures/g2/rolls.js';
 
 const START_BALANCE = coreService.getState().balance;
-const TODO_ECART_10 =
-  'écart 10 (#159) : payout / terminal / state au premier niveau au lieu de { outcome, multiplier, details }';
 
 function playDice(rollValue) {
   const fixture = makeFixtureRoll([rollValue]);
@@ -51,8 +48,14 @@ describe('G2 - montage dés (#24) : orchestrateur + règles + Core', () => {
     assert.equal(res.renderPayload.economy.newBalance, START_BALANCE);
   });
 
-  test('gameResult au format du contrat : { outcome, multiplier, details }', { todo: TODO_ECART_10 }, () => {
+  test('gameResult au format du contrat : { outcome, multiplier, details }', () => {
     const { gameResult } = playDice(0);
     assert.deepEqual(Object.keys(gameResult).sort(), ['details', 'multiplier', 'outcome']);
+  });
+
+  test('G3 lit le déroulé de la manche dans renderPayload.interpretation (#159)', () => {
+    const res = playDice(0.5);
+    assert.deepEqual(res.renderPayload.interpretation.rolls, [7]);
+    assert.equal(res.renderPayload.interpretation.point, null);
   });
 });

@@ -99,29 +99,29 @@ describe('diceTotalFromRawValue', () => {
 describe('resolve - come-out phase (come -> done)', () => {
   it('a come-out 7 is a win', () => {
     assert.deepStrictEqual(resolve(rollsOf([7]), { bets: BETS }), {
-      terminal: true,
-      state: DONE,
       outcome: 'win',
       multiplier: 2,
-      payout: 200,
-      totalBet: 100,
-      point: null,
-      rolls: [7],
-      rawValues: [MIDPOINTS[7]],
+      details: {
+        point: null,
+        rolls: [7],
+        rawValues: [MIDPOINTS[7]],
+        totalBet: 100,
+        payout: 200,
+      },
     });
   });
 
   it('a come-out 11 is a win', () => {
     const result = resolve(rollsOf([11]), { bets: BETS });
     assert.strictEqual(result.outcome, 'win');
-    assert.strictEqual(result.point, null);
+    assert.strictEqual(result.details.point, null);
   });
 
   it('a come-out 2 is a loss', () => {
     const result = resolve(rollsOf([2]), { bets: BETS });
     assert.strictEqual(result.outcome, 'loss');
     assert.strictEqual(result.multiplier, 0);
-    assert.strictEqual(result.payout, 0);
+    assert.strictEqual(result.details.payout, 0);
   });
 
   it('a come-out 3 is a loss', () => {
@@ -132,13 +132,13 @@ describe('resolve - come-out phase (come -> done)', () => {
     const result = resolve(rollsOf([12]), { bets: BETS });
     assert.strictEqual(result.outcome, 'push');
     assert.strictEqual(result.multiplier, 1);
-    assert.strictEqual(result.payout, 100);
-    assert.strictEqual(result.point, null);
+    assert.strictEqual(result.details.payout, 100);
+    assert.strictEqual(result.details.point, null);
   });
 
   it('accepts a single raw result, not wrapped in an array', () => {
     const result = resolve(raw(MIDPOINTS[7]), { bets: BETS });
-    assert.deepStrictEqual(result.rolls, [7]);
+    assert.deepStrictEqual(result.details.rolls, [7]);
     assert.strictEqual(result.outcome, 'win');
   });
 });
@@ -151,21 +151,21 @@ describe('resolve - come -> point -> done transitions', () => {
   it('establishes a point on the come-out roll, then a 7 wins', () => {
     const result = resolve(rollsOf([4, 7]), { bets: BETS });
     assert.strictEqual(result.outcome, 'win');
-    assert.strictEqual(result.point, 4);
-    assert.deepStrictEqual(result.rolls, [4, 7]);
+    assert.strictEqual(result.details.point, 4);
+    assert.deepStrictEqual(result.details.rolls, [4, 7]);
   });
 
   it('rolling the point again wins', () => {
     const result = resolve(rollsOf([9, 9]), { bets: BETS });
     assert.strictEqual(result.outcome, 'win');
-    assert.strictEqual(result.point, 9);
+    assert.strictEqual(result.details.point, 9);
   });
 
   it('rolling another total after the point loses', () => {
     const result = resolve(rollsOf([5, 8]), { bets: BETS });
     assert.strictEqual(result.outcome, 'loss');
-    assert.strictEqual(result.payout, 0);
-    assert.strictEqual(result.point, 5);
+    assert.strictEqual(result.details.payout, 0);
+    assert.strictEqual(result.details.point, 5);
   });
 
   it('the point phase always settles on the first roll after the point', () => {
@@ -206,7 +206,7 @@ describe('resolve - paytable (win / loss / push, multipliers)', () => {
     const result = resolve(rollsOf([7]), { bets: [{ type: 'bet', amount: 250 }] });
     assert.strictEqual(result.outcome, 'win');
     assert.strictEqual(result.multiplier, 2);
-    assert.strictEqual(result.payout, 500);
+    assert.strictEqual(result.details.payout, 500);
   });
 
   it('sums multiple bets into the total bet', () => {
@@ -215,31 +215,31 @@ describe('resolve - paytable (win / loss / push, multipliers)', () => {
       { type: 'bet', amount: 50 },
     ];
     const result = resolve(rollsOf([4, 4]), { bets });
-    assert.strictEqual(result.totalBet, 150);
-    assert.strictEqual(result.payout, 300);
+    assert.strictEqual(result.details.totalBet, 150);
+    assert.strictEqual(result.details.payout, 300);
   });
 
   it('a loss returns nothing (multiplier 0)', () => {
     const result = resolve(rollsOf([4, 9]), { bets: BETS });
     assert.strictEqual(result.outcome, 'loss');
     assert.strictEqual(result.multiplier, 0);
-    assert.strictEqual(result.payout, 0);
+    assert.strictEqual(result.details.payout, 0);
   });
 
   it('a push returns the stake unchanged (multiplier 1)', () => {
     const result = resolve(rollsOf([12]), { bets: BETS });
     assert.strictEqual(result.outcome, 'push');
     assert.strictEqual(result.multiplier, 1);
-    assert.strictEqual(result.payout, 100);
+    assert.strictEqual(result.details.payout, 100);
   });
 
   it('keeps payout consistent with the outcome', () => {
     const win = resolve(rollsOf([4, 7]), { bets: BETS });
-    assert.strictEqual(win.payout, win.totalBet * win.multiplier);
+    assert.strictEqual(win.details.payout, win.details.totalBet * win.multiplier);
     const loss = resolve(rollsOf([4, 9]), { bets: BETS });
-    assert.strictEqual(loss.payout, 0);
+    assert.strictEqual(loss.details.payout, 0);
     const push = resolve(rollsOf([12]), { bets: BETS });
-    assert.strictEqual(push.payout, push.totalBet);
+    assert.strictEqual(push.details.payout, push.details.totalBet);
   });
 });
 
@@ -254,14 +254,13 @@ describe('gameResult contract', () => {
     assert.deepStrictEqual(result, expected);
   });
 
-  it('always returns a terminal result in state "done"', () => {
+  it('always returns a contract gameResult { outcome, multiplier, details } (#159)', () => {
     for (const totals of [[7], [3], [12], [4, 7], [9, 9], [10, 2]]) {
       const result = resolve(rollsOf(totals), { bets: BETS });
-      assert.strictEqual(result.terminal, true);
-      assert.strictEqual(result.state, DONE);
+      assert.deepStrictEqual(Object.keys(result).sort(), ['details', 'multiplier', 'outcome']);
       assert.ok(['win', 'loss', 'push'].includes(result.outcome));
-      assert.ok(Array.isArray(result.rolls));
-      assert.ok(Array.isArray(result.rawValues));
+      assert.ok(Array.isArray(result.details.rolls));
+      assert.ok(Array.isArray(result.details.rawValues));
     }
   });
 

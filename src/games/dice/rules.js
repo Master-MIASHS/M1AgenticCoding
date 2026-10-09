@@ -32,18 +32,18 @@
 //   * a raw value in [0, 1) maps to a two-d6 dice total (2..12) using the
 //     true distribution (36 equiprobable combinations), see DICE_TOTALS
 //
-// gameResult (always terminal):
+// gameResult (always terminal, contract G2 2.2 - #68, #159):
 //   {
-//     terminal: true,
-//     state: 'done',
 //     outcome: 'win' | 'loss' | 'push',
-//     multiplier: number,  // TOTAL return multiplier, stake included
-//                          // (2 for a 1:1 win, 1 for a push, 0 for a loss)
-//     payout: number,      // tokens returned to the player, stake included
-//     totalBet: number,
-//     point: number | null,// point established during the round (if any)
-//     rolls: number[],     // dice totals in roll order
-//     rawValues: number[], // raw value of each roll (audit / display)
+//     multiplier: number,    // TOTAL return multiplier, stake included
+//                            // (2 for a 1:1 win, 1 for a push, 0 for a loss)
+//     details: {             // read by G3 in renderPayload.interpretation
+//       point: number | null,// point established during the round (if any)
+//       rolls: number[],     // dice totals in roll order
+//       rawValues: number[], // raw value of each roll (audit / display)
+//       totalBet: number,
+//       payout: number,      // tokens returned to the player, stake included
+//     },
 //   }
 // ---------------------------------------------------------------------------
 
@@ -121,15 +121,15 @@ function totalBet(bets) {
  *   the normalized bets and config, as produced by the orchestrator; config is
  *   accepted but unused by the dice rules.
  * @returns {{
- *   terminal: boolean,
- *   state: string,
  *   outcome: 'win' | 'loss' | 'push',
  *   multiplier: number,
- *   payout: number,
- *   totalBet: number,
- *   point: number | null,
- *   rolls: number[],
- *   rawValues: number[]
+ *   details: {
+ *     point: number | null,
+ *     rolls: number[],
+ *     rawValues: number[],
+ *     totalBet: number,
+ *     payout: number
+ *   }
  * }} the terminal gameResult.
  * @throws {TypeError} if raw is empty or a raw value is malformed.
  * @throws {RangeError} if the provided rolls do not reach a terminal state,
@@ -193,15 +193,15 @@ export function resolve(raw, { bets, config }) {
     outcome === 'win' ? bet * (1 + PAYTABLE.winMultiplier) : outcome === 'push' ? bet : 0;
 
   return {
-    terminal: true,
-    state: DONE,
     outcome,
     multiplier,
-    payout,
-    totalBet: bet,
-    point,
-    rolls,
-    rawValues: raws.map((entry) => entry.value),
+    details: {
+      point,
+      rolls,
+      rawValues: raws.map((entry) => entry.value),
+      totalBet: bet,
+      payout,
+    },
   };
 }
 
