@@ -20,6 +20,9 @@ import {
   getBalance,
   claimDailyBonus,
   requestLoan,
+  getShopCatalog,
+  getShopInventory,
+  purchaseShopItem,
   addXP,
   getLevel,
   getUnlockedGames,
@@ -29,6 +32,7 @@ import {
   getGlobalStats,
   exportSave,
   importSave,
+  creerProfil,
 } from '../core/core.js';
 
 export {
@@ -41,6 +45,9 @@ export {
   getBalance,
   claimDailyBonus,
   requestLoan,
+  getShopCatalog,
+  getShopInventory,
+  purchaseShopItem,
   addXP,
   getLevel,
   getUnlockedGames,
@@ -50,4 +57,5 @@ export {
   getGlobalStats,
   exportSave,
   importSave,
+  creerProfil,
 };
