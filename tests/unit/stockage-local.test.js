@@ -121,3 +121,25 @@ describe('createStockageLocal : ne jamais planter au chargement', () => {
     assert.deepStrictEqual(stockage.read(), [1]);
   });
 });
+
+describe('createStockageLocal : localStorage inaccessible dès l’accès (#262, relecture G5)', () => {
+  it('ne plante pas si lire globalThis.localStorage lève une erreur : avertissement et mémoire seule', () => {
+    const descripteur = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get() { throw new Error('SecurityError'); },
+    });
+    try {
+      const { resultat: stockage, avertissements } = avecAvertissements(
+        () => createStockageLocal('cle-test', [1]),
+      );
+      assert.strictEqual(avertissements.length, 1);
+      assert.deepStrictEqual(stockage.read(), [1]);
+      stockage.write([2]);
+      assert.deepStrictEqual(stockage.read(), [2]);
+    } finally {
+      if (descripteur) Object.defineProperty(globalThis, 'localStorage', descripteur);
+      else delete globalThis.localStorage;
+    }
+  });
+});

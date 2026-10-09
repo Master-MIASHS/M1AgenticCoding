@@ -28,14 +28,14 @@
  *   synchrone ; read() renvoie une copie.
  * @throws {Error} Si la clé n'est pas une chaîne non vide.
  */
-export function createStockageLocal(
-  cle,
-  valeurParDefaut,
-  { valider = () => {}, stockage = globalThis.localStorage } = {},
-) {
+export function createStockageLocal(cle, valeurParDefaut, options = {}) {
   if (typeof cle !== 'string' || cle === '') {
     throw new Error('stockage-local : la clé doit être une chaîne non vide');
   }
+  const { valider = () => {} } = options;
+  // Le stockage n'est lu dans globalThis que s'il n'est pas fourni : l'accès
+  // lui-même peut lever une erreur (relecture G5 de #262).
+  const stockage = 'stockage' in options ? options.stockage : localStorageDuNavigateur(cle);
 
   let valeur = lireValeurInitiale(cle, valeurParDefaut, valider, stockage);
 
@@ -49,6 +49,24 @@ export function createStockageLocal(
       valeur = copie;
     },
   };
+}
+
+/**
+ * Renvoie le localStorage du navigateur, ou rien s'il est absent (Node) ou
+ * inaccessible. Son simple accès peut lever une erreur (cookies bloqués,
+ * certains modes privés) : le module ne doit pas planter au chargement, il
+ * passe alors en mémoire seule avec un avertissement (même règle que #240).
+ *
+ * @param {string} cle - Clé du réglage, pour l'avertissement.
+ * @returns {object|undefined} localStorage, ou undefined (mémoire seule).
+ */
+function localStorageDuNavigateur(cle) {
+  try {
+    return globalThis.localStorage;
+  } catch (erreur) {
+    console.warn(`stockage-local : localStorage inaccessible pour ${cle} ; réglage gardé en mémoire seule.`, erreur);
+    return undefined;
+  }
 }
 
 /**
