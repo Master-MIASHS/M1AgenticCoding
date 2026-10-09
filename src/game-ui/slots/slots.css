@@ -31,6 +31,13 @@
   border-radius: var(--radius-small, 8px);
 }
 
+/* Symbole de la config sans icône connue : son identifiant est écrit en texte. */
+.slots__cell--text {
+  font-size: 1rem;
+  font-weight: 700;
+  word-break: break-all;
+}
+
 .slots__cell--win {
   border-color: var(--color-success, #2ecc71);
 }
