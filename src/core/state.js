@@ -15,6 +15,7 @@
 //   level: number,
 //   unlockedGames: string[],
 //   history: [],
+//   settledRoundIds: string[],
 //   role: "player" | "admin"
 // }
 // ---------------------------------------------------------------------------
@@ -28,11 +29,17 @@ const DEFAULT_STATE = {
   level: 1,
   unlockedGames: ['slots', 'dice'],
   history: [],
+  settledRoundIds: [],
   role: 'player',
 };
 
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeState(state) {
+  if (!isRecord(state) || state.settledRoundIds !== undefined) return state;
+  return { ...state, settledRoundIds: [] };
 }
 
 function validateState(state) {
@@ -48,6 +55,10 @@ function validateState(state) {
     Array.isArray(state.unlockedGames) &&
     state.unlockedGames.every((gameId) => typeof gameId === 'string') &&
     Array.isArray(state.history) &&
+    Array.isArray(state.settledRoundIds) &&
+    state.settledRoundIds.every((roundId) =>
+      typeof roundId === 'string' && roundId.trim() !== '') &&
+    new Set(state.settledRoundIds).size === state.settledRoundIds.length &&
     (state.role === 'player' || state.role === 'admin');
 
   if (!valid) {
@@ -94,7 +105,7 @@ function readInitialState() {
   }
 
   try {
-    const parsedState = JSON.parse(storedState);
+    const parsedState = normalizeState(JSON.parse(storedState));
     validateState(parsedState);
     return cloneState(parsedState);
   } catch (error) {
@@ -196,6 +207,7 @@ export function updateState(updater) {
  *   level: number,
  *   unlockedGames: string[],
  *   history: Array,
+ *   settledRoundIds: string[],
  *   role: string
  * }}
  */
@@ -216,8 +228,9 @@ export function restoreState(savedState) {
   assertIdle();
   writing = true;
   try {
-    validateState(savedState);
-    return persistState(cloneState(savedState));
+    const normalizedState = normalizeState(savedState);
+    validateState(normalizedState);
+    return persistState(cloneState(normalizedState));
   } finally {
     writing = false;
   }

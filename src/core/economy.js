@@ -7,7 +7,12 @@
 // ---------------------------------------------------------------------------
 
 import { DAILY_BONUS_CONFIG } from './config/economy.config.js';
+import { getMultiplicateurBonus } from './config/events.config.js';
+import { calculateBestBalance } from './bestBalance.js';
+import { createHistoryEntry } from './history.js';
+import { calculateLevel } from './progression.js';
 import { getState, updateState } from './state.js';
+import { calculateXPGained } from './xp.js';
 
 const roundToCents = (value) => {
   const floatingPointCompensation = Number.EPSILON * Math.max(1, Math.abs(value));
@@ -78,23 +83,112 @@ export function calculateSettlement(balance, bet, gameResult) {
 }
 
 /**
- * Calcule le bilan économique d'une partie sans modifier l'état partagé.
- * L'XP reste fictive tant que le contrat de progression n'est pas intégré.
+ * Applique un événement bonus au gain net positif d'un règlement.
+ * La mise rendue n'est pas multipliée et le montant final n'est arrondi
+ * qu'une fois, après application du bonus.
+ *
+ * @param {number} balance - Solde avant règlement.
+ * @param {number} bet - Mise totale.
+ * @param {{multiplier: number}} gameResult - Résultat déjà validé.
+ * @param {{newBalance: number, payout: number, netGain: number}} settlement - Règlement de base.
+ * @param {number} gainMultiplier - Multiplicateur d'événement actif.
+ * @returns {{newBalance: number, payout: number, netGain: number}} Règlement final.
+ */
+function applyGainBonus(balance, bet, gameResult, settlement, gainMultiplier) {
+  const rawNetGain = bet * gameResult.multiplier - bet;
+  if (rawNetGain <= 0 || gainMultiplier === 1) return settlement;
+
+  const payout = roundToCents(bet + rawNetGain * gainMultiplier);
+  const netGain = roundToCents(payout - bet);
+  const newBalance = roundToCents(balance + netGain);
+  if (![payout, netGain, newBalance].every(Number.isFinite)) {
+    throw new RangeError('economy: settlement exceeds the supported numeric range.');
+  }
+  return { newBalance, payout, netGain };
+}
+
+/**
+ * Règle une partie et applique ses conséquences dans une écriture atomique.
+ * Un roundId déjà réglé est refusé sans nouvelle écriture.
  *
  * @param {string} gameId - Identifiant du jeu.
  * @param {number} bet - Mise annoncée.
  * @param {object} gameResult - Résultat interprété par le jeu.
- * @returns {{ newBalance: number, xpGained: number, leveledUp: boolean }} Bilan fictif sans mise à jour du solde ou des XP.
+ * @param {{roundId?: string|null}} options - Identifiant stable fourni par G2,
+ * ou null/omis pour un ancien appel sans garantie d'idempotence.
+ * @returns {{ newBalance: number, xpGained: number, leveledUp: boolean }|{success: false, reason: 'already_settled'}} Résultat du règlement.
  */
-export function play(gameId, bet, gameResult) {
-  const { balance } = getState();
-  const { newBalance } = calculateSettlement(balance, bet, gameResult);
+export function play(gameId, bet, gameResult, options = {}) {
+  if (!options || typeof options !== 'object' || Array.isArray(options)) {
+    throw new TypeError('economy: options must be an object.');
+  }
+  const { roundId } = options;
+  if (roundId !== undefined && roundId !== null &&
+      (typeof roundId !== 'string' || roundId.trim() === '')) {
+    throw new TypeError('economy: roundId must be a non-empty string or null.');
+  }
+  const normalizedRoundId = roundId ?? null;
+  if (normalizedRoundId === null) {
+    console.warn('[Core] play() appelé sans roundId');
+  }
 
-  return {
-    newBalance,
-    xpGained: 10,
-    leveledUp: false,
-  };
+  if (normalizedRoundId !== null &&
+      (getState().settledRoundIds ?? []).includes(normalizedRoundId)) {
+    return { success: false, reason: 'already_settled' };
+  }
+
+  let result;
+  updateState((current) => {
+    const settledRoundIds = current.settledRoundIds ?? [];
+    if (normalizedRoundId !== null && settledRoundIds.includes(normalizedRoundId)) {
+      result = { success: false, reason: 'already_settled' };
+      return current;
+    }
+
+    const baseSettlement = calculateSettlement(current.balance, bet, gameResult);
+    const settlement = applyGainBonus(
+      current.balance,
+      bet,
+      gameResult,
+      baseSettlement,
+      getMultiplicateurBonus('gains'),
+    );
+    const xpGained = calculateXPGained({
+      completed: true,
+      xpMultiplier: getMultiplicateurBonus('xp'),
+    });
+    const xp = current.xp + xpGained;
+    if (!Number.isFinite(xp)) {
+      throw new RangeError('economy: XP exceeds the supported numeric range.');
+    }
+    const level = Math.max(current.level, calculateLevel(xp));
+    const historyEntry = createHistoryEntry({
+      roundId: normalizedRoundId,
+      gameId,
+      bet,
+      outcome: gameResult.outcome,
+      payout: settlement.payout,
+      netGain: settlement.netGain,
+      playedAt: new Date().toISOString(),
+    });
+    result = {
+      newBalance: settlement.newBalance,
+      xpGained,
+      leveledUp: level > current.level,
+    };
+    return {
+      ...current,
+      balance: settlement.newBalance,
+      bestBalance: calculateBestBalance(current.bestBalance, settlement.newBalance),
+      xp,
+      level,
+      history: [...current.history, historyEntry],
+      settledRoundIds: normalizedRoundId === null
+        ? settledRoundIds
+        : [...settledRoundIds, normalizedRoundId],
+    };
+  });
+  return result;
 }
 
 /**

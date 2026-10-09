@@ -27,6 +27,7 @@ describe('sauvegardes existantes sans pseudo au démarrage (#253)', () => {
       const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
         import assert from 'node:assert/strict';
         const expected = ${JSON.stringify(expected)};
+        const normalizedExpected = { ...expected, settledRoundIds: [] };
         // Conserver aussi les octets : aucune réécriture implicite au démarrage.
         const original = JSON.stringify(expected, null, 2);
         let saved = original;
@@ -42,7 +43,7 @@ describe('sauvegardes existantes sans pseudo au démarrage (#253)', () => {
           },
         };
         const core = await import(${JSON.stringify(coreURL)});
-        assert.deepEqual(core.getState(), expected);
+        assert.deepEqual(core.getState(), normalizedExpected);
         assert.equal(core.getBalance(), expected.balance);
         assert.equal(writes, 0);
         assert.deepEqual(warnings, []);
@@ -50,7 +51,7 @@ describe('sauvegardes existantes sans pseudo au démarrage (#253)', () => {
 
         // Un formulaire G4 ne doit pas réinitialiser les acquis de cette partie.
         assert.throws(() => core.creerProfil({ pseudo: 'Nouveau' }), /creerProfil/);
-        assert.deepEqual(core.getState(), expected);
+        assert.deepEqual(core.getState(), normalizedExpected);
         assert.equal(writes, 0);
         assert.equal(saved, original);
       `], { encoding: 'utf8', timeout: 10000 });

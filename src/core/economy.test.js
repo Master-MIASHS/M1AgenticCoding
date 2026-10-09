@@ -1,6 +1,18 @@
-import { describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateSettlement, getBalance, play } from './economy.js';
+import { arreterEvenementBonus, lancerEvenementBonus } from './config/events.config.js';
+import { getState, restoreState } from './state.js';
+
+let stateBeforeTest;
+
+beforeEach(() => {
+  stateBeforeTest = getState();
+});
+
+afterEach(() => {
+  restoreState(stateBeforeTest);
+});
 
 describe('calculateSettlement', () => {
   it('settles losses, returned stakes and wins with the stake included in payout', () => {
@@ -92,24 +104,232 @@ describe('calculateSettlement', () => {
 });
 
 describe('play', () => {
-  it('returns the settled balance for a loss, a push and a win', () => {
-    assert.deepEqual(play('slots', 100, { outcome: 'loss', multiplier: 0 }),
+  it('persists the settled balance for a loss, a push and a win', () => {
+    assert.deepEqual(play('slots', 100, { outcome: 'loss', multiplier: 0 }, { roundId: 'slots-1' }),
       { newBalance: 900, xpGained: 10, leveledUp: false });
-    assert.deepEqual(play('slots', 100, { outcome: 'push', multiplier: 1 }),
+    assert.deepEqual(play('slots', 100, { outcome: 'push', multiplier: 1 }, { roundId: 'slots-2' }),
+      { newBalance: 900, xpGained: 10, leveledUp: false });
+    assert.deepEqual(play('slots', 100, { outcome: 'win', multiplier: 2 }, { roundId: 'slots-3' }),
       { newBalance: 1000, xpGained: 10, leveledUp: false });
-    assert.deepEqual(play('slots', 100, { outcome: 'win', multiplier: 2 }),
-      { newBalance: 1100, xpGained: 10, leveledUp: false });
+    assert.equal(getBalance(), 1000);
+    assert.equal(getState().xp, 30);
+    assert.equal(getState().history.length, 3);
   });
 
   it('validates the bet and result through the settlement calculation', () => {
-    assert.throws(() => play('slots', 0, { outcome: 'loss', multiplier: 0 }), RangeError);
-    assert.throws(() => play('slots', 1001, { outcome: 'win', multiplier: 2 }), RangeError);
-    assert.throws(() => play('slots', 100, { outcome: 'unknown', multiplier: 2 }), TypeError);
+    assert.throws(() => play('slots', 0, { outcome: 'loss', multiplier: 0 }, { roundId: 'bad-1' }), RangeError);
+    assert.throws(() => play('slots', 1001, { outcome: 'win', multiplier: 2 }, { roundId: 'bad-2' }), RangeError);
+    assert.throws(() => play('slots', 100, { outcome: 'unknown', multiplier: 2 }, { roundId: 'bad-3' }), TypeError);
   });
 
-  it('does not mutate the shared balance before the state contract is available', () => {
-    const before = getBalance();
-    play('slots', 100, { outcome: 'win', multiplier: 2 });
-    assert.equal(getBalance(), before);
+  it('updates balance, best balance, XP, level, history and round registry atomically', () => {
+    restoreState({ ...getState(), xp: 95, level: 1 });
+    const result = play('slots', 100, { outcome: 'win', multiplier: 2 }, { roundId: 'slots-level-up' });
+    assert.deepEqual(result, { newBalance: 1100, xpGained: 10, leveledUp: true });
+    const updated = getState();
+    assert.equal(updated.balance, 1100);
+    assert.equal(updated.bestBalance, 1100);
+    assert.equal(updated.xp, 105);
+    assert.equal(updated.level, 2);
+    assert.deepEqual(updated.settledRoundIds, ['slots-level-up']);
+    assert.equal(updated.history.length, 1);
+    assert.deepEqual({ ...updated.history[0], playedAt: '<iso>' }, {
+      roundId: 'slots-level-up',
+      gameId: 'slots',
+      bet: 100,
+      outcome: 'win',
+      payout: 200,
+      netGain: 100,
+      playedAt: '<iso>',
+    });
+    assert.equal(new Date(updated.history[0].playedAt).toISOString(), updated.history[0].playedAt);
+  });
+
+  it('applies an active gains event only to a positive net gain', () => {
+    const eventId = 'economy-test-gains-positive';
+    const now = Date.now();
+    lancerEvenementBonus({
+      id: eventId,
+      cible: 'gains',
+      multiplicateur: 2,
+      debut: now - 1000,
+      fin: now + 60_000,
+    });
+    try {
+      const result = play('slots', 10, { outcome: 'win', multiplier: 2 },
+        { roundId: 'slots-gains-bonus' });
+      assert.deepEqual(result, { newBalance: 1020, xpGained: 10, leveledUp: false });
+      assert.deepEqual(getState().history.at(-1), {
+        roundId: 'slots-gains-bonus',
+        gameId: 'slots',
+        bet: 10,
+        outcome: 'win',
+        payout: 30,
+        netGain: 20,
+        playedAt: getState().history.at(-1).playedAt,
+      });
+    } finally {
+      arreterEvenementBonus(eventId);
+    }
+  });
+
+  it('does not apply a gains event to a loss or a push', () => {
+    const eventId = 'economy-test-gains-neutral';
+    const now = Date.now();
+    lancerEvenementBonus({
+      id: eventId,
+      cible: 'gains',
+      multiplicateur: 3,
+      debut: now - 1000,
+      fin: now + 60_000,
+    });
+    try {
+      assert.deepEqual(play('slots', 10, { outcome: 'loss', multiplier: 0 },
+        { roundId: 'slots-loss-no-bonus' }),
+      { newBalance: 990, xpGained: 10, leveledUp: false });
+      assert.deepEqual(play('slots', 10, { outcome: 'push', multiplier: 1 },
+        { roundId: 'slots-push-no-bonus' }),
+      { newBalance: 990, xpGained: 10, leveledUp: false });
+    } finally {
+      arreterEvenementBonus(eventId);
+    }
+  });
+
+  it('rounds once after applying a fractional gains multiplier', () => {
+    const eventId = 'economy-test-gains-rounding';
+    const now = Date.now();
+    lancerEvenementBonus({
+      id: eventId,
+      cible: 'gains',
+      multiplicateur: 1.5,
+      debut: now - 1000,
+      fin: now + 60_000,
+    });
+    try {
+      const result = play('slots', 10, { outcome: 'win', multiplier: 1.2345 },
+        { roundId: 'slots-gains-rounding' });
+      assert.deepEqual(result, { newBalance: 1003.52, xpGained: 10, leveledUp: false });
+      assert.equal(getState().history.at(-1).payout, 13.52);
+      assert.equal(getState().history.at(-1).netGain, 3.52);
+    } finally {
+      arreterEvenementBonus(eventId);
+    }
+  });
+
+  it('applies the bonus before rounding a small positive gain', () => {
+    const eventId = 'economy-test-gains-before-rounding';
+    const now = Date.now();
+    lancerEvenementBonus({
+      id: eventId,
+      cible: 'gains',
+      multiplicateur: 10,
+      debut: now - 1000,
+      fin: now + 60_000,
+    });
+    try {
+      const result = play('slots', 1, { outcome: 'win', multiplier: 1.004 },
+        { roundId: 'slots-small-gain' });
+      assert.deepEqual(result, { newBalance: 1000.04, xpGained: 10, leveledUp: false });
+      assert.equal(getState().history.at(-1).payout, 1.04);
+      assert.equal(getState().history.at(-1).netGain, 0.04);
+    } finally {
+      arreterEvenementBonus(eventId);
+    }
+  });
+
+  it('keeps bonus settlement amounts compatible with history within one cent', () => {
+    const eventId = 'economy-test-history-consistency';
+    const now = Date.now();
+    lancerEvenementBonus({
+      id: eventId,
+      cible: 'gains',
+      multiplicateur: 1.5,
+      debut: now - 1000,
+      fin: now + 60_000,
+    });
+    try {
+      assert.doesNotThrow(() => play(
+        'slots',
+        10.005,
+        { outcome: 'win', multiplier: 1.2345 },
+        { roundId: 'slots-history-consistency' },
+      ));
+      const { bet, payout, netGain } = getState().history.at(-1);
+      assert.ok(Math.abs(netGain - (payout - bet)) <= 0.01);
+    } finally {
+      arreterEvenementBonus(eventId);
+    }
+  });
+
+  it('refuses a duplicate round without applying a second settlement or XP gain', () => {
+    const first = play('slots', 100, { outcome: 'win', multiplier: 2 }, { roundId: 'slots-duplicate' });
+    const afterFirst = getState();
+    const duplicate = play('slots', 100, { outcome: 'win', multiplier: 2 }, { roundId: 'slots-duplicate' });
+    assert.deepEqual(first, { newBalance: 1100, xpGained: 10, leveledUp: false });
+    assert.deepEqual(duplicate, { success: false, reason: 'already_settled' });
+    assert.deepEqual(getState(), afterFirst);
+  });
+
+  it('keeps a roundId reusable when persistence fails', () => {
+    const storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    let failWrite = true;
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        setItem() {
+          if (failWrite) throw new Error('stockage indisponible');
+        },
+      },
+    });
+    try {
+      const before = getState();
+      assert.throws(() => play('slots', 100, { outcome: 'win', multiplier: 2 },
+        { roundId: 'slots-retry' }), /stockage indisponible/);
+      assert.deepEqual(getState(), before);
+      failWrite = false;
+      assert.deepEqual(play('slots', 100, { outcome: 'win', multiplier: 2 },
+        { roundId: 'slots-retry' }),
+      { newBalance: 1100, xpGained: 10, leveledUp: false });
+    } finally {
+      if (storageDescriptor) Object.defineProperty(globalThis, 'localStorage', storageDescriptor);
+      else delete globalThis.localStorage;
+    }
+  });
+
+  it('keeps legacy calls working and emits the warning required by G5', () => {
+    const warnings = [];
+    const originalWarn = console.warn;
+    console.warn = (...args) => warnings.push(args);
+    try {
+      assert.deepEqual(play('slots', 100, { outcome: 'loss', multiplier: 0 }),
+        { newBalance: 900, xpGained: 10, leveledUp: false });
+    } finally {
+      console.warn = originalWarn;
+    }
+    assert.deepEqual(warnings, [['[Core] play() appelé sans roundId']]);
+    assert.deepEqual(getState().settledRoundIds, []);
+    assert.equal(getState().history.at(-1).roundId, null);
+  });
+
+  it('accepts an explicit null roundId as a legacy call', () => {
+    const warnings = [];
+    const originalWarn = console.warn;
+    console.warn = (...args) => warnings.push(args);
+    try {
+      play('slots', 100, { outcome: 'push', multiplier: 1 }, { roundId: null });
+    } finally {
+      console.warn = originalWarn;
+    }
+    assert.deepEqual(warnings, [['[Core] play() appelé sans roundId']]);
+    assert.equal(getState().history.at(-1).roundId, null);
+    assert.deepEqual(getState().settledRoundIds, []);
+  });
+
+  it('rejects an invalid roundId before changing state', () => {
+    const before = getState();
+    for (const roundId of ['', '   ', 42, []]) {
+      assert.throws(() => play('slots', 100, { outcome: 'win', multiplier: 2 }, { roundId }), TypeError);
+    }
+    assert.deepEqual(getState(), before);
   });
 });

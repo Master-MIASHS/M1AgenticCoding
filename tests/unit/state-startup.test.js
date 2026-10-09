@@ -11,6 +11,7 @@ const DEFAULT_STATE = {
   level: 1,
   unlockedGames: ['slots', 'dice'],
   history: [],
+  settledRoundIds: [],
   role: 'player',
 };
 
@@ -68,6 +69,10 @@ describe('démarrage avec un casino_state inutilisable', () => {
     'un champ manquant': JSON.stringify({ balance: 1000 }),
     'un état qui n’est pas un objet': JSON.stringify([1, 2, 3]),
     'une XP négative': JSON.stringify({ ...DEFAULT_STATE, xp: -5 }),
+    'un registre roundId ambigu': JSON.stringify({
+      ...DEFAULT_STATE,
+      settledRoundIds: ['round-1', 'round-1'],
+    }),
   };
 
   for (const [label, content] of Object.entries(unusable)) {
@@ -115,6 +120,14 @@ describe('démarrage avec un casino_state inutilisable', () => {
 });
 
 describe('démarrage sans problème (non-régression)', () => {
+  it('ajoute un registre vide aux sauvegardes antérieures à roundId', async () => {
+    const { settledRoundIds, ...legacyState } = DEFAULT_STATE;
+    void settledRoundIds;
+    saved = JSON.stringify(legacyState);
+    const state = await loadState();
+    assert.deepEqual(state.getState(), DEFAULT_STATE);
+  });
+
   it('relit un casino_state valide sans avertissement', async () => {
     const stored = { ...DEFAULT_STATE, balance: 750, xp: 42.5, level: 2 };
     saved = JSON.stringify(stored);
