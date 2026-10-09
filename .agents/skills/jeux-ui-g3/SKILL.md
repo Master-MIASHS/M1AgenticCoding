@@ -78,19 +78,21 @@ const game = createGame({ id: 'wheel', rules, config });
 ```
 
 - L'UI appelle `start([{ type, amount }])` (un tableau, même pour une seule mise, contrat G2
-  § 2.1) et accepte une réponse directe ou une `Promise`. ⚠️ Écart actuel : `SlotsGame`
-  appelle encore `start(bet)` ; l'aligner avant de brancher son vrai `start`.
+  § 2.1) et accepte une réponse directe ou une `Promise` (slots : à partir de la PR #282).
 - Données lues dans la réponse :
 
 | Jeu | Champs lus |
 | --- | --- |
-| `slots` | `renderPayload.reels`, `renderPayload.winningLines`, `gameResult` |
-| `roulette` | `renderPayload.number`, `renderPayload.color`, `gameResult` |
+| `slots` | `renderPayload.raw.symbols` (3 rouleaux, comme les règles #216, PR #282), `gameResult` |
+| `roulette` | `renderPayload.number`, `renderPayload.color`, `gameResult` ⚠️ |
 | `wheel` | `renderPayload.raw` (segment tiré, comme les règles #128), `gameResult` |
 
-🟠 Le contenu de `renderPayload` par jeu n'est pas encore figé côté G2 (contrat § 5.2) : pour
-slots et roulette, la forme ci-dessus est une proposition G3 en attente de validation par les
-responsables des règles. Brancher le vrai `start` est une **tâche séparée**, avec un ticket.
+⚠️ **Roulette** : les vraies règles (#233) renvoient seulement le nombre tiré dans
+`renderPayload.raw` (entier 0 à 36), sans couleur. L'UI roulette lit encore `number` / `color`
+de son mock : elle doit être alignée avant de brancher son vrai `start` (la couleur d'un nombre
+relève de la config, à voir avec le G2).
+
+Brancher le vrai `start` d'un jeu est une **tâche séparée**, avec un ticket.
 
 ## 5. Qui fait quoi
 
