@@ -19,9 +19,6 @@ import { createGame } from '../../../src/games/_template/createGame.js';
 import * as rouletteRules from '../../../src/games/roulette/rules.js';
 import { draw as rouletteDraw } from '../../../src/games/roulette/index.js';
 
-// Solde du mock d'état G1 (src/core/state.js) au moment de l'écriture.
-const START_BALANCE = coreService.getState().balance;
-
 /**
  * European roulette red numbers. Test fixture data only: in the real game
  * this layout comes from the admin configuration, never from the source.
@@ -83,6 +80,8 @@ describe('G2 - montage roulette (#191) : orchestrateur + règles + draw + Core',
     const { core, drawCalls, playCalls } = makeTestCore([17]);
     const game = makeGame(core);
 
+    // play() est persistant (#218) : le solde est lu juste avant de jouer.
+    const balanceBefore = coreService.getState().balance;
     const res = game.start([{ type: 'straight-17', amount: 10 }]);
 
     assert.equal(res.terminal, true);
@@ -93,7 +92,7 @@ describe('G2 - montage roulette (#191) : orchestrateur + règles + draw + Core',
     assert.equal(res.gameResult.details.totalBet, 10);
     assert.equal(playCalls.length, 1);
     assert.equal(playCalls[0].bet, 10);
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 350);
+    assert.equal(res.renderPayload.economy.newBalance, balanceBefore + 350);
   });
 
   test('spin perdant : outcome loss et perte de la mise entière', () => {
@@ -101,13 +100,14 @@ describe('G2 - montage roulette (#191) : orchestrateur + règles + draw + Core',
     const { core, playCalls } = makeTestCore([17]);
     const game = makeGame(core);
 
+    const balanceBefore = coreService.getState().balance;
     const res = game.start([{ type: 'red', amount: 10 }]);
 
     assert.equal(res.terminal, true);
     assert.equal(res.gameResult.outcome, 'loss');
     assert.equal(res.gameResult.multiplier, 0);
     assert.equal(playCalls[0].bet, 10);
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE - 10);
+    assert.equal(res.renderPayload.economy.newBalance, balanceBefore - 10);
   });
 
   test('mises multiples : un seul play(), mise totale et multiplicateur agrégé', () => {
@@ -115,6 +115,7 @@ describe('G2 - montage roulette (#191) : orchestrateur + règles + draw + Core',
     const { core, playCalls } = makeTestCore([17]);
     const game = makeGame(core);
 
+    const balanceBefore = coreService.getState().balance;
     const res = game.start([
       { type: 'red', amount: 10 },
       { type: 'straight-17', amount: 10 },
@@ -125,7 +126,7 @@ describe('G2 - montage roulette (#191) : orchestrateur + règles + draw + Core',
     assert.equal(res.gameResult.outcome, 'win');
     assert.equal(res.gameResult.multiplier, 18);
     assert.equal(res.gameResult.details.bets.length, 2, 'détail par mise dans details');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 340);
+    assert.equal(res.renderPayload.economy.newBalance, balanceBefore + 340);
   });
 
   test('le 0 se règle sur la config, pas en dur : `zero` gagne, `red` perd', () => {
@@ -134,6 +135,7 @@ describe('G2 - montage roulette (#191) : orchestrateur + règles + draw + Core',
     const { core, playCalls } = makeTestCore([0]);
     const game = makeGame(core);
 
+    const balanceBefore = coreService.getState().balance;
     const res = game.start([
       { type: 'zero', amount: 10 },
       { type: 'red', amount: 10 },
@@ -144,7 +146,7 @@ describe('G2 - montage roulette (#191) : orchestrateur + règles + draw + Core',
     assert.equal(res.gameResult.details.bets[0].won, true, 'la mise zero gagne sur 0');
     assert.equal(res.gameResult.details.bets[1].won, false, 'la mise rouge perd sur 0');
     assert.equal(playCalls[0].bet, 20);
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 0);
+    assert.equal(res.renderPayload.economy.newBalance, balanceBefore + 0);
   });
 
   test('le VRAI Core tire le nombre via draw + tirageEntier (invariants)', () => {
