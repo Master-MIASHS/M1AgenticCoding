@@ -102,7 +102,7 @@ describe('resolve - come-out phase (come -> done)', () => {
       terminal: true,
       state: DONE,
       outcome: 'win',
-      multiplier: 1,
+      multiplier: 2,
       payout: 200,
       totalBet: 100,
       point: null,
@@ -131,7 +131,7 @@ describe('resolve - come-out phase (come -> done)', () => {
   it('a come-out 12 is a push and the stake is returned', () => {
     const result = resolve(rollsOf([12]), { bets: BETS });
     assert.strictEqual(result.outcome, 'push');
-    assert.strictEqual(result.multiplier, 0);
+    assert.strictEqual(result.multiplier, 1);
     assert.strictEqual(result.payout, 100);
     assert.strictEqual(result.point, null);
   });
@@ -202,10 +202,10 @@ describe('resolve - come -> point -> done transitions', () => {
 // ---------------------------------------------------------------------------
 
 describe('resolve - paytable (win / loss / push, multipliers)', () => {
-  it('a win pays 1:1: multiplier 1, stake plus profit returned', () => {
+  it('a win pays 1:1: multiplier 2 (stake included), stake plus profit returned', () => {
     const result = resolve(rollsOf([7]), { bets: [{ type: 'bet', amount: 250 }] });
     assert.strictEqual(result.outcome, 'win');
-    assert.strictEqual(result.multiplier, 1);
+    assert.strictEqual(result.multiplier, 2);
     assert.strictEqual(result.payout, 500);
   });
 
@@ -226,16 +226,16 @@ describe('resolve - paytable (win / loss / push, multipliers)', () => {
     assert.strictEqual(result.payout, 0);
   });
 
-  it('a push returns the stake unchanged (multiplier 0)', () => {
+  it('a push returns the stake unchanged (multiplier 1)', () => {
     const result = resolve(rollsOf([12]), { bets: BETS });
     assert.strictEqual(result.outcome, 'push');
-    assert.strictEqual(result.multiplier, 0);
+    assert.strictEqual(result.multiplier, 1);
     assert.strictEqual(result.payout, 100);
   });
 
   it('keeps payout consistent with the outcome', () => {
     const win = resolve(rollsOf([4, 7]), { bets: BETS });
-    assert.strictEqual(win.payout, win.totalBet * (1 + win.multiplier));
+    assert.strictEqual(win.payout, win.totalBet * win.multiplier);
     const loss = resolve(rollsOf([4, 9]), { bets: BETS });
     assert.strictEqual(loss.payout, 0);
     const push = resolve(rollsOf([12]), { bets: BETS });
