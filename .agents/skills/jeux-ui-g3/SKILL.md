@@ -23,7 +23,7 @@ tu lis ici ne correspond plus au code de `src/game-ui/`, c'est le code qui fait 
 | --- | --- | --- |
 | `slots` | `src/game-ui/slots/SlotsGame.jsx` | sur `main`, monté dans `GamePage` (#175) |
 | `roulette` | `src/game-ui/roulette/RouletteGame.jsx` | sur `main`, monté dans `GamePage` (#175) |
-| `wheel` | `src/game-ui/wheel/WheelGame.jsx` | sur `main` (#193), pas encore monté dans `GamePage` |
+| `wheel` | `src/game-ui/wheel/WheelGame.jsx` | sur `main` (#193), monté dans `GamePage` (#197) |
 
 Composant commun réutilisé par tous les jeux : `src/game-ui/common/BetPanel.jsx` (saisie de la
 mise + bouton « Jouer »). Les autres jeux n'ont pas encore d'UI.
@@ -47,7 +47,7 @@ Props propres à un jeu :
 
 | Jeu | Props | Rôle |
 | --- | --- | --- |
-| `wheel` | `segments`, `betTypes` | disposition de la roue et types de pari, issus de la config admin. Pas encore fournis à G3 (#122) : données fictives du mock par défaut |
+| `wheel` | `segments`, `betTypes` | disposition de la roue et types de pari, issus de la config admin : `segments` et clés de `paytable` de `coreService.getGameConfig('wheel')` (schéma validé dans #122). Pas encore exposé (#158) : données fictives du mock par défaut |
 
 L'UI ne lit jamais le Core elle-même et ne modifie ni le solde ni l'XP : le règlement est fait
 par l'orchestrateur G2 et le Core.
