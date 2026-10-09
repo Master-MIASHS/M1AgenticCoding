@@ -109,3 +109,20 @@ describe('calculerStatistiques : historique invalide', () => {
     }
   });
 });
+
+describe('calculerStatistiques : identifiants de jeu dangereux (relecture G5 de #271)', () => {
+  it('compte "__proto__" et "constructor" comme des jeux ordinaires, sans toucher aux prototypes', () => {
+    const stats = calculerStatistiques([
+      partie({ gameId: '__proto__', bet: 10, payout: 20 }),
+      partie({ roundId: 'r2', gameId: 'constructor', bet: 5, payout: 0 }),
+    ]);
+    assert.deepStrictEqual(stats.byGame.__proto__, { plays: 1, wagered: 10, won: 20 });
+    assert.deepStrictEqual(Object.keys(stats.byGame).sort(), ['__proto__', 'constructor']);
+    assert.deepStrictEqual(stats.byGame.constructor, { plays: 1, wagered: 5, won: 0 });
+    assert.strictEqual(stats.totalPlays, 2);
+    // Aucun prototype global n'a été modifié.
+    assert.strictEqual({}.plays, undefined);
+    assert.strictEqual(typeof Object.prototype.wagered, 'undefined');
+    assert.strictEqual(Object.plays, undefined);
+  });
+});

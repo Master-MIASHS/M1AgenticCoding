@@ -69,21 +69,27 @@ export function calculerStatistiques(historique) {
   historique.forEach(validerPartie);
   let totalWagered = 0;
   let totalWon = 0;
-  const byGame = {};
+  // Une Map, et non un objet {} : un gameId venu d'une sauvegarde importée
+  // (« __proto__ », « constructor »…) ne doit jamais toucher aux prototypes.
+  const parJeu = new Map();
   for (const partie of historique) {
     totalWagered += partie.bet;
     totalWon += partie.payout;
-    const jeu = (byGame[partie.gameId] ??= { plays: 0, wagered: 0, won: 0 });
+    const jeu = parJeu.get(partie.gameId) ?? { plays: 0, wagered: 0, won: 0 };
     jeu.plays += 1;
     jeu.wagered += partie.bet;
     jeu.won += partie.payout;
+    parJeu.set(partie.gameId, jeu);
   }
-  for (const jeu of Object.values(byGame)) {
-    jeu.wagered = arrondirAuCentime(jeu.wagered);
-    jeu.won = arrondirAuCentime(jeu.won);
-  }
-  const mostPlayed = Object.keys(byGame).sort(
-    (a, b) => byGame[b].plays - byGame[a].plays || a.localeCompare(b),
+  // Object.fromEntries crée de vraies propriétés, même pour « __proto__ ».
+  const byGame = Object.fromEntries(
+    [...parJeu].map(([gameId, jeu]) => [
+      gameId,
+      { plays: jeu.plays, wagered: arrondirAuCentime(jeu.wagered), won: arrondirAuCentime(jeu.won) },
+    ]),
+  );
+  const mostPlayed = [...parJeu.keys()].sort(
+    (a, b) => parJeu.get(b).plays - parJeu.get(a).plays || a.localeCompare(b),
   );
   return {
     totalPlays: historique.length,
