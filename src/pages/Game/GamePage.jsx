@@ -4,8 +4,10 @@
 // (rendering, actions) belongs to Groupe 3 (`src/game-ui/`) and is plugged in
 // later: nothing here knows any game rule.
 
+import { useMemo, useState } from 'react';
 import { getBalance } from '../../services/coreService.js';
 import { getGameMeta } from '../../config/gameRegistry.js';
+import { createGameStart } from './gameRuntime.js';
 import SlotsGame from '../../game-ui/slots/SlotsGame.jsx';
 import RouletteGame from '../../game-ui/roulette/RouletteGame.jsx';
 import WheelGame from '../../game-ui/wheel/WheelGame.jsx';
@@ -46,6 +48,22 @@ function renderResult(gameResult) {
 function GamePage({ gameId }) {
   const game = typeof gameId === 'string' ? getGameMeta(gameId) : undefined;
   const GameUI = game ? GAME_UIS[game.id] : undefined;
+  const [balance, setBalance] = useState(readBalance);
+  // Real round (Core draw -> G2 rules -> Core settlement) when the game is
+  // plugged in gameRuntime.js; otherwise the G3 UI keeps its own mock.
+  const realStart = useMemo(() => (game ? createGameStart(game.id) : undefined), [game]);
+  const start = useMemo(
+    () =>
+      realStart &&
+      (async (bets) => {
+        try {
+          return await realStart(bets);
+        } finally {
+          setBalance(readBalance());
+        }
+      }),
+    [realStart]
+  );
 
   return (
     <main className="page-game">
@@ -58,10 +76,16 @@ function GamePage({ gameId }) {
           <p className="game__category">{game.category}</p>
           {GameUI ? (
             <>
-              <p className="game__demo">
-                Mode démonstration : les résultats sont simulés et le solde n&apos;est pas modifié.
-              </p>
-              <GameUI balance={readBalance()} renderResult={renderResult} />
+              {start ? null : (
+                <p className="game__demo">
+                  Mode démonstration : les résultats sont simulés et le solde n&apos;est pas modifié.
+                </p>
+              )}
+              <GameUI
+                balance={balance}
+                renderResult={renderResult}
+                {...(start ? { start } : {})}
+              />
             </>
           ) : (
             <p className="game__text">Ce jeu sera bientôt jouable.</p>
