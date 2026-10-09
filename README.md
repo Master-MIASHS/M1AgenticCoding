@@ -3,6 +3,8 @@
 > Simulateur de casino **100 % fictif**, 100 % front-end (React + Vite + JavaScript),
 > développé par des agents IA supervisés par environ 25 étudiants répartis en 5 groupes.
 
+Lien du projet : https://maximiliense.github.io/M1AgenticCoding/
+
 ## Le projet
 
 Le joueur reprend un vieux casino fermé depuis des années. Il démarre avec un
