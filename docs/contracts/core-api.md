@@ -319,4 +319,5 @@ getGlobalStats() // → { totalPlays: 0, totalWagered: 0, totalWon: 0, activePla
 ## 11. Faire évoluer ce contrat
 
 - Toute modification de ce contrat passe par une **issue adressée au G1 et au G5** (règle 6), puis une PR relue par les deux groupes.
-- Le test `tests/unit/core-api-contract.test.js` vérifie que chaque fonction exposée par `coreService` est listée dans ce contrat (§ 2 ou § 10), et que chaque fonction du § 2 existe bien : une fonction ajoutée ou retirée sans mise à jour du contrat fait échouer la CI.
+- Le test `tests/unit/core-api-contract.test.js` vérifie trois choses : chaque fonction du § 2 existe dans `coreService` ; chaque fonction exposée par `coreService` est listée au § 2 ou au § 10 ; chaque fonction du § 2 a sa section détaillée. Une fonction **ajoutée sans être listée**, ou une fonction du § 2 **retirée**, fait donc échouer la CI.
+- Ce test ne détecte **pas** une fonction du § 10 qui devient disponible, ni un changement de statut (✅ / 🟡 / 🧪). Après chaque fusion d'une PR du § 10, il faut faire passer sa fonction au § 2 et mettre à jour son statut, via une issue G1 + G5.
