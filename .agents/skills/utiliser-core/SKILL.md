@@ -285,6 +285,32 @@ try {
 - G1 (`play()`) : lire `getMultiplicateurBonus(cible)` depuis `config/events.config.js`
   au moment du règlement (arbitrage G5 du 07/10), dans la même transaction.
 
+### Ajuster le solde (admin) et rôle admin en dev : updatePlayerBalance(amount), activerRoleAdminDev()
+
+Utiliser pour l’écran Admin (G4). Décisions du G5 dans #255.
+
+```js
+import { updatePlayerBalance, activerRoleAdminDev } from '<chemin-relatif>/services/coreService.js';
+
+activerRoleAdminDev();          // 'admin' : uniquement avec npm run dev, refusé dans le site compilé
+try {
+  updatePlayerBalance(-150);    // admin uniquement ; positif = ajout, négatif = retrait
+  // → { type: 'ADMIN_ADJUSTMENT', amount: -150, balanceBefore, balanceAfter, adjustedAt }
+} catch (erreur) {
+  // rôle non admin, montant invalide ou solde qui deviendrait négatif : rien n’a été modifié
+}
+```
+
+- Un seul argument : le montant (nombre fini non nul, au centime près). Il porte sur le
+  **profil courant** ; l’identifiant du joueur viendra avec les profils multiples (n°5).
+- Le solde ne passe jamais sous 0 (retrait trop grand refusé), `bestBalance` monte si
+  besoin et ne baisse jamais ; XP, niveau et jeux ne changent pas.
+- L’ajustement ajoute une entrée `type: 'ADMIN_ADJUSTMENT'` à `getState().history`. Les
+  parties n’ont pas de `type` : un affichage d’historique doit distinguer les deux.
+  `getGlobalStats()` ignore ces entrées.
+- Après la bascule, toutes les fonctions admin (`setGameConfig`, capital, événements,
+  ajustement) sont acceptées. Le rôle est enregistré dans la partie du joueur.
+
 ## G1 uniquement : écriture et progression internes
 
 Ces exemples supposent #139 et #144 intégrées dans la base de travail. Ils ne
