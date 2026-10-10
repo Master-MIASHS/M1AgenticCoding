@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import { assertCanModifyConfig } from './permissions.js';
+import { updateState } from './state.js';
 
 /** Type des entrées d'historique créées par un ajustement de l'admin. */
 export const TYPE_AJUSTEMENT_ADMIN = 'ADMIN_ADJUSTMENT';
@@ -128,4 +129,24 @@ export function createAdministration({
       return 'admin';
     },
   };
+}
+
+/** Instance partagée sur le vrai état du Core (horloge et mode dev réels). */
+const administrationDuCore = createAdministration({ updateState });
+
+/**
+ * Ajuste le solde du profil courant (réservé à l'admin).
+ * @param {number} montant - Positif pour un ajout, négatif pour un retrait.
+ * @returns {object} Copie de l'entrée ajoutée à l'historique.
+ */
+export function ajusterSoldeAdmin(montant) {
+  return administrationDuCore.ajusterSolde(montant);
+}
+
+/**
+ * Passe le profil courant en admin, uniquement en mode dev.
+ * @returns {'admin'} Le rôle enregistré.
+ */
+export function activerRoleAdminDev() {
+  return administrationDuCore.activerRoleAdminDev();
 }
