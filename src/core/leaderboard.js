@@ -10,6 +10,8 @@
 //  * Conception détaillée : docs/design/classement.md
 // ---------------------------------------------------------------------------
 
+import { getState } from './state.js';
+
 /**
  * Vérifie qu'une valeur est un nombre fini.
  * @param {unknown} valeur - Valeur à vérifier.
@@ -62,4 +64,16 @@ export function calculerClassement(profils) {
       b.bestBalance - a.bestBalance ||
       b.level - a.level ||
       (a.pseudo ?? '').localeCompare(b.pseudo ?? ''));
+}
+
+/**
+ * Renvoie le classement calculé sur l'état réel du Core. Exposée par
+ * core.js → coreService (remplace les joueurs fictifs de progression.js).
+ * Un seul profil aujourd'hui : le joueur courant.
+ *
+ * @returns {Array<{ pseudo: string|null, bestBalance: number, balance: number,
+ *   level: number }>} Nouvelles entrées, classées par meilleur solde.
+ */
+export function getLeaderboard() {
+  return calculerClassement([getState()]);
 }
