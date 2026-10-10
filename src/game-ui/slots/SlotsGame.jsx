@@ -10,12 +10,15 @@ const SYMBOLS = {
   grape: '\u{1F347}',
   bell: '\u{1F514}',
 };
-const symbolOf = (id) => SYMBOLS[id] ?? '\u2754';
+// Les symboles viennent de la config admin : un identifiant inconnu est affiché tel quel.
+const symbolOf = (id) => (id == null ? '❔' : (SYMBOLS[id] ?? id));
 
-const EMPTY_REELS = [Array(3).fill(null), Array(3).fill(null), Array(3).fill(null)];
+const EMPTY_REELS = [null, null, null];
 
 // status : "playing" (prêt à jouer) | "loading" | "terminal" | "error"
+// start(bets) : bets est toujours un tableau [{ type, amount }] (contrat G2 § 2.1)
 // renderResult(gameResult, bet) : gain affiché = bet × gameResult.multiplier
+// 3 rouleaux d'un symbole, lus dans renderPayload.raw.symbols (règles G2 #216).
 export default function SlotsGame({ balance, start = mockStart, renderResult }) {
   const [status, setStatus] = useState('playing');
   const [payload, setPayload] = useState(null);
@@ -26,7 +29,7 @@ export default function SlotsGame({ balance, start = mockStart, renderResult }) 
     setStatus('loading');
     setLastBet(bet);
     try {
-      const res = await start(bet);
+      const res = await start([{ type: 'mise', amount: bet }]);
       setPayload(res.renderPayload);
       setGameResult(res.gameResult ?? null);
       setStatus('terminal');
@@ -36,22 +39,20 @@ export default function SlotsGame({ balance, start = mockStart, renderResult }) 
   };
 
   const loading = status === 'loading';
-  const reels = payload?.reels ?? EMPTY_REELS;
-  const winningLines = payload?.winningLines ?? [];
+  const reels = payload?.raw?.symbols ?? EMPTY_REELS;
+  // Mise en évidence d'après le résultat fourni par G2, jamais recalculée ici.
+  const won = status === 'terminal' && gameResult?.outcome === 'win';
 
   return (
     <section className="slots">
       <div className="slots__reels" aria-live="polite" aria-busy={loading}>
-        {reels.map((reel, c) => (
+        {reels.map((id, c) => (
           <div key={c} className={`slots__reel${loading ? ' slots__reel--spin' : ''}`}>
-            {reel.map((id, r) => (
-              <div
-                key={r}
-                className={`slots__cell${!loading && winningLines.includes(r) ? ' slots__cell--win' : ''}`}
-              >
-                {symbolOf(id)}
-              </div>
-            ))}
+            <div
+              className={`slots__cell${won ? ' slots__cell--win' : ''}${id != null && !SYMBOLS[id] ? ' slots__cell--text' : ''}`}
+            >
+              {symbolOf(id)}
+            </div>
           </div>
         ))}
       </div>

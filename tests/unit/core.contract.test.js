@@ -10,6 +10,7 @@ import { computeIntegrityHash } from '../../src/core/storage.js';
 const EXPECTED_API = [
   'getState',
   'roll',
+  'choisirAction',
   'play',
   'getBalance',
   'claimDailyBonus',
@@ -17,6 +18,12 @@ const EXPECTED_API = [
   'getShopCatalog',
   'getShopInventory',
   'purchaseShopItem',
+  'getStartingCapital',
+  'setStartingCapital',
+  'getEvenementsBonus',
+  'getMultiplicateurBonus',
+  'lancerEvenementBonus',
+  'arreterEvenementBonus',
   'addXP',
   'getLevel',
   'getUnlockedGames',
@@ -89,7 +96,11 @@ test('importSave rejects invalid JSON, unsupported versions, and invalid state s
 
 test('importSave restores the state after validating the save', () => {
   const originalState = coreService.getState();
-  const restoredState = { ...originalState, balance: originalState.balance + 250 };
+  const restoredState = {
+    ...originalState,
+    balance: originalState.balance + 250,
+    bestBalance: Math.max(originalState.bestBalance, originalState.balance + 250),
+  };
   const save = createSave(restoredState);
 
   assert.deepEqual(coreService.importSave(save), restoredState);
@@ -121,7 +132,11 @@ test('importSave persists state and does not replace memory if persistence fails
   });
 
   try {
-    const restoredState = { ...originalState, balance: originalState.balance + 500 };
+    const restoredState = {
+      ...originalState,
+      balance: originalState.balance + 500,
+      bestBalance: Math.max(originalState.bestBalance, originalState.balance + 500),
+    };
     assert.deepEqual(coreService.importSave(createSave(restoredState)), restoredState);
     assert.deepEqual(JSON.parse(storedState), restoredState);
 
@@ -133,7 +148,8 @@ test('importSave persists state and does not replace memory if persistence fails
     assert.throws(() => coreService.importSave(createSave({
       ...stateBeforeFailedImport,
       balance: stateBeforeFailedImport.balance + 1,
-    })));
+      bestBalance: Math.max(stateBeforeFailedImport.bestBalance, stateBeforeFailedImport.balance + 1),
+    })), /storage unavailable/);
     assert.deepEqual(coreService.getState(), stateBeforeFailedImport);
   } finally {
     failWrite = false;

@@ -57,7 +57,7 @@ Permettre à l'admin de **lancer un événement bonus** : pendant une période d
 ## Points ouverts
 
 - **Multiplicateur maximum** : non défini dans le projet ; aucun plafond imposé.
-- **Sens exact du multiplicateur de gains** (sur le gain net ou sur le montant reversé) : à fixer par @Amina1203 au moment de l'appliquer dans `play()`.
+- ~~Sens exact du multiplicateur de gains~~ **tranché le 08/10** (question d'@Amina1203 sur #262) : il s'applique **au gain net, seulement s'il est positif** ; pertes et égalités inchangées. Montant reversé = mise + gain net × multiplicateur, arrondi **une seule fois au centime** comme dans `calculateSettlement`. Exemple : mise 10, résultat ×2, événement ×2 → gain net 20, montant reversé 30.
 
 ## Risques
 

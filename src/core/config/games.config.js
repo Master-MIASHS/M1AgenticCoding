@@ -22,31 +22,103 @@ export const GAMES = {
   poker: { id: 'poker', name: 'Poker', unlockLevel: 12 },
 };
 
+for (const game of Object.values(GAMES)) Object.freeze(game);
+Object.freeze(GAMES);
+
 // In-memory (mock) store of per-game runtime config.
 const gameConfigs = new Map();
 
 /**
- * (Mock) Sets the runtime configuration (probabilities / multipliers) for a
- * game.
+ * Vérifie que le jeu appartient au catalogue, sans accepter ses propriétés héritées.
+ * @param {unknown} gameId - Identifiant à vérifier.
+ * @returns {void}
+ * @throws {Error} Si le jeu est inconnu.
+ */
+function validateGameId(gameId) {
+  if (typeof gameId !== 'string' || !Object.hasOwn(GAMES, gameId)) {
+    throw new Error(`games.config : jeu inconnu : ${String(gameId)}`);
+  }
+}
+
+/**
+ * Lit les propriétés de données d'un objet simple sans exécuter d'accesseur.
+ * @param {unknown} value - Objet de configuration attendu.
+ * @returns {Array<[string, unknown]>} Entrées propres énumérables.
+ * @throws {TypeError} Si l'objet ne représente pas une table de données JSON.
+ */
+function readEntries(value) {
+  if (
+    value === null || typeof value !== 'object' ||
+    (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)
+  ) {
+    throw new TypeError('games.config : un objet simple est requis');
+  }
+  const entries = [];
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (typeof key !== 'string' || !descriptor.enumerable || !Object.hasOwn(descriptor, 'value')) {
+      throw new TypeError('games.config : seules les propriétés de données JSON sont acceptées');
+    }
+    entries.push([key, descriptor.value]);
+  }
+  return entries;
+}
+
+/**
+ * Valide et copie une section plate sans normaliser ses valeurs.
+ * @param {unknown} table - Table de nombres finis positifs ou nuls.
+ * @returns {Object<string, number>} Copie indépendante.
+ * @throws {TypeError|RangeError} Si une valeur est invalide.
+ */
+function copyNumericTable(table) {
+  const entries = readEntries(table);
+  for (const [, value] of entries) {
+    if (typeof value !== 'number') {
+      throw new TypeError('games.config : chaque valeur doit être un nombre');
+    }
+    if (!Number.isFinite(value) || value < 0) {
+      throw new RangeError('games.config : chaque valeur doit être finie et supérieure ou égale à 0');
+    }
+  }
+  return Object.fromEntries(entries);
+}
+
+/**
+ * Met à jour la configuration en mémoire après validation complète.
+ * Une section fournie remplace la précédente ; une section omise est conservée.
  *
- * @param {string} gameId
- * @param {{ probabilities?: object, multipliers?: object }} config
+ * @param {string} gameId - Identifiant connu du catalogue.
+ * @param {{ probabilities?: Object<string, number>, multipliers?: Object<string, number> }} [config={}]
  * @returns {{ ok: boolean, gameId: string }}
+ * @throws {Error|TypeError|RangeError} Si le jeu ou les données sont invalides, sans écriture.
  */
 export function setGameConfig(gameId, config = {}) {
-  gameConfigs.set(gameId, {
-    probabilities: config.probabilities ?? {},
-    multipliers: config.multipliers ?? {},
-  });
+  validateGameId(gameId);
+  const entries = readEntries(config);
+  const candidate = getGameConfig(gameId);
+  for (const [section, table] of entries) {
+    if (section !== 'probabilities' && section !== 'multipliers') {
+      throw new TypeError(`games.config : champ non autorisé : ${section}`);
+    }
+    candidate[section] = copyNumericTable(table);
+  }
+  gameConfigs.set(gameId, candidate);
   return { ok: true, gameId };
 }
 
 /**
- * @param {string} gameId
- * @returns {{ probabilities: object, multipliers: object }} stored config.
+ * Retourne une copie indépendante de la configuration ou deux sections vides.
+ * @param {string} gameId - Identifiant connu du catalogue.
+ * @returns {{ probabilities: Object<string, number>, multipliers: Object<string, number> }}
+ * @throws {Error} Si le jeu est inconnu.
  */
 export function getGameConfig(gameId) {
-  return gameConfigs.get(gameId) ?? { probabilities: {}, multipliers: {} };
+  validateGameId(gameId);
+  const config = gameConfigs.get(gameId);
+  return {
+    probabilities: { ...config?.probabilities },
+    multipliers: { ...config?.multipliers },
+  };
 }
 
 /**

@@ -20,7 +20,8 @@ import { diceRules } from '../../../src/games/dice/rules.js';
 import { makeFixtureRoll } from '../../fixtures/g2/rolls.js';
 
 const START_BALANCE = coreService.getState().balance;
-const TODO_ECART_10 = 'écart 10 (#159) : multiplier en gain net au lieu de « mise incluse »';
+const TODO_ECART_10 =
+  'écart 10 (#159) : payout / terminal / state au premier niveau au lieu de { outcome, multiplier, details }';
 
 function playDice(rollValue) {
   const fixture = makeFixtureRoll([rollValue]);
@@ -36,14 +37,14 @@ describe('G2 - montage dés (#24) : orchestrateur + règles + Core', () => {
     assert.equal(res.renderPayload.economy.newBalance, START_BALANCE - 10);
   });
 
-  test('premier lancer 7 : gagné 1:1, la partie se règle sans erreur', { todo: TODO_ECART_10 }, () => {
+  test('premier lancer 7 : gagné 1:1, la partie se règle sans erreur', () => {
     const res = playDice(0.5);
     assert.equal(res.gameResult.outcome, 'win');
     assert.equal(res.gameResult.multiplier, 2, 'mise incluse (§ 2.2)');
     assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 10);
   });
 
-  test('premier lancer 12 : égalité, la mise est rendue', { todo: TODO_ECART_10 }, () => {
+  test('premier lancer 12 : égalité, la mise est rendue', () => {
     const res = playDice(0.99);
     assert.equal(res.gameResult.outcome, 'push');
     assert.equal(res.gameResult.multiplier, 1, 'mise incluse (§ 2.2)');

@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import {
   createEvenementsMemoryStore,
   validerEvenement,
+  validerListeEvenements,
   createEvenementsBonus,
 } from '../../src/core/config/events.config.js';
 
@@ -228,5 +229,27 @@ describe('arreterEvenement', () => {
       assert.throws(() => bonus.arreterEvenement(id), /events\.config/, String(id));
     }
     assert.strictEqual(store.ecritures(), 0);
+  });
+});
+
+describe('validerListeEvenements', () => {
+  it('accepte une liste vide ou compatible', () => {
+    assert.doesNotThrow(() => validerListeEvenements([]));
+    assert.doesNotThrow(() =>
+      validerListeEvenements([evenement(), evenement({ id: 'xp', cible: 'xp' })]),
+    );
+  });
+
+  it('rejette une liste invalide, un événement invalide, un id en double ou un chevauchement', () => {
+    const invalides = [
+      null,
+      {},
+      [evenement({ multiplicateur: 1 })],
+      [evenement(), evenement({ cible: 'xp' })],
+      [evenement(), evenement({ id: 'chevauche', debut: 1500, fin: 2500 })],
+    ];
+    for (const liste of invalides) {
+      assert.throws(() => validerListeEvenements(liste), /events\.config/, JSON.stringify(liste));
+    }
   });
 });

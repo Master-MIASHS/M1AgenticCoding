@@ -9,6 +9,7 @@ import Profile from '../pages/Profile/Profile.jsx';
 import Progression from '../pages/Progression/Progression.jsx';
 import GamePage from '../pages/Game/GamePage.jsx';
 import NotFound from '../pages/NotFound/NotFound.jsx';
+import CreateProfile from '../pages/CreateProfile/CreateProfile.jsx';
 
 // Temporary hash navigation supports GitHub Pages without server rewrites.
 // Replace this adapter when the team chooses its routing library.
@@ -25,6 +26,9 @@ const pages = {
 
 function App() {
   const [path, setPath] = useState(getPath);
+  // Re-render after a profile is created so the player is read again from the Core.
+  const [, setProfileVersion] = useState(0);
+  const [profileSkipped, setProfileSkipped] = useState(false);
   useEffect(() => {
     const onHashChange = () => setPath(getPath());
     window.addEventListener('hashchange', onHashChange);
@@ -32,6 +36,16 @@ function App() {
   }, []);
 
   const player = getState();
+  // First launch: no pseudo in the Core state yet, so ask for one. Skipping only
+  // lasts for the session (the Core refuses a profile on a state already played).
+  if (player?.pseudo === undefined && !profileSkipped) {
+    return (
+      <CreateProfile
+        onCreated={() => setProfileVersion((version) => version + 1)}
+        onSkip={() => setProfileSkipped(true)}
+      />
+    );
+  }
   // Game screens remain outside the G4 shell; their bar will be added later.
   if (path.startsWith(GAME_PREFIX)) {
     return <GamePage gameId={path.slice(GAME_PREFIX.length).split('/')[0]} />;
