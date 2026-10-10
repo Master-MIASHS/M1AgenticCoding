@@ -271,9 +271,10 @@ function ModerationSection() {
     try {
       // This function is the one we requested from G5/G1
       if (coreService.updatePlayerBalance) {
-        coreService.updatePlayerBalance(selectedPlayer.id, Number(balanceUpdate));
+        coreService.updatePlayerBalance(Number(balanceUpdate));
         setFeedback({ type: 'success', message: 'Solde mis à jour !' });
       } else {
+
         setFeedback({ type: 'error', message: 'Fonction updatePlayerBalance non implémentée par G1' });
       }
     } catch (err) {

@@ -7,8 +7,10 @@ import Shop from '../pages/Shop/Shop.jsx';
 import Statistics from '../pages/Statistics/Statistics.jsx';
 import Profile from '../pages/Profile/Profile.jsx';
 import Progression from '../pages/Progression/Progression.jsx';
+import Admin from '../pages/Admin/Admin.jsx';
 import GamePage from '../pages/Game/GamePage.jsx';
 import NotFound from '../pages/NotFound/NotFound.jsx';
+
 
 // Temporary hash navigation supports GitHub Pages without server rewrites.
 // Replace this adapter when the team chooses its routing library.
@@ -21,6 +23,7 @@ const pages = {
   '/statistics': Statistics,
   '/profile': Profile,
   '/progression': Progression,
+  '/admin': Admin,
 };
 
 function App() {

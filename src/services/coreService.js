@@ -29,7 +29,9 @@ import {
   getLeaderboard,
   getHistory,
   setGameConfig,
+  updatePlayerBalance,
   getGlobalStats,
+
   exportSave,
   importSave,
 } from '../core/core.js';
@@ -53,7 +55,9 @@ export {
   getLeaderboard,
   getHistory,
   setGameConfig,
+  updatePlayerBalance,
   getGlobalStats,
+
   exportSave,
   importSave,
 };
