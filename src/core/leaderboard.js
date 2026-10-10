@@ -42,3 +42,24 @@ export function entreeDeClassement(etat) {
     level,
   };
 }
+
+/**
+ * Calcule le classement de plusieurs joueurs : meilleur solde décroissant,
+ * puis niveau décroissant, puis pseudo (ordre stable d'un appel à l'autre).
+ *
+ * @param {Array<object>} profils - États des joueurs (non modifiés).
+ * @returns {Array<{ pseudo: string|null, bestBalance: number, balance: number,
+ *   level: number }>} Nouvelles entrées, de la première à la dernière place.
+ * @throws {Error} Si la liste ou l'un des états est invalide.
+ */
+export function calculerClassement(profils) {
+  if (!Array.isArray(profils)) {
+    throw new Error('classement : les profils doivent être un tableau');
+  }
+  return profils
+    .map(entreeDeClassement)
+    .sort((a, b) =>
+      b.bestBalance - a.bestBalance ||
+      b.level - a.level ||
+      (a.pseudo ?? '').localeCompare(b.pseudo ?? ''));
+}
