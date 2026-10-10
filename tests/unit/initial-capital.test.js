@@ -54,3 +54,77 @@ describe('capital initial effectif (#253)', () => {
     `, { saved: JSON.stringify(legacy) });
   });
 });
+
+describe('première initialisation atomique interne (#253)', () => {
+  it('initialise une fois avec un capital réduit, sans exposer l’opération à l’UI', () => {
+    run(`
+      assert.equal(core.initializePlayerState, undefined);
+      const player = { ...state.getState(), balance: 250, bestBalance: 250, pseudo: 'Alice' };
+      const result = state.initializePlayerState(player);
+      assert.deepEqual(state.getState(), player);
+      assert.deepEqual(JSON.parse(values.get('casino_state')), player);
+      assert.equal(writes, 1);
+      result.unlockedGames.push('poker');
+      assert.deepEqual(state.getState(), player);
+      assert.throws(() => state.initializePlayerState(player), /profil|partie/);
+      assert.equal(writes, 1);
+    `);
+  });
+
+  it('conserve l’état et le droit de réessayer après un échec de persistance', () => {
+    run(`
+      const before = state.getState();
+      const player = { ...before, balance: 250, bestBalance: 250, pseudo: 'Alice' };
+      failWrite = true;
+      assert.throws(() => state.initializePlayerState(player), /quota/);
+      assert.deepEqual(state.getState(), before);
+      assert.equal(writes, 0);
+      failWrite = false;
+      state.initializePlayerState(player);
+      assert.equal(writes, 1);
+    `);
+  });
+
+  for (const method of ['updateState(s => s)', 'restoreState(state.getState())']) {
+    it(`refuse de recréer un joueur après ${method}`, () => {
+      run(`
+        state.${method};
+        const before = state.getState();
+        assert.throws(() => state.initializePlayerState({ ...before, pseudo: 'Alice' }), /partie/);
+        assert.deepEqual(state.getState(), before);
+        assert.equal(writes, 1);
+      `);
+    });
+  }
+
+  it('refuse une première création imbriquée dans une mise à jour', () => {
+    run(`
+      const before = state.getState();
+      assert.throws(() => state.updateState(s => {
+        state.initializePlayerState({ ...s, pseudo: 'Alice' });
+        return s;
+      }), /écriture/);
+      assert.deepEqual(state.getState(), before);
+      assert.equal(writes, 0);
+      state.initializePlayerState({ ...before, pseudo: 'Alice' });
+      assert.equal(writes, 1);
+    `);
+  });
+
+  it('valide le joueur initial avant toute écriture et permet la correction', () => {
+    run(`
+      const before = state.getState();
+      for (const invalid of [
+        { balance: 0, bestBalance: 0 }, { bestBalance: 999 }, { xp: 1 },
+        { level: 2 }, { role: 'admin' }, { history: [{}] },
+        { ownedItemIds: ['article'] }, { pseudo: '' },
+      ]) {
+        assert.throws(() => state.initializePlayerState({ ...before, pseudo: 'Alice', ...invalid }));
+      }
+      assert.deepEqual(state.getState(), before);
+      assert.equal(writes, 0);
+      state.initializePlayerState({ ...before, pseudo: 'Alice' });
+      assert.equal(writes, 1);
+    `);
+  });
+});
