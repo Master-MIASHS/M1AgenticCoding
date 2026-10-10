@@ -9,6 +9,8 @@
 //  * Conception détaillée : docs/design/ajustement-solde-admin.md
 // ---------------------------------------------------------------------------
 
+import { assertCanModifyConfig } from './permissions.js';
+
 /** Type des entrées d'historique créées par un ajustement de l'admin. */
 export const TYPE_AJUSTEMENT_ADMIN = 'ADMIN_ADJUSTMENT';
 
@@ -21,4 +23,79 @@ export const TYPE_AJUSTEMENT_ADMIN = 'ADMIN_ADJUSTMENT';
  */
 export function estAjustementAdmin(entree) {
   return entree !== null && typeof entree === 'object' && entree.type === TYPE_AJUSTEMENT_ADMIN;
+}
+
+/**
+ * Arrondit un montant au centime, avec la même compensation des erreurs de
+ * calcul flottant que le règlement et les statistiques.
+ * @param {number} montant - Montant à arrondir.
+ * @returns {number} Montant arrondi à deux décimales.
+ */
+function arrondirAuCentime(montant) {
+  const compensation = Number.EPSILON * Math.max(1, Math.abs(montant));
+  return Math.round((montant + compensation) * 100) / 100;
+}
+
+/**
+ * Vérifie le montant d'un ajustement : nombre fini, non nul, au centime près.
+ * @param {unknown} montant - Montant demandé (positif = ajout, négatif = retrait).
+ * @returns {void}
+ * @throws {TypeError} Si le montant est invalide.
+ */
+function validerMontant(montant) {
+  if (typeof montant !== 'number' || !Number.isFinite(montant) || montant === 0 ||
+      arrondirAuCentime(montant) !== montant) {
+    throw new TypeError('admin : le montant doit être un nombre fini non nul, au centime près');
+  }
+}
+
+/**
+ * Crée les outils de l'admin sur une écriture d'état injectée (même
+ * interface que updateState de state.js). Les dépendances ne sont injectables que dans les tests : la
+ * façade utilise l'instance partagée, sans option.
+ *
+ * @param {object} deps - Dépendances.
+ * @param {function(function(object): object): object} deps.updateState - Écriture atomique.
+ * @param {function(): number} [deps.maintenant] - Horloge en ms (Date.now par défaut).
+ * @returns {{ ajusterSolde: function(number): object }} Outils de l'admin.
+ */
+export function createAdministration({ updateState, maintenant = Date.now }) {
+  return {
+    /**
+     * Ajoute ou retire des jetons au profil courant et trace l'opération dans
+     * l'historique, dans une seule écriture. Le rôle est relu dans l'état.
+     *
+     * @param {number} montant - Positif pour un ajout, négatif pour un retrait.
+     * @returns {{ type: string, amount: number, balanceBefore: number,
+     *   balanceAfter: number, adjustedAt: string }} Copie de l'entrée ajoutée.
+     * @throws {TypeError} Montant invalide.
+     * @throws {Error} Rôle différent d'admin (rien n'est modifié).
+     * @throws {RangeError} Solde final négatif (rien n'est modifié).
+     */
+    ajusterSolde(montant) {
+      validerMontant(montant);
+      let entree;
+      updateState((etat) => {
+        assertCanModifyConfig(etat.role);
+        const balanceAfter = arrondirAuCentime(etat.balance + montant);
+        if (balanceAfter < 0) {
+          throw new RangeError('admin : le solde ne peut pas devenir négatif');
+        }
+        entree = {
+          type: TYPE_AJUSTEMENT_ADMIN,
+          amount: montant,
+          balanceBefore: etat.balance,
+          balanceAfter,
+          adjustedAt: new Date(maintenant()).toISOString(),
+        };
+        return {
+          ...etat,
+          balance: balanceAfter,
+          bestBalance: Math.max(etat.bestBalance, balanceAfter),
+          history: [...etat.history, entree],
+        };
+      });
+      return { ...entree };
+    },
+  };
 }
