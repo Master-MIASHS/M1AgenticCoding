@@ -19,17 +19,26 @@
 // }
 // ---------------------------------------------------------------------------
 
+import { getCapitalDeDepartActuel } from './config/player.config.js';
+
 export const STORAGE_KEY = 'casino_state';
 
-const DEFAULT_STATE = {
-  balance: 1000,
-  bestBalance: 1000,
-  xp: 0,
-  level: 1,
-  unlockedGames: ['slots', 'dice'],
-  history: [],
-  role: 'player',
-};
+/**
+ * Construit l’état provisoire avec le capital effectif, sans écrire.
+ * @returns {object} Nouvel état initial indépendant.
+ */
+function createDefaultState() {
+  const capital = getCapitalDeDepartActuel();
+  return {
+    balance: capital,
+    bestBalance: capital,
+    xp: 0,
+    level: 1,
+    unlockedGames: ['slots', 'dice'],
+    history: [],
+    role: 'player',
+  };
+}
 
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -72,7 +81,7 @@ function startFromDefault(reason, error) {
     `state: ${reason} ; démarrage avec l'état par défaut (casino_state conservé jusqu'au prochain enregistrement).`,
     error
   );
-  return cloneState(DEFAULT_STATE);
+  return createDefaultState();
 }
 
 /**
@@ -90,7 +99,7 @@ function readInitialState() {
     return startFromDefault('stockage local inaccessible', error);
   }
   if (storedState === null || storedState === undefined) {
-    return cloneState(DEFAULT_STATE);
+    return createDefaultState();
   }
 
   try {
