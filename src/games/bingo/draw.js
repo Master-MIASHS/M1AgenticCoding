@@ -6,8 +6,6 @@ const GRID_COLUMNS = [
   { min: 46, max: 60, count: 5 },
   { min: 61, max: 75, count: 5 },
 ];
-const BOT_COUNT = 3;
-
 function shuffle(core, values) {
   const shuffled = core.melanger([...values]);
   if (
@@ -41,12 +39,15 @@ function makeGrid(core) {
  * Prépare l'ordre des boules et les quatre grilles via le mélange public du Core.
  *
  * @param {{ melanger: (values: number[]) => number[] }} core - façade Core injectée par l'orchestrateur.
- * @param {{ session?: object }} [context] - session présente lors d'une action en cours.
+ * @param {{ session?: object, config?: { botCount: number } }} [context] - configuration et session de l'orchestrateur.
  * @returns {{ balls: number[], grids: { player: Array<Array<number | null>>, bots: Array<Array<Array<number | null>>> } } | null}
  *   tirage initial, ou null pendant les actions.
  */
 export function draw(core, context = {}) {
   if (context.session !== undefined) return null;
+  if (!Number.isSafeInteger(context.config?.botCount) || context.config.botCount < 1) {
+    throw new TypeError('bingo: config.botCount must be a positive safe integer');
+  }
   if (typeof core?.melanger !== 'function') {
     throw new TypeError('bingo: core.melanger must be a function');
   }
@@ -59,7 +60,7 @@ export function draw(core, context = {}) {
     balls,
     grids: {
       player: makeGrid(core),
-      bots: Array.from({ length: BOT_COUNT }, () => makeGrid(core)),
+      bots: Array.from({ length: context.config.botCount }, () => makeGrid(core)),
     },
   };
 }

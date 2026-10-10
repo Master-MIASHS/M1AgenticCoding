@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import * as bingoRules from '../../src/games/bingo/rules.js';
 
 const PAYTABLE = { win: 4 };
+const CONFIG = { botCount: 3, paytable: PAYTABLE };
 const BETS = [{ type: 'main', amount: 10 }];
 const BALLS = Array.from({ length: 75 }, (_, index) => index + 1);
 
@@ -28,7 +29,7 @@ function makeRaw({ balls = BALLS, player = makeGrid(), bots = [1, 2, 3].map((ind
   return { balls, grids: { player, bots } };
 }
 
-function start(raw = makeRaw(), config = { paytable: PAYTABLE }, bets = BETS) {
+function start(raw = makeRaw(), config = CONFIG, bets = BETS) {
   return bingoRules.start(raw, { bets, config });
 }
 
@@ -65,7 +66,10 @@ describe('bingo rules start', () => {
     assert.throws(() => start({ ...raw, grids: { ...raw.grids, player: badGrid } }), /grid/);
     assert.throws(() => start({ ...raw, balls: [1, ...BALLS.slice(1, -1), 1] }), /balls/);
     assert.throws(() => start(raw, { paytable: {} }), /paytable\.win/);
-    assert.throws(() => start(raw, { paytable: PAYTABLE }, [...BETS, ...BETS]), /exactly one/);
+    assert.throws(() => start(raw, { ...CONFIG, botCount: undefined }), /botCount/);
+    assert.throws(() => start(raw, { ...CONFIG, botCount: 0 }), /botCount/);
+    assert.throws(() => start(raw, { ...CONFIG, paytable: { win: 1 } }), /greater than 1/);
+    assert.throws(() => start(raw, CONFIG, [...BETS, ...BETS]), /exactly one/);
   });
 });
 
@@ -92,14 +96,6 @@ describe('bingo rules step', () => {
     const view = bingoRules.view({ phase: 'result', gameResult: state });
     assert.equal(view.bots[0].grid.length, 5);
     assert.deepEqual(view.winnerIds, ['player']);
-  });
-
-  it('uses the contract outcome for a configured multiplier of one', () => {
-    const state = finishWith(start(makeRaw(), { paytable: { win: 1 } }), 5);
-
-    assert.equal(state.outcome, 'push');
-    assert.equal(state.multiplier, 1);
-    assert.deepEqual(state.details.winnerIds, ['player']);
   });
 
   it('loses when only a bot completes a row', () => {

@@ -11,16 +11,19 @@ L'ordre des boules et les numéros des grilles sont mélangés une seule fois au
 démarrage par `core.melanger()` dans `draw.js`. Les règles restent pures et
 réutilisent ces données pendant les actions.
 
-La configuration doit fournir le multiplicateur de victoire mise incluse :
+La configuration doit fournir le nombre de bots et le multiplicateur de
+victoire mise incluse :
 
 ```js
-{ paytable: { win: 4 } }
+{ botCount: 3, paytable: { win: 4 } }
 ```
 
-La valeur est illustrative ; aucun multiplicateur de gain par défaut n'est
-fourni. Une victoire du joueur seul utilise `paytable.win`, une victoire des
-bots seuls donne `loss` avec le multiplicateur contractuel 0, et une égalité
-sur le même tirage donne `push` avec le multiplicateur contractuel 1.
+Le nombre de bots doit être un entier sûr positif et `paytable.win` doit être
+strictement supérieur à 1. La valeur du multiplicateur est illustrative ;
+aucun gain par défaut n'est fourni. Une victoire du joueur seul utilise
+`paytable.win`, une victoire des bots seuls donne `loss` avec le multiplicateur
+contractuel 0, et une égalité sur le même tirage donne `push` avec le
+multiplicateur contractuel 1.
 
 Pendant la partie, `rules.view()` expose la grille cochée du joueur, les boules
 sorties et, pour chaque bot, le nombre minimal de cases qu'il lui reste pour

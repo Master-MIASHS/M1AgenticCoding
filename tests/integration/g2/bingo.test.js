@@ -5,7 +5,7 @@ import { createGame } from '../../../src/games/_template/createGame.js';
 import * as bingoRules from '../../../src/games/bingo/rules.js';
 import { draw as drawBingo } from '../../../src/games/bingo/draw.js';
 
-const CONFIG = { paytable: { win: 4 } };
+const CONFIG = { botCount: 3, paytable: { win: 4 } };
 const BALLS = Array.from({ length: 75 }, (_, index) => index + 1);
 
 function makeCore({ identicalBoards = false } = {}) {
@@ -93,5 +93,20 @@ describe('G2 Bingo integration', () => {
     assert.deepEqual(result.gameResult.details.winnerIds, ['player', 'bot-1', 'bot-2', 'bot-3']);
     assert.equal(playCalls.length, 1);
     assert.throws(() => game.action(opened.sessionId, 'next'), /unknown or finished session/);
+  });
+
+  it('uses the configured bot count to generate and validate the boards', () => {
+    const { core, shuffledInputs } = makeCore();
+    const game = createGame({
+      id: 'bingo',
+      rules: bingoRules,
+      config: { ...CONFIG, botCount: 2 },
+      core,
+      draw: drawBingo,
+    });
+    const opened = game.start([{ type: 'main', amount: 10 }]);
+
+    assert.equal(shuffledInputs.length, 16);
+    assert.equal(opened.renderPayload.view.bots.length, 2);
   });
 });

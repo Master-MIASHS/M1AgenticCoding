@@ -1,6 +1,5 @@
 const BALL_COUNT = 75;
 const GRID_SIZE = 5;
-const BOT_COUNT = 3;
 const FREE_ROW = 2;
 const FREE_COLUMN = 2;
 const COLUMN_RANGES = [
@@ -48,12 +47,12 @@ function validateGrid(grid, label) {
   return grid.map((row) => [...row]);
 }
 
-function validateRaw(raw) {
+function validateRaw(raw, botCount) {
   if (raw === null || typeof raw !== 'object' || raw.grids === null || typeof raw.grids !== 'object') {
     throw new TypeError('bingo: raw must contain balls and player/bot grids');
   }
-  if (!Array.isArray(raw.grids.bots) || raw.grids.bots.length !== BOT_COUNT) {
-    throw new TypeError(`bingo: raw.grids.bots must contain exactly ${BOT_COUNT} grids`);
+  if (!Array.isArray(raw.grids.bots) || raw.grids.bots.length !== botCount) {
+    throw new TypeError(`bingo: raw.grids.bots must contain exactly ${botCount} grids`);
   }
   return {
     balls: validateBalls(raw.balls),
@@ -66,10 +65,18 @@ function validateRaw(raw) {
 
 function readPaytable(config) {
   const win = config?.paytable?.win;
-  if (typeof win !== 'number' || !Number.isFinite(win) || win < 0) {
-    throw new TypeError('bingo: config.paytable.win is required (a finite number >= 0)');
+  if (typeof win !== 'number' || !Number.isFinite(win) || win <= 1) {
+    throw new TypeError('bingo: config.paytable.win is required (a finite number greater than 1)');
   }
   return { win };
+}
+
+function readBotCount(config) {
+  const botCount = config?.botCount;
+  if (!Number.isSafeInteger(botCount) || botCount < 1) {
+    throw new TypeError('bingo: config.botCount must be a positive safe integer');
+  }
+  return botCount;
 }
 
 function readBet(bets) {
@@ -178,7 +185,8 @@ function makeResult(session, winnerIds) {
 export function start(raw, { bets, config } = {}) {
   const totalBet = readBet(bets);
   const paytable = readPaytable(config);
-  const { balls, grids } = validateRaw(raw);
+  const botCount = readBotCount(config);
+  const { balls, grids } = validateRaw(raw, botCount);
   const session = {
     needsDraw: true,
     balls,
