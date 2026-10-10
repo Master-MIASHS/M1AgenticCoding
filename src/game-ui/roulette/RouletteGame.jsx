@@ -34,6 +34,9 @@ export default function RouletteGame({ balance, start = mockStart, renderResult 
   };
 
   const loading = status === 'loading';
+  // Numéro tiré dans raw, couleur calculée par les règles G2 à partir de la config (#321) :
+  // 'red' | 'black' | 'green', ou null si la config ne la donne pas (affiché sans couleur).
+  const color = payload?.interpretation?.color ?? null;
 
   return (
     <section className="roulette">
@@ -55,7 +58,7 @@ export default function RouletteGame({ balance, start = mockStart, renderResult 
       <div className="roulette__display" aria-live="polite" aria-busy={loading}>
         {loading && <div className="roulette__ball roulette__ball--spin">…</div>}
         {!loading && payload && (
-          <div className={`roulette__ball roulette__ball--${payload.color}`}>{payload.number}</div>
+          <div className={`roulette__ball${color ? ` roulette__ball--${color}` : ''}`}>{payload.raw}</div>
         )}
         {!loading && !payload && <div className="roulette__ball">?</div>}
       </div>
