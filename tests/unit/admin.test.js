@@ -63,7 +63,6 @@ const INSTANT = Date.UTC(2026, 9, 10, 18, 0, 0);
  */
 function administration(etat, dev = false) {
   return createAdministration({
-    getState: etat.getState,
     updateState: etat.updateState,
     maintenant: () => INSTANT,
     estModeDev: () => dev,
