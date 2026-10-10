@@ -225,6 +225,23 @@ const { totalPlays, totalWagered, totalWon, activePlayers, byGame, mostPlayed } 
 - Toutes les valeurs restent à 0 tant que `play()` n’enregistre pas l’historique (#131).
 - Une erreur signale un historique enregistré corrompu.
 
+### Classement : getLeaderboard()
+
+Utiliser pour la page Classement (G4).
+
+```js
+import { getLeaderboard } from '<chemin-relatif>/services/coreService.js';
+
+getLeaderboard();
+// → [{ pseudo: 'Olti', bestBalance: 1250, balance: 800, level: 3 }]
+```
+
+- Le Core classe : par `bestBalance` décroissant (le score d’AGENTS.md), puis niveau, puis
+  pseudo. L’UI affiche dans l’ordre reçu, sans trier ; le rang est la position.
+- Afficher **`bestBalance`** comme score (« Meilleur solde »), pas `balance`.
+- Un seul profil aujourd’hui : la liste contient le joueur courant. `pseudo` vaut `null`
+  pour une ancienne sauvegarde sans profil. Les badges arriveront avec #273.
+
 ### Boutique : getShopCatalog(), getShopInventory(), purchaseShopItem()
 
 Utiliser pour l’écran Boutique (G4), selon `src/pages/Shop/SHOP_CORE_CONTRACT.md`.
