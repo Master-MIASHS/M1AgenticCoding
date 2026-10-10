@@ -169,12 +169,13 @@ const decision = core.choisirAction({
 ### Exporter et importer une sauvegarde : exportSave() / importSave()
 
 Une sauvegarde dont `bestBalance < balance` est refusée, même avec un hash valide.
-L’import refusé conserve l’état courant et le stockage. Une ancienne sauvegarde
-cohérente peut toujours restaurer une XP ou un meilleur solde inférieurs à ceux
-de la session courante : la comparaison porte sur les deux soldes du fichier.
-Ce comportement est **provisoire**, en attente de l’arbitrage G1/G5 sur la
-[politique de restauration (#258)](https://github.com/maximiliense/M1AgenticCoding/issues/258).
-Ne pas en déduire une règle définitive autorisant la baisse des acquis.
+L’import refusé conserve l’état courant et le stockage. Un import accepté est un
+**remplacement complet** de l’instantané, jamais une fusion : une ancienne sauvegarde
+cohérente restaure aussi une XP, un niveau ou un meilleur solde inférieurs à ceux de
+la session courante (décision G5,
+[politique de restauration #258](https://github.com/maximiliense/M1AgenticCoding/issues/258)).
+La règle « l’XP, le niveau et le meilleur solde ne diminuent jamais » s’applique
+pendant le jeu (`updateState`, `play()`), pas à un import volontaire.
 
 Utiliser pour permettre au joueur de télécharger sa partie ou d’en recharger une
 (écran Profil ou paramètres, G4). Le Core ne gère ni le fichier ni le bouton :
@@ -204,9 +205,12 @@ try {
 - Le hash FNV-1a détecte une sauvegarde abîmée, pas la triche (le code est visible).
   Ne pas le présenter comme une protection.
 - Ne jamais lire ou écrire `casino_state` directement dans `localStorage`.
-- Pas encore tranché : l’import accepte aujourd’hui une sauvegarde avec moins d’XP
-  ou un niveau plus bas, et le démarrage avec un `casino_state` corrompu est en cours
-  de correction (n°27). Vérifier le comportement courant avant de s’appuyer dessus.
+- Ne jamais garder le maximum de chaque champ entre deux sauvegardes : mélanger deux
+  états désynchroniserait solde, historique et inventaire (#258).
+- Au démarrage, un `casino_state` illisible ou non conforme ne fait pas planter
+  l’application : avertissement dans la console, état par défaut, et `casino_state`
+  conservé jusqu’au prochain enregistrement réussi (#240). Ce cas est distinct d’un
+  import refusé, qui conserve la partie déjà chargée.
 
 ### Statistiques globales : getGlobalStats()
 
