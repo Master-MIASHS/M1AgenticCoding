@@ -1,5 +1,6 @@
 import { afterEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { creerProfil, getState, exportSave } from '../../src/services/coreService.js';
 import { restoreState, updateState } from '../../src/core/state.js';
 
@@ -30,11 +31,26 @@ describe('création publique : dépendances privées et état vierge', () => {
     } }],
   ]) {
     it(`ne permet pas de choisir ${nom} depuis la façade`, () => {
-      const writes = countWrites();
-      const result = creerProfil({ pseudo: 'Alice' }, options);
-      assert.equal(result.balance, initial.balance);
-      assert.deepEqual(result.unlockedGames, initial.unlockedGames);
-      assert.equal(writes(), 1);
+      const url = new URL('../../src/services/coreService.js', import.meta.url).href;
+      // Une restauration ne remet pas à zéro le cycle de vie d’une partie.
+      // Chaque création publique part donc d’un vrai démarrage neuf.
+      execFileSync(process.execPath, ['--input-type=module', '-e', `
+        import assert from 'node:assert/strict';
+        let writes = 0;
+        globalThis.localStorage = { getItem: () => null, setItem: () => { writes++; } };
+        const core = await import(${JSON.stringify(url)});
+        const initial = core.getState();
+        const options = ${JSON.stringify(options)};
+        if (${JSON.stringify(nom)} === 'stockage') options.stockage = {
+          getState() { throw Error('injection'); },
+          updateState() { throw Error('injection'); },
+          initializePlayerState() { throw Error('injection'); },
+        };
+        const result = core.creerProfil({ pseudo: 'Alice' }, options);
+        assert.equal(result.balance, initial.balance);
+        assert.deepEqual(result.unlockedGames, initial.unlockedGames);
+        assert.equal(writes, 1);
+      `], { stdio: 'pipe', timeout: 10000 });
     });
   }
 

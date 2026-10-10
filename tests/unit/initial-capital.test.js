@@ -128,3 +128,86 @@ describe('première initialisation atomique interne (#253)', () => {
     `);
   });
 });
+
+describe('création publique avec le capital effectif (#253)', () => {
+  for (const capital of [500, 2500]) {
+    it(`crée et recharge un profil à ${capital}`, () => {
+      run(`
+        const created = core.creerProfil({ pseudo: ' Alice ' });
+        assert.equal(created.pseudo, 'Alice');
+        assert.equal(created.balance, ${capital});
+        assert.equal(created.bestBalance, ${capital});
+        assert.equal(writes, 1);
+        const stored = values.get('casino_state');
+        const reloaded = await import(${JSON.stringify(stateURL + '?after-profile')});
+        assert.deepEqual(reloaded.getState(), created);
+        assert.equal(values.get('casino_state'), stored);
+        config.reglerCapitalDeDepart(200);
+        assert.deepEqual(state.getState(), created);
+        const exported = core.exportSave();
+        assert.deepEqual(core.importSave(exported), created);
+        assert.throws(() => core.creerProfil({ pseudo: 'Autre' }), /profil/);
+        assert.equal(writes, 2); // création et import uniquement
+      `, { capital });
+    });
+  }
+
+  it('relit le capital à la création sans autoriser des options choisies par l’UI', () => {
+    run(`
+      config.reglerCapitalDeDepart(200);
+      let called = false;
+      const created = core.creerProfil({ pseudo: 'Alice' }, {
+        config: { capitalDeDepart: 999999 },
+        jeux: { poker: { id: 'poker', unlockLevel: 1 } },
+        stockage: { updateState() { called = true; } },
+      });
+      assert.equal(created.balance, 200);
+      assert.equal(created.bestBalance, 200);
+      assert.deepEqual(created.unlockedGames, ['slots', 'dice']);
+      assert.equal(called, false);
+      assert.equal(writes, 1);
+    `);
+  });
+
+  it('permet de réessayer après validation refusée et échec du stockage', () => {
+    run(`
+      const before = state.getState();
+      assert.throws(() => core.creerProfil({ pseudo: ' ' }), /pseudo/);
+      failWrite = true;
+      assert.throws(() => core.creerProfil({ pseudo: 'Alice' }), /quota/);
+      assert.deepEqual(state.getState(), before);
+      assert.equal(values.get('casino_state'), null);
+      assert.equal(writes, 0);
+      failWrite = false;
+      config.reglerCapitalDeDepart(250);
+      assert.equal(core.creerProfil({ pseudo: 'Alice' }).bestBalance, 250);
+      assert.equal(writes, 1);
+    `);
+  });
+
+  for (const [name, saved] of [
+    ['identique au défaut sans pseudo', JSON.stringify(legacy)],
+    ['illisible', '{JSON cassé'],
+  ]) {
+    it(`ne recrée pas un profil depuis une sauvegarde ${name}`, () => {
+      run(`
+        const before = state.getState();
+        assert.throws(() => core.creerProfil({ pseudo: 'Alice' }), /partie|stockage/);
+        assert.deepEqual(state.getState(), before);
+        assert.equal(values.get('casino_state'), ${JSON.stringify(saved)});
+        assert.equal(writes, 0);
+      `, { saved, capital: 1000 });
+    });
+  }
+
+  it('refuse la création si l’absence de sauvegarde n’a pas pu être vérifiée', () => {
+    run(`
+      globalThis.localStorage.getItem = () => { throw Error('SecurityError'); };
+      const unavailable = await import(${JSON.stringify(stateURL + '?unavailable')});
+      const before = unavailable.getState();
+      assert.throws(() => unavailable.initializePlayerState({ ...before, pseudo: 'Alice' }), /stockage/);
+      assert.deepEqual(unavailable.getState(), before);
+      assert.equal(writes, 0);
+    `);
+  });
+});
