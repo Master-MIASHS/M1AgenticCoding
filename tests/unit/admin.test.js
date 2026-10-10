@@ -143,3 +143,36 @@ describe('ajusterSolde', () => {
     assert.equal(etat.ecritures(), 0);
   });
 });
+
+describe('activerRoleAdminDev', () => {
+  it('passe le profil courant en admin en mode dev', () => {
+    const etat = fauxEtat({ role: 'player' });
+
+    assert.equal(administration(etat, true).activerRoleAdminDev(), 'admin');
+    assert.equal(etat.getState().role, 'admin');
+  });
+
+  it('ne change rien d’autre que le rôle', () => {
+    const etat = fauxEtat({ role: 'player' });
+    const avant = etat.getState();
+    administration(etat, true).activerRoleAdminDev();
+
+    assert.deepEqual(etat.getState(), { ...avant, role: 'admin' });
+  });
+
+  it('refuse hors du mode dev, sans rien modifier', () => {
+    const etat = fauxEtat({ role: 'player' });
+
+    assert.throws(() => administration(etat, false).activerRoleAdminDev(), /mode développement/);
+    assert.equal(etat.getState().role, 'player');
+    assert.equal(etat.ecritures(), 0);
+  });
+
+  it('permet ensuite d’ajuster le solde', () => {
+    const etat = fauxEtat({ role: 'player' });
+    const admin = administration(etat, true);
+    admin.activerRoleAdminDev();
+
+    assert.equal(admin.ajusterSolde(100).balanceAfter, 500);
+  });
+});
