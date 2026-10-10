@@ -5,7 +5,7 @@
 //
 //  * validerPseudo, validerDateNaissance, jeuxDeDepart et creerJoueur sont
 //    PURES : elles n'écrivent rien.
-//  * Seule creerProfil écrit dans l'état, en une seule écriture updateState
+//  * Seule creerProfil écrit dans l'état, en une seule écriture atomique
 //    (#253), et uniquement sur une session vérifiée neuve.
 //  * Aucune valeur de réglage en dur (règle 4 d'AGENTS.md) : le capital de
 //    départ vient de config/player.config.js.
