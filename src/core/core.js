@@ -24,6 +24,10 @@ import {
   arreterEvenementBonus as arreterEvenementBonusSansControle,
 } from './config/events.config.js';
 import { creerProfil as creerProfilInterne } from './player.js';
+import {
+  ajusterSoldeAdmin,
+  activerRoleAdminDev as activerRoleAdminDevInterne,
+} from './admin.js';
 
 export { getState };
 export { roll, tirageEntier, tirageAvecPoids, melanger } from './rng.js';
@@ -148,4 +152,29 @@ export function lancerEvenementBonus(evenement) {
 export function arreterEvenementBonus(id) {
   assertCanModifyConfig(getState().role);
   return arreterEvenementBonusSansControle(id);
+}
+
+/**
+ * Ajuste le solde du profil courant (admin uniquement, #322) : ajout ou
+ * retrait, tracé dans l'historique. Le rôle est relu dans l'état du Core ;
+ * seul le montant passe par la façade (profils multiples pas encore faits).
+ * @param {number} amount - Positif pour un ajout, négatif pour un retrait.
+ * @returns {{ type: 'ADMIN_ADJUSTMENT', amount: number, balanceBefore: number,
+ *   balanceAfter: number, adjustedAt: string }} Entrée ajoutée à l'historique.
+ * @throws {TypeError} Montant invalide.
+ * @throws {Error} Si le rôle n'est pas administrateur (rien n'est modifié).
+ * @throws {RangeError} Si le solde deviendrait négatif (rien n'est modifié).
+ */
+export function updatePlayerBalance(amount) {
+  return ajusterSoldeAdmin(amount);
+}
+
+/**
+ * Passe le profil courant en admin, uniquement dans l'application lancée en
+ * développement (bascule validée par le G5, #255). Refusé dans le site compilé.
+ * @returns {'admin'} Le rôle enregistré.
+ * @throws {Error} Hors du mode dev (rien n'est modifié).
+ */
+export function activerRoleAdminDev() {
+  return activerRoleAdminDevInterne();
 }
