@@ -48,10 +48,10 @@ export {
   addXP,
   getLevel,
   getUnlockedGames,
-  getLeaderboard,
   getHistory,
 } from './progression.js';
 export { getGlobalStats } from './stats.js';
+export { getLeaderboard } from './leaderboard.js';
 export { exportSave, importSave } from './storage.js';
 /**
  * Crée un profil avec les dépendances choisies par le Core uniquement.
