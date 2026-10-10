@@ -50,6 +50,15 @@ function validerMontant(montant) {
 }
 
 /**
+ * Indique si le Core tourne dans l'application lancée par Vite en
+ * développement. Faux dans le site compilé et sous Node.
+ * @returns {boolean} Vrai en mode dev.
+ */
+function modeDevDeVite() {
+  return import.meta.env?.DEV === true;
+}
+
+/**
  * Crée les outils de l'admin sur une écriture d'état injectée (même
  * interface que updateState de state.js). Les dépendances ne sont injectables que dans les tests : la
  * façade utilise l'instance partagée, sans option.
@@ -57,9 +66,15 @@ function validerMontant(montant) {
  * @param {object} deps - Dépendances.
  * @param {function(function(object): object): object} deps.updateState - Écriture atomique.
  * @param {function(): number} [deps.maintenant] - Horloge en ms (Date.now par défaut).
- * @returns {{ ajusterSolde: function(number): object }} Outils de l'admin.
+ * @param {function(): boolean} [deps.estModeDev] - Mode dev (Vite par défaut).
+ * @returns {{ ajusterSolde: function(number): object,
+ *   activerRoleAdminDev: function(): string }} Outils de l'admin.
  */
-export function createAdministration({ updateState, maintenant = Date.now }) {
+export function createAdministration({
+  updateState,
+  maintenant = Date.now,
+  estModeDev = modeDevDeVite,
+}) {
   return {
     /**
      * Ajoute ou retire des jetons au profil courant et trace l'opération dans
@@ -96,6 +111,21 @@ export function createAdministration({ updateState, maintenant = Date.now }) {
         };
       });
       return { ...entree };
+    },
+
+    /**
+     * Passe le profil courant en admin, uniquement en mode dev : option
+     * « bascule explicite en mode dev » validée par le G5 (#255).
+     *
+     * @returns {'admin'} Le rôle enregistré.
+     * @throws {Error} Hors du mode dev (rien n'est modifié).
+     */
+    activerRoleAdminDev() {
+      if (estModeDev() !== true) {
+        throw new Error('admin : le rôle admin ne s’active qu’en mode développement');
+      }
+      updateState((etat) => ({ ...etat, role: 'admin' }));
+      return 'admin';
     },
   };
 }
