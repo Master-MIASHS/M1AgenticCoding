@@ -257,11 +257,11 @@ Le Groupe 2 décide **ce qui se passe** dans une partie : les règles de chaque 
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | Donia-alfonsi | Alfonsi Donia | Alfonsi Donia | moteur de cartes partagé, constructeur de paquet, Blackjack et son tirage · tests associés |
-| Zelyx21 | Clem, Zelyx21 | Beaulieu, Clémentine | créer le socle commun, se coordiner avec les autres groupes |
-| raphoulefoufou | raphoulefoufou | Capristo,Raphaël | création jeu de dés,test sur ces derniers |
-| camilhamdach5-byte | camilhamdach5-byte, Camil-Hamdach | Hamdach,Camil | Création de la logique des jeux Blackjack, Slots et Scratch.|
-| camseveyrat | camseveyrat - Camille | Seveyrat, Camille | règles et jeux : wheel + plinko |
-| fcassius | fcassius, Cassius FELIHO | FELIHO, Cassius | référent intégration / documentation du G2 : contrats G2 ↔ G1 / G3 / G4, cohérence des formats, mocks et fixtures, tests d'intégration |
+| Zelyx21 | Clem, Zelyx21 | Beaulieu, Clémentine | créer le socle commun, se coordonner avec les autres groupes · vidéo poker, Memory, Quiz et Bingo (#125, #274, #275, #276) |
+| raphoulefoufou | raphoulefoufou | Capristo,Raphaël | création jeu de dés,test sur ces derniers · poker contre les bots (#196) |
+| camilhamdach5-byte | camilhamdach5-byte, Camil-Hamdach | Hamdach,Camil | Création de la logique des jeux Slots, Scratch et Baccarat (#31, #216, #220) |
+| camseveyrat | camseveyrat - Camille | Seveyrat, Camille | règles et jeux : wheel + plinko + roulette (#191, #233) |
+| fcassius | fcassius, Cassius FELIHO | FELIHO, Cassius | référent intégration / documentation du G2 : contrats G2 ↔ G1 / G3 / G4 (#68), orchestrateur `createGame`, cohérence des formats, mocks et fixtures, tests d'intégration, skill `jeux-g2` |
 
 
 ### Groupe 3 — Rendu visuel
