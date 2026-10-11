@@ -18,7 +18,9 @@ import assert from 'node:assert/strict';
 import * as coreService from '../../../src/services/coreService.js';
 import { createGame } from '../../../src/games/_template/createGame.js';
 import * as wheelRules from '../../../src/games/wheel/rules.js';
+import { drawWheel } from '../../../src/games/wheel/draw.js';
 import * as plinkoRules from '../../../src/games/plinko/rules.js';
+import { drawPlinko } from '../../../src/games/plinko/draw.js';
 import { makeFixtureDraw } from '../../fixtures/g2/rolls.js';
 
 // Configurations de test : la forme est celle proposée par les règles
@@ -86,25 +88,31 @@ describe('G2 - montage wheel (#26) : orchestrateur + règles + Core', () => {
     assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore + 5);
   });
 
-  test('écart 8 (levé) : le VRAI Core tire un segment via draw + tirageAvecPoids (#141, #115)', () => {
-    // Disposition de roue propre au test : le draw définitif de la roue
-    // appartient à @camseveyrat et suivra la forme de config de #122.
-    const segments = [
-      { id: 's1', color: 'red' },
-      { id: 's2', color: 'blue' },
-    ];
+  test('écart 8 (levé) : le VRAI draw tire un segment via tirageAvecPoids (#141, #115, #256)', () => {
+    // Disposition de roue propre au test, forme de config de #122/#256 : le
+    // draw produit le segment, les règles le règlent, le Core encaisse.
+    const WHEEL_DRAW_CONFIG = {
+      ...WHEEL_CONFIG,
+      segments: [
+        { id: 's1', color: 'red', weight: 1 },
+        { id: 's2', color: 'blue', weight: 1 },
+      ],
+    };
     const game = createGame({
       id: 'wheel',
       rules: wheelRules,
-      config: WHEEL_CONFIG,
-      draw: (core) => core.tirageAvecPoids(segments, [1, 1]),
+      config: WHEEL_DRAW_CONFIG,
+      draw: drawWheel,
     });
 
     // Vrai hasard du Core : on vérifie des invariants, jamais un tirage précis.
     for (let i = 0; i < 20; i += 1) {
       const balanceBefore = coreService.getState().balance;
       const res = game.start([{ type: 'red', amount: 10 }]);
-      assert.ok(segments.includes(res.renderPayload.raw), 'le brut est un des segments');
+      assert.ok(
+        WHEEL_DRAW_CONFIG.segments.includes(res.renderPayload.raw),
+        'le brut est un des segments',
+      );
       const won = res.renderPayload.raw.color === 'red';
       assert.equal(res.gameResult.outcome, won ? 'win' : 'loss');
       assert.equal(res.renderPayload.economy.newBalance, balanceBefore + (won ? 10 : -10));
@@ -140,5 +148,30 @@ describe('G2 - montage plinko (#26) : orchestrateur + règles + Core', () => {
     const res = game.start([{ type: 'slot', amount: 1 }]);
     assert.equal(res.gameResult.outcome, 'loss');
     assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore - 0.5);
+  });
+
+  test('le VRAI draw tire un index via tirageAvecPoids (#141, #115, #256)', () => {
+    // Forme de config de #122/#256 : `paytable` (multiplicateurs) et `weights`
+    // parallèles de même longueur. Le draw produit l'index de la case.
+    const PLINKO_DRAW_CONFIG = {
+      paytable: [0, 0.5, 1, 2, 5],
+      weights: [1, 1, 1, 1, 1],
+    };
+    const game = createGame({
+      id: 'plinko',
+      rules: plinkoRules,
+      config: PLINKO_DRAW_CONFIG,
+      draw: drawPlinko,
+    });
+
+    // Vrai hasard du Core : on vérifie des invariants, jamais un tirage précis.
+    for (let i = 0; i < 20; i += 1) {
+      const res = game.start([{ type: 'slot', amount: 1 }]);
+      assert.ok(
+        Number.isInteger(res.renderPayload.raw) && res.renderPayload.raw >= 0,
+        'le brut est l\'index de la case tirée',
+      );
+      assert.ok(res.renderPayload.raw < PLINKO_DRAW_CONFIG.paytable.length);
+    }
   });
 });
