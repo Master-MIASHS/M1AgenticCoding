@@ -52,7 +52,7 @@ updatePlayerBalance(-150);
 Les entrées d'ajustement vivent dans `history` à côté des parties. Les consommateurs qui comptent des parties doivent les ignorer :
 
 - `stats.js` (`getGlobalStats`) : ignorées (sinon `validerPartie` lèverait une erreur) ;
-- badges (#273) : le compteur `partiesJouees` devra les ignorer aussi, une fois #273 fusionnée.
+- badges (#273) : le compteur `partiesJouees` les ignore aussi.
 
 ## Décisions
 

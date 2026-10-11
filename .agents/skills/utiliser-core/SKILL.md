@@ -401,7 +401,7 @@ try {
   besoin et ne baisse jamais ; XP, niveau et jeux ne changent pas.
 - L’ajustement ajoute une entrée `type: 'ADMIN_ADJUSTMENT'` à `getState().history`. Les
   parties n’ont pas de `type` : un affichage d’historique doit distinguer les deux.
-  `getGlobalStats()` ignore ces entrées.
+  `getGlobalStats()` et `getBadges()` ignorent ces entrées.
 - Après la bascule, toutes les fonctions admin (`setGameConfig`, capital, événements,
   ajustement) sont acceptées. Le rôle est enregistré dans la partie du joueur.
 
