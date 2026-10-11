@@ -4,7 +4,7 @@ import {
   getBalance, 
   addXP, 
   getLevel 
-} from '../../src/core/core.js';
+} from '../../../src/core/core.js';
 
 // Mock for getState since we are in Node.js environment and state.js might depend on browser/global state
 // In a real scenario, we should import the state and set it.
