@@ -1,0 +1,89 @@
+.dice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium, 16px);
+  color: var(--color-text, #eeeeee);
+}
+
+.dice__table {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--spacing-medium, 16px);
+  min-height: 140px;
+  padding: var(--spacing-medium, 16px);
+  background: var(--color-surface, #1e1e2a);
+  border-radius: var(--radius-medium, 12px);
+}
+
+.dice__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-small, 8px);
+}
+
+.dice__label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #9aa0b0);
+}
+
+.dice__roll {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #12121a;
+  background: #f5f5f5;
+  border-radius: var(--radius-medium, 12px);
+  box-shadow: 0 4px 0 #b8b8b8;
+}
+
+.dice__roll--empty {
+  color: var(--color-text-muted, #9aa0b0);
+  background: var(--color-background, #12121a);
+  box-shadow: none;
+}
+
+.dice__roll--rolling {
+  animation: dice-roll 0.5s linear infinite;
+}
+
+@keyframes dice-roll {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dice__point {
+  margin: 0;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-accent, #ffd166);
+}
+
+.dice__message {
+  margin: 0;
+  text-align: center;
+}
+
+.dice__error {
+  color: var(--color-danger, #e74c3c);
+}
+
+@media (max-width: 480px) {
+  .dice__roll {
+    width: 64px;
+    height: 64px;
+    font-size: 1.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dice__roll--rolling {
+    animation: none;
+  }
+}
