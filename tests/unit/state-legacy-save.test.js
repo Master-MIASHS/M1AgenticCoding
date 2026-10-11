@@ -27,7 +27,12 @@ describe('sauvegardes existantes sans pseudo au démarrage (#253)', () => {
       const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
         import assert from 'node:assert/strict';
         const expected = ${JSON.stringify(expected)};
-        const normalizedExpected = { ...expected, settledRoundIds: [], faillites: 0 };
+        const normalizedExpected = {
+          ...expected,
+          settledRoundIds: [],
+          faillites: 0,
+          xpForNextLevel: 100,
+        };
         // Conserver aussi les octets : aucune réécriture implicite au démarrage.
         const original = JSON.stringify(expected, null, 2);
         let saved = original;

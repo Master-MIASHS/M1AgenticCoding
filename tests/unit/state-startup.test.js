@@ -31,7 +31,7 @@ function installStorage(overrides = {}) {
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,
     value: {
-      getItem: () => saved,
+      getItem: key => key === 'casino_state' ? saved : null,
       setItem(key, value) {
         assert.equal(key, 'casino_state');
         saved = value;
