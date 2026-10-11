@@ -16,14 +16,14 @@ describe('classement via coreService (vrai état du Core)', () => {
   it('contient le joueur courant, avec son meilleur solde et son niveau', () => {
     const { bestBalance, balance, level } = coreService.getState();
     assert.deepStrictEqual(coreService.getLeaderboard(), [
-      { pseudo: null, bestBalance, balance, level },
+      { pseudo: null, bestBalance, balance, level, badges: [] },
     ]);
   });
 
   it('reflète l’état après une écriture', () => {
     updateState((etat) => ({ ...etat, pseudo: 'Olti', balance: 300, bestBalance: 1500, xp: 120, level: 2 }));
     assert.deepStrictEqual(coreService.getLeaderboard(), [
-      { pseudo: 'Olti', bestBalance: 1500, balance: 300, level: 2 },
+      { pseudo: 'Olti', bestBalance: 1500, balance: 300, level: 2, badges: [] },
     ]);
   });
 

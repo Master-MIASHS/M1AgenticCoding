@@ -26,13 +26,25 @@ function etat(changements = {}) {
 }
 
 describe('entreeDeClassement', () => {
-  it('garde le pseudo, le meilleur solde, le solde et le niveau', () => {
+  it('garde le pseudo, le meilleur solde, le solde, le niveau et les badges', () => {
     assert.deepStrictEqual(entreeDeClassement(etat()), {
       pseudo: 'Olti',
       bestBalance: 1250,
       balance: 800,
       level: 3,
+      badges: [],
     });
+  });
+
+  it('liste seulement les badges obtenus, avec leur id et leur nom (#273)', () => {
+    const entree = entreeDeClassement(etat({ faillites: 5 }));
+    assert.deepStrictEqual(entree.badges, [{ id: 'faillites-5', nom: 'A survécu à la faillite 5 fois' }]);
+  });
+
+  it('compte les parties de l’historique pour le badge des 1000 parties', () => {
+    const history = Array.from({ length: 1000 }, (_, i) => ({ gameId: 'slots', roundId: `r${i}` }));
+    const entree = entreeDeClassement(etat({ history }));
+    assert.deepStrictEqual(entree.badges.map((badge) => badge.id), ['parties-1000']);
   });
 
   it('met pseudo à null pour une sauvegarde sans profil', () => {
