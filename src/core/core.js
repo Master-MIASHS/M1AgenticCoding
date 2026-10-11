@@ -71,6 +71,10 @@ export {
 } from './progression.js';
 export { getGlobalStats } from './stats.js';
 export { exportSave, importSave } from './storage.js';
+// Lecture publique : copie indépendante, identifiant inconnu refusé (#158).
+export { getGameConfig } from './config/games.config.js';
+// Catalogue gelé : unlockLevel décrit le défaut, pas le réglage admin effectif.
+export { GAMES } from './config/games.config.js';
 /**
  * Crée un profil avec les dépendances choisies par le Core uniquement.
  * Les options d'injection du module interne ne sont pas accessibles à l'UI.
