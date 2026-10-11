@@ -317,6 +317,22 @@ const { totalPlays, totalWagered, totalWon, activePlayers, byGame, mostPlayed } 
 - Toutes les valeurs restent à 0 tant que `play()` n’enregistre pas l’historique (#131).
 - Une erreur signale un historique enregistré corrompu.
 
+### Relance à 0 jeton : claimDailyBonus()
+
+```js
+import { claimDailyBonus } from '<chemin-relatif>/services/coreService.js';
+
+const r = claimDailyBonus();
+// → { claimed: true, amount, newBalance, nextClaimAt }
+// → { claimed: false, reason: 'balance_not_zero' | 'cooldown', remainingMs }
+```
+
+- Seul mécanisme de relance retenu (décision G5) : bonus si le solde vaut 0, une fois par
+  délai (montant et délai dans `config/economy.config.js`). `requestLoan` est abandonné.
+- Le Core décide : l’UI affiche `reason` / `remainingMs`, sans recalculer l’éligibilité.
+- La date de réclamation est enregistrée dans l’état (#348) : recharger la page ne
+  remet pas le délai à zéro.
+
 ### Boutique : getShopCatalog(), getShopInventory(), purchaseShopItem()
 
 Utiliser pour l’écran Boutique (G4), selon `src/pages/Shop/SHOP_CORE_CONTRACT.md`.
