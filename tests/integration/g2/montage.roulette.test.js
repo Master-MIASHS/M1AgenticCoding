@@ -24,12 +24,14 @@ import { draw as rouletteDraw } from '../../../src/games/roulette/index.js';
  * this layout comes from the admin configuration, never from the source.
  */
 const REDS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+const BLACKS = [2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35];
 
 // Configuration de test : paytable injectée (règle 4, aucun gain en dur).
 const CONFIG = {
   bets: {
     'straight-17': { match: [17], multiplier: 36 },
     red: { match: REDS, multiplier: 2 },
+    black: { match: BLACKS, multiplier: 2 },
     zero: { match: [0], multiplier: 2 },
   },
 };
@@ -87,6 +89,7 @@ describe('G2 - montage roulette (#191) : orchestrateur + règles + draw + Core',
     assert.equal(res.terminal, true);
     assert.deepEqual(drawCalls, [[0, 36]], 'un seul tirage, bornes 0..36 incluses');
     assert.equal(res.renderPayload.raw, 17, 'G3 reçoit le nombre tiré pour l\'animation');
+    assert.equal(res.renderPayload.interpretation.color, 'black', 'G3 lit la couleur dans interpretation (décision #191)');
     assert.equal(res.gameResult.outcome, 'win');
     assert.equal(res.gameResult.multiplier, 36);
     assert.equal(res.gameResult.details.totalBet, 10);
@@ -166,6 +169,12 @@ describe('G2 - montage roulette (#191) : orchestrateur + règles + draw + Core',
       const won = REDS.includes(raw);
       assert.equal(res.gameResult.outcome, won ? 'win' : 'loss');
       assert.equal(res.gameResult.multiplier, won ? 2 : 0);
+      const expectedColor = raw === 0 ? 'green' : won ? 'red' : 'black';
+      assert.equal(
+        res.renderPayload.interpretation.color,
+        expectedColor,
+        `couleur #191 pour ${raw}`,
+      );
     }
   });
 });
