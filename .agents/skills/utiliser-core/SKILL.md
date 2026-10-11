@@ -1,6 +1,6 @@
 ---
 name: utiliser-core
-description: Utiliser la lecture d’état, la progression XP/niveaux, le RNG et la sauvegarde (export/import) du Core de Casino Fantôme depuis G2/G3/G4 via coreService, ou préparer le branchement interne G1 de l’état atomique et de la progression. Vérifier la disponibilité des exports avant intégration.
+description: Utiliser la lecture d’état, la progression XP/niveaux, la configuration des jeux, le RNG et la sauvegarde (export/import) du Core de Casino Fantôme depuis G2/G3/G4 via coreService, ou préparer le branchement interne G1 de l’état atomique et de la progression. Vérifier la disponibilité des exports avant intégration.
 ---
 
 # Utiliser le Core
@@ -45,9 +45,70 @@ const { balance, bestBalance, xp, level, unlockedGames, history, role } = snapsh
 Le résultat est une copie indépendante, pas une référence réactive. Le modifier
 ne met pas à jour le joueur. Relire après une opération réussie du Core.
 `pseudo` et `birthDate` n’existent qu’après `creerProfil()` (absents avant : prévoir
-un affichage par défaut). Ne pas inventer `xpForNextLevel` avant sa disponibilité.
+un affichage par défaut).
+
+`xpForNextLevel` fournit le **seuil total d’XP du niveau suivant**, pas l’XP
+restante. Utiliser pour les barres et écrans de progression G3/G4 :
+
+```js
+import { getState, getLevel } from '<chemin-relatif>/services/coreService.js';
+const { xp, xpForNextLevel } = getState();
+const niveauEffectif = getLevel();
+// xpForNextLevel === null : aucun niveau suivant configuré.
+// Sinon, transmettre xp et xpForNextLevel au composant XPBar.
+```
+
+Le seuil est recalculé à chaque lecture depuis le niveau effectif (sans perdre
+un niveau acquis). Les seuils viennent de la configuration **temporaire** du Core :
+l’UI ne définit aucun barème. Le champ `level` reste la valeur enregistrée ; sur
+une ancienne sauvegarde, il peut être inférieur au niveau effectif de `getLevel()`.
+
+La lecture n’écrit rien. Le champ dérivé n’est pas ajouté à `casino_state` ni à
+`exportSave()` ; une ancienne valeur importée est ignorée dans le snapshot public.
+Après `addXP()`, `importSave()` ou `creerProfil()`, relire `getState()` : les retours
+de ces mutations ne sont pas des snapshots enrichis. Utiliser `exportSave()` pour
+sauvegarder, sans sérialiser le snapshot public à sa place.
+
 La lecture peut échouer si l’initialisation du stockage échoue dans la version
 utilisée : vérifier le comportement courant et le traitement d’erreur prévu.
+
+### Lire la configuration et le catalogue : getGameConfig() / GAMES
+
+Utiliser pour lire les réglages actuels d’un jeu (écran Admin G4, #254) ou
+énumérer le catalogue Core. Disponibles après intégration de #158 : vérifier
+les exports dans la branche utilisée avant de remplacer un mock.
+
+```js
+import { GAMES, getGameConfig } from '<chemin-relatif>/services/coreService.js';
+const catalogue = Object.values(GAMES);
+try {
+  const { probabilities, multipliers } = getGameConfig('roulette');
+  // Présenter les valeurs actuelles ; les sections peuvent être vides.
+} catch (erreur) {
+  // Identifiant inconnu/invalide : afficher une erreur, ne pas inventer de réglage.
+}
+```
+
+- `getGameConfig(gameId)` est une lecture publique synchrone. Elle retourne une
+  copie indépendante `{ probabilities, multipliers }`, y compris les deux tables.
+  Modifier cette copie ne modifie pas les réglages ; relire après une mise à jour.
+- Un jeu connu non configuré renvoie deux tables vides. Chaque table contient
+  actuellement des nombres finis positifs ou nuls ; `paytable`, `segments` et
+  les objets imbriqués supplémentaires ne font pas partie de ce lot (#256).
+- Un identifiant inconnu ou invalide lève une erreur explicite (y compris les
+  propriétés héritées comme `toString`). Les lectures ne modifient pas la partie.
+- `GAMES` est un objet indexé par identifiant, **gelé ainsi que chaque entrée**
+  `{ id, name, unlockLevel }`. `unlockLevel` est le niveau **par défaut** : ne pas
+  l’utiliser comme seuil administrable effectif ni comme autorisation de jouer.
+  Ne pas ajouter localement les jeux absents : l’extension du catalogue est séparée.
+- Seul `setGameConfig(gameId, config)` permet une écriture, après contrôle du rôle
+  admin dans le Core. Une section fournie remplace cette section ; une section
+  omise reste inchangée. Une erreur de validation laisse la configuration intacte.
+- Ces réglages de jeux sont encore **en mémoire** : ils ne sont ni persistés au
+  rechargement ni inclus dans `exportSave()`. Ne pas les confondre avec les
+  réglages persistants du capital et des événements bonus.
+- G2 utilise le Core injecté par son orchestrateur ; G3/G4 importent la façade.
+  L’export ne branche pas automatiquement les règles des jeux sur ces valeurs.
 
 ### Créer le profil du joueur : creerProfil()
 
@@ -69,12 +130,20 @@ try {
 - Le Core valide tout : pseudo non vide (espaces retirés), date `AAAA-MM-JJ` existante
   et pas dans le futur. L’UI ne recalcule ni le capital ni les jeux de départ.
 - Une seule écriture : en cas d’erreur, l’état n’est pas modifié.
-- **Un seul profil, sur une partie neuve** : refus si un profil existe déjà ou si une
-  partie a déjà été jouée, le solde diffère du capital initial, un inventaire existe
-  ou les jeux/rôle diffèrent de ceux d’un nouveau joueur. Aucun acquis n’est réinitialisé. Plusieurs
-  profils : tâche n°5, pas encore disponible.
-- Refus aussi si le capital réglé par l’admin est inférieur au meilleur solde de
-  l’état par défaut (le meilleur solde ne baisse jamais) : à trancher au branchement.
+- **Un seul profil sur une première session vérifiée** : seule l’absence de
+  `casino_state` au démarrage autorise la création. Sans stockage, une nouvelle
+  session en mémoire est également possible. Toute écriture de partie réussie
+  (y compris un import) ferme ce droit ; un échec permet de réessayer.
+- Le capital effectif est relu au moment de `creerProfil()` : `balance` et
+  `bestBalance` prennent ensemble cette valeur, même sous 1000. Un changement
+  ultérieur du réglage admin ne modifie jamais un joueur existant.
+- Une ancienne sauvegarde sans pseudo reste une partie existante, même avec
+  XP nulle, historique vide et soldes identiques au défaut. Ne pas déduire une
+  première session de la seule absence de pseudo. L’UI peut proposer de continuer
+  sans profil (parcours G4), mais ne doit pas effacer la sauvegarde pour contourner
+  le refus. Un stockage illisible/inaccessible n’autorise pas non plus la création.
+- Le solde visible avant création est provisoire : le capital peut changer
+  avant l’enregistrement du profil. Plusieurs profils restent hors de ce parcours.
 - Après la création, relire `getState()` : `pseudo` et `birthDate` y figurent.
 
 ### XP et niveaux : addXP(amount), getLevel()
@@ -104,6 +173,25 @@ relire après l'opération réussie. Ne jamais écrire directement dans `localSt
 L'attribution automatique d'XP par partie relève du règlement atomique #131,
 séparément du branchement persistant. Ne pas appeler `addXP()` après `play()` si
 ce règlement applique déjà l'XP : cela créditerait deux fois la même partie.
+
+### Badges du joueur : getBadges()
+
+Utiliser pour afficher les badges au classement et sur le profil (G4).
+
+```js
+import { getBadges } from '<chemin-relatif>/services/coreService.js';
+
+getBadges();
+// → [{ id: 'parties-1000', nom: '1000 parties jouées', obtenu: false, actuel: 12, seuil: 1000 },
+//    { id: 'faillites-5', nom: 'A survécu à la faillite 5 fois', obtenu: false, actuel: 0, seuil: 5 }]
+```
+
+- Le Core attribue les badges ; l’UI affiche `nom`, `obtenu` et la progression `actuel / seuil`
+  sans recalculer. Aucun argument : l’appelant ne choisit pas les définitions.
+- Seuls les deux badges d’`AGENTS.md` existent ; d’autres s’ajoutent dans
+  `config/badges.config.js` (contenu décidé par le G5).
+- `actuel` des parties = nombre de parties de l’historique ; celui des faillites reste à 0
+  tant que `play()` ne tient pas le compteur `faillites` (#131).
 
 ### Tirer du hasard brut : roll(), tirageEntier(), tirageAvecPoids(), melanger()
 
@@ -169,12 +257,13 @@ const decision = core.choisirAction({
 ### Exporter et importer une sauvegarde : exportSave() / importSave()
 
 Une sauvegarde dont `bestBalance < balance` est refusée, même avec un hash valide.
-L’import refusé conserve l’état courant et le stockage. Une ancienne sauvegarde
-cohérente peut toujours restaurer une XP ou un meilleur solde inférieurs à ceux
-de la session courante : la comparaison porte sur les deux soldes du fichier.
-Ce comportement est **provisoire**, en attente de l’arbitrage G1/G5 sur la
-[politique de restauration (#258)](https://github.com/maximiliense/M1AgenticCoding/issues/258).
-Ne pas en déduire une règle définitive autorisant la baisse des acquis.
+L’import refusé conserve l’état courant et le stockage. Un import accepté est un
+**remplacement complet** de l’instantané, jamais une fusion : une ancienne sauvegarde
+cohérente restaure aussi une XP, un niveau ou un meilleur solde inférieurs à ceux de
+la session courante (décision G5,
+[politique de restauration #258](https://github.com/maximiliense/M1AgenticCoding/issues/258)).
+La règle « l’XP, le niveau et le meilleur solde ne diminuent jamais » s’applique
+pendant le jeu (`updateState`, `play()`), pas à un import volontaire.
 
 Utiliser pour permettre au joueur de télécharger sa partie ou d’en recharger une
 (écran Profil ou paramètres, G4). Le Core ne gère ni le fichier ni le bouton :
@@ -204,9 +293,12 @@ try {
 - Le hash FNV-1a détecte une sauvegarde abîmée, pas la triche (le code est visible).
   Ne pas le présenter comme une protection.
 - Ne jamais lire ou écrire `casino_state` directement dans `localStorage`.
-- Pas encore tranché : l’import accepte aujourd’hui une sauvegarde avec moins d’XP
-  ou un niveau plus bas, et le démarrage avec un `casino_state` corrompu est en cours
-  de correction (n°27). Vérifier le comportement courant avant de s’appuyer dessus.
+- Ne jamais garder le maximum de chaque champ entre deux sauvegardes : mélanger deux
+  états désynchroniserait solde, historique et inventaire (#258).
+- Au démarrage, un `casino_state` illisible ou non conforme ne fait pas planter
+  l’application : avertissement dans la console, état par défaut, et `casino_state`
+  conservé jusqu’au prochain enregistrement réussi (#240). Ce cas est distinct d’un
+  import refusé, qui conserve la partie déjà chargée.
 
 ### Statistiques globales : getGlobalStats()
 
@@ -249,8 +341,10 @@ const resultat = purchaseShopItem(article.id);     // { status, itemId, balance,
   l’afficher, puis relire l’inventaire. Le meilleur solde, l’XP et le niveau ne changent pas.
 - L’UI ne décide jamais d’un achat : elle envoie l’identifiant et affiche le statut.
 - Une erreur levée signifie un échec d’écriture : ne pas annoncer l’achat.
-- Le catalogue est **vide** tant que le G5 n’a pas fixé le contenu de la boutique
-  (décision ouverte, #205) : prévoir l’affichage d’un catalogue vide. Jamais de vrai argent.
+- Le catalogue contient les 4 articles de la maquette du G4 (#325) : `avatar_chapeau`,
+  `theme_nuit`, `effect_confettis`, `badge_fidele`. Ne plus lire `src/mocks/shop.mock.js` :
+  « possédé » vient de `getShopInventory()`, « indisponible » de `available: false`.
+  Le contenu peut changer (décision G5) : prévoir quand même un catalogue vide. Jamais de vrai argent.
 - L’effet d’un article (avatar, thème…) relève de l’affichage, pas du Core.
 
 ### Réglages admin : capital de départ et événements bonus
@@ -315,6 +409,18 @@ try {
 
 Ces exemples supposent #139 et #144 intégrées dans la base de travail. Ils ne
 constituent pas une autorisation d’import interne pour G2/G3/G4.
+
+### initializePlayerState(player) — interne G1
+
+Utiliser uniquement pour enregistrer le premier joueur construit par `creerProfil`.
+Le Core contrôle le cycle de vie : absence de sauvegarde vérifiée au démarrage,
+aucune écriture réussie depuis, validation du joueur initial et une seule écriture
+avant publication en mémoire. Toute erreur conserve l’état et permet une nouvelle
+tentative si la session était vierge. Ne pas exposer cette fonction via `coreService`.
+
+Ne pas utiliser `restoreState` pour créer un profil, ni assouplir la monotonie de
+`updateState`. Les opérations sur une partie existante continuent de passer par
+`updateState` ; elles rendent ensuite impossible une première initialisation.
 
 ### updateState(updater)
 

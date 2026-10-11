@@ -2,9 +2,9 @@ import { beforeEach, afterEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import * as service from '../../src/services/coreService.js';
-import { restoreState } from '../../src/core/state.js';
+import { getState as readState, restoreState } from '../../src/core/state.js';
 
-const initial = service.getState();
+const initial = readState();
 let descriptor;
 let saved;
 let writes;
@@ -46,7 +46,7 @@ describe('progression persistante via coreService', () => {
     assert.deepEqual(result, { xp: 100.5, level: 2 });
     assert.equal(service.getLevel(), 2);
     const expected = { ...initial, xp: 100.5, level: 2 };
-    assert.deepEqual(service.getState(), expected);
+    assert.deepEqual(service.getState(), { ...expected, xpForNextLevel: 250 });
     assert.deepEqual(JSON.parse(saved), expected);
     assert.deepEqual(JSON.parse(service.exportSave()).data, expected);
     assert.equal(writes, 1);
@@ -61,8 +61,8 @@ describe('progression persistante via coreService', () => {
     assert.deepEqual(service.importSave(file), restored);
     assert.equal(service.getLevel(), 3);
     assert.deepEqual(service.addXP(5), { xp: 305, level: 3 });
-    assert.deepEqual(service.getState(), { ...restored, xp: 305 });
-    assert.deepEqual(JSON.parse(saved), service.getState());
+    assert.deepEqual(service.getState(), { ...restored, xp: 305, xpForNextLevel: 500 });
+    assert.deepEqual(JSON.parse(saved), { ...restored, xp: 305 });
   });
 
   it('propage un échec de stockage sans gain partiel et permet une nouvelle tentative', () => {
@@ -77,7 +77,7 @@ describe('progression persistante via coreService', () => {
     assert.equal(writes, count);
     failWrite = false;
     assert.deepEqual(service.addXP(10), { xp: 100, level: 2 });
-    assert.deepEqual(service.getState(), { ...before, xp: 100, level: 2 });
+    assert.deepEqual(service.getState(), { ...before, xp: 100, level: 2, xpForNextLevel: 250 });
     assert.equal(writes, count + 1);
   });
 
@@ -93,7 +93,7 @@ describe('progression persistante via coreService', () => {
       console.log(JSON.stringify({ state: service.getState(), level: service.getLevel() }));`,
     });
     assert.deepEqual(JSON.parse(output), {
-      state: { ...initial, xp: 250, level: 3 }, level: 3,
+      state: { ...initial, xp: 250, level: 3, xpForNextLevel: 500 }, level: 3,
     });
   });
 
@@ -101,7 +101,7 @@ describe('progression persistante via coreService', () => {
     const file = saved;
     for (const amount of [-1, NaN, Infinity, '10']) {
       assert.throws(() => service.addXP(amount), RangeError);
-      assert.deepEqual(service.getState(), initial);
+      assert.deepEqual(service.getState(), { ...initial, xpForNextLevel: 100 });
       assert.equal(saved, file);
       assert.equal(writes, 0);
     }

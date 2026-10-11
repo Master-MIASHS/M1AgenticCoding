@@ -46,9 +46,12 @@ function App() {
       />
     );
   }
-  // Game screens remain outside the G4 shell; their bar will be added later.
   if (path.startsWith(GAME_PREFIX)) {
-    return <GamePage gameId={path.slice(GAME_PREFIX.length).split('/')[0]} />;
+    return (
+      <MainLayout player={player} currentPath={path}>
+        <GamePage gameId={path.slice(GAME_PREFIX.length).split('/')[0]} />
+      </MainLayout>
+    );
   }
 
   const Page = pages[path] ?? NotFound;

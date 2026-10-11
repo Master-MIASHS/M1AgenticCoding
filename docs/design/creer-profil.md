@@ -1,5 +1,7 @@
 # Conception — Créer le profil du joueur dans l'état (G1, #226)
 
+> Évolution #253 : le cycle de première création et le capital effectif sont désormais décrits dans [capital-initial.md](capital-initial.md). L’état réel utilise `initializePlayerState`, et toute sauvegarde présente est une partie existante, même sans pseudo.
+
 Suite de la création d'un nouveau joueur (n°3, `docs/design/nouveau-joueur.md`).
 
 ## Objectif
