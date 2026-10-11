@@ -254,6 +254,22 @@ const decision = core.choisirAction({
   test G1 avec `semer()`. Les jetons du bot restent dans la session du G2.
 - Payload invalide ou `aiHandStrength` absente → erreur explicite, rien n’est décidé.
 
+### Relance à 0 jeton : claimDailyBonus()
+
+```js
+import { claimDailyBonus } from '<chemin-relatif>/services/coreService.js';
+
+const r = claimDailyBonus();
+// → { claimed: true, amount, newBalance, nextClaimAt }
+// → { claimed: false, reason: 'balance_not_zero' | 'cooldown', remainingMs }
+```
+
+- Seul mécanisme de relance retenu (décision G5) : bonus si le solde vaut 0, une fois par
+  délai (montant et délai dans `config/economy.config.js`). `requestLoan` est abandonné.
+- Le Core décide : l’UI affiche `reason` / `remainingMs`, sans recalculer l’éligibilité.
+- La date de réclamation est enregistrée dans l’état (#348) : recharger la page ne
+  remet pas le délai à zéro.
+
 ### Exporter et importer une sauvegarde : exportSave() / importSave()
 
 Une sauvegarde dont `bestBalance < balance` est refusée, même avec un hash valide.
@@ -316,22 +332,6 @@ const { totalPlays, totalWagered, totalWon, activePlayers, byGame, mostPlayed } 
   Montants arrondis au centime ; `activePlayers` vaut 0 ou 1 (un seul profil aujourd’hui).
 - Toutes les valeurs restent à 0 tant que `play()` n’enregistre pas l’historique (#131).
 - Une erreur signale un historique enregistré corrompu.
-
-### Relance à 0 jeton : claimDailyBonus()
-
-```js
-import { claimDailyBonus } from '<chemin-relatif>/services/coreService.js';
-
-const r = claimDailyBonus();
-// → { claimed: true, amount, newBalance, nextClaimAt }
-// → { claimed: false, reason: 'balance_not_zero' | 'cooldown', remainingMs }
-```
-
-- Seul mécanisme de relance retenu (décision G5) : bonus si le solde vaut 0, une fois par
-  délai (montant et délai dans `config/economy.config.js`). `requestLoan` est abandonné.
-- Le Core décide : l’UI affiche `reason` / `remainingMs`, sans recalculer l’éligibilité.
-- La date de réclamation est enregistrée dans l’état (#348) : recharger la page ne
-  remet pas le délai à zéro.
 
 ### Boutique : getShopCatalog(), getShopInventory(), purchaseShopItem()
 
