@@ -25,8 +25,9 @@ export const GAMES = {
 for (const game of Object.values(GAMES)) Object.freeze(game);
 Object.freeze(GAMES);
 
-// In-memory (mock) store of per-game runtime config.
-const gameConfigs = new Map();
+// Configuration réglée par l'admin : enregistrée hors de la partie du joueur
+// sous casino_config_jeux (#350), voir configsEnregistrees plus bas.
+import { createStockageLocal } from './stockage-local.js';
 
 /**
  * Vérifie que le jeu appartient au catalogue, sans accepter ses propriétés héritées.
@@ -84,7 +85,32 @@ function copyNumericTable(table) {
 }
 
 /**
- * Met à jour la configuration en mémoire après validation complète.
+ * Valide la configuration enregistrée : { gameId: { probabilities?, multipliers? } }
+ * pour des jeux du catalogue uniquement.
+ * @param {unknown} valeur - Valeur lue dans le stockage.
+ * @returns {void}
+ * @throws {Error|TypeError|RangeError} Si un jeu, une section ou un nombre est invalide.
+ */
+function validerConfigsEnregistrees(valeur) {
+  for (const [gameId, config] of readEntries(valeur)) {
+    validateGameId(gameId);
+    for (const [section, table] of readEntries(config)) {
+      if (section !== 'probabilities' && section !== 'multipliers') {
+        throw new TypeError(`games.config : champ non autorisé : ${section}`);
+      }
+      copyNumericTable(table);
+    }
+  }
+}
+
+// Même modèle que le capital et les événements bonus (#262) : une valeur
+// illisible ou invalide donne une configuration vide avec un avertissement.
+const configsEnregistrees = createStockageLocal('casino_config_jeux', {}, {
+  valider: validerConfigsEnregistrees,
+});
+
+/**
+ * Met à jour et enregistre la configuration après validation complète.
  * Une section fournie remplace la précédente ; une section omise est conservée.
  *
  * @param {string} gameId - Identifiant connu du catalogue.
@@ -102,7 +128,9 @@ export function setGameConfig(gameId, config = {}) {
     }
     candidate[section] = copyNumericTable(table);
   }
-  gameConfigs.set(gameId, candidate);
+  const toutes = configsEnregistrees.read();
+  toutes[gameId] = candidate;
+  configsEnregistrees.write(toutes);
   return { ok: true, gameId };
 }
 
@@ -114,7 +142,8 @@ export function setGameConfig(gameId, config = {}) {
  */
 export function getGameConfig(gameId) {
   validateGameId(gameId);
-  const config = gameConfigs.get(gameId);
+  const toutes = configsEnregistrees.read();
+  const config = Object.hasOwn(toutes, gameId) ? toutes[gameId] : undefined;
   return {
     probabilities: { ...config?.probabilities },
     multipliers: { ...config?.multipliers },
