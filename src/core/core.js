@@ -44,6 +44,7 @@ export function choisirAction(payload) {
 }
 export { play, getBalance, claimDailyBonus, requestLoan } from './economy.js';
 export { getShopCatalog, getShopInventory, purchaseShopItem } from './shop.js';
+export { getBadges } from './badges.js';
 export {
   addXP,
   getLevel,
