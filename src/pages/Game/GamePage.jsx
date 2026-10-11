@@ -10,6 +10,7 @@ import SlotsGame from '../../game-ui/slots/SlotsGame.jsx';
 import RouletteGame from '../../game-ui/roulette/RouletteGame.jsx';
 import WheelGame from '../../game-ui/wheel/WheelGame.jsx';
 import PlinkoGame from '../../game-ui/plinko/PlinkoGame.jsx';
+import DiceGame from '../../game-ui/dice/DiceGame.jsx';
 import './game.css';
 
 // Games whose UI (Groupe 3) exists. Any other game keeps the waiting message.
@@ -18,6 +19,7 @@ const GAME_UIS = {
   roulette: RouletteGame,
   wheel: WheelGame,
   plinko: PlinkoGame,
+  dice: DiceGame,
 };
 
 const OUTCOME_LABELS = { win: 'Gagné', loss: 'Perdu', push: 'Égalité' };
