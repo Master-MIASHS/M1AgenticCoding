@@ -1,6 +1,6 @@
 ---
 name: utiliser-core
-description: Utiliser la lecture d’état, la progression XP/niveaux, le RNG et la sauvegarde (export/import) du Core de Casino Fantôme depuis G2/G3/G4 via coreService, ou préparer le branchement interne G1 de l’état atomique et de la progression. Vérifier la disponibilité des exports avant intégration.
+description: Utiliser la lecture d’état, la progression XP/niveaux, la configuration des jeux, le RNG et la sauvegarde (export/import) du Core de Casino Fantôme depuis G2/G3/G4 via coreService, ou préparer le branchement interne G1 de l’état atomique et de la progression. Vérifier la disponibilité des exports avant intégration.
 ---
 
 # Utiliser le Core
@@ -71,6 +71,44 @@ sauvegarder, sans sérialiser le snapshot public à sa place.
 
 La lecture peut échouer si l’initialisation du stockage échoue dans la version
 utilisée : vérifier le comportement courant et le traitement d’erreur prévu.
+
+### Lire la configuration et le catalogue : getGameConfig() / GAMES
+
+Utiliser pour lire les réglages actuels d’un jeu (écran Admin G4, #254) ou
+énumérer le catalogue Core. Disponibles après intégration de #158 : vérifier
+les exports dans la branche utilisée avant de remplacer un mock.
+
+```js
+import { GAMES, getGameConfig } from '<chemin-relatif>/services/coreService.js';
+const catalogue = Object.values(GAMES);
+try {
+  const { probabilities, multipliers } = getGameConfig('roulette');
+  // Présenter les valeurs actuelles ; les sections peuvent être vides.
+} catch (erreur) {
+  // Identifiant inconnu/invalide : afficher une erreur, ne pas inventer de réglage.
+}
+```
+
+- `getGameConfig(gameId)` est une lecture publique synchrone. Elle retourne une
+  copie indépendante `{ probabilities, multipliers }`, y compris les deux tables.
+  Modifier cette copie ne modifie pas les réglages ; relire après une mise à jour.
+- Un jeu connu non configuré renvoie deux tables vides. Chaque table contient
+  actuellement des nombres finis positifs ou nuls ; `paytable`, `segments` et
+  les objets imbriqués supplémentaires ne font pas partie de ce lot (#256).
+- Un identifiant inconnu ou invalide lève une erreur explicite (y compris les
+  propriétés héritées comme `toString`). Les lectures ne modifient pas la partie.
+- `GAMES` est un objet indexé par identifiant, **gelé ainsi que chaque entrée**
+  `{ id, name, unlockLevel }`. `unlockLevel` est le niveau **par défaut** : ne pas
+  l’utiliser comme seuil administrable effectif ni comme autorisation de jouer.
+  Ne pas ajouter localement les jeux absents : l’extension du catalogue est séparée.
+- Seul `setGameConfig(gameId, config)` permet une écriture, après contrôle du rôle
+  admin dans le Core. Une section fournie remplace cette section ; une section
+  omise reste inchangée. Une erreur de validation laisse la configuration intacte.
+- Ces réglages de jeux sont encore **en mémoire** : ils ne sont ni persistés au
+  rechargement ni inclus dans `exportSave()`. Ne pas les confondre avec les
+  réglages persistants du capital et des événements bonus.
+- G2 utilise le Core injecté par son orchestrateur ; G3/G4 importent la façade.
+  L’export ne branche pas automatiquement les règles des jeux sur ces valeurs.
 
 ### Créer le profil du joueur : creerProfil()
 
