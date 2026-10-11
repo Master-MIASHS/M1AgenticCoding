@@ -29,8 +29,6 @@ import * as scratchRules from '../../../src/games/scratch/rules.js';
 import { drawSlots } from '../../../src/games/slots/draw.js';
 import { makeFixtureRoll, makeFixtureDraw } from '../../fixtures/g2/rolls.js';
 
-// Solde du mock d'état G1 (src/core/state.js) au moment de l'écriture.
-const START_BALANCE = coreService.getState().balance;
 const MISE = { type: 'mise', amount: 10 };
 
 // Deux symboles par rouleau : A sous 0,5, B au-dessus. Les huit combinaisons
@@ -67,7 +65,9 @@ const SCRATCH_CONFIG = {
 
 /**
  * Core de test : vrai mock coreService, roll() remplacé par la fixture,
- * play() espionné pour vérifier l'appel unique (§ 4.3).
+ * play() espionné pour vérifier l'appel unique (§ 4.3). play() est persistant
+ * (#131, #218) : chaque appel note le solde juste avant le règlement
+ * (`balanceBefore`), et les tests vérifient le gain par différence.
  *
  * @param {{ roll: Function, calls: any[] }} fixture fixture de tirage
  * @returns {{ core: object, rollCalls: any[], playCalls: any[] }}
@@ -77,9 +77,9 @@ function makeTestCore(fixture) {
   const core = {
     ...coreService,
     roll: fixture.roll,
-    play: (gameId, bet, gameResult) => {
-      playCalls.push({ gameId, bet, gameResult });
-      return coreService.play(gameId, bet, gameResult);
+    play: (gameId, bet, gameResult, options) => {
+      playCalls.push({ gameId, bet, gameResult, options, balanceBefore: coreService.getState().balance });
+      return coreService.play(gameId, bet, gameResult, options);
     },
   };
   return { core, rollCalls: fixture.calls, playCalls };
@@ -99,12 +99,12 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
     assert.equal('payout' in res.gameResult, false, 'pas de payout au premier niveau (§ 2.2)');
     assert.equal(playCalls.length, 1, 'une seule appelée à play() par partie (§ 4.3)');
     assert.equal(playCalls[0].bet, 10, 'play() reçoit la mise totale en nombre');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 40);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore + 40);
   });
 
   test('combinaison perdante : la mise est retenue', () => {
     const raw = { gameId: 'slots', symbols: ['A', 'A', 'B'], nonce: 1 };
-    const { core } = makeTestCore(makeFixtureDraw([raw]));
+    const { core, playCalls } = makeTestCore(makeFixtureDraw([raw]));
     const game = createGame({ id: 'slots', rules: slotsRules, config: SLOTS_CONFIG, core });
 
     const res = game.start([MISE]);
@@ -112,19 +112,19 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
     assert.equal(res.gameResult.outcome, 'loss');
     assert.equal(res.gameResult.multiplier, 0);
     assert.equal(res.gameResult.details.combination, 'AAB');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE - 10);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore - 10);
   });
 
   test('combinaison en égalité : la mise est rendue', () => {
     const raw = { gameId: 'slots', symbols: ['A', 'B', 'A'], nonce: 1 };
-    const { core } = makeTestCore(makeFixtureDraw([raw]));
+    const { core, playCalls } = makeTestCore(makeFixtureDraw([raw]));
     const game = createGame({ id: 'slots', rules: slotsRules, config: SLOTS_CONFIG, core });
 
     const res = game.start([MISE]);
 
     assert.equal(res.gameResult.outcome, 'push');
     assert.equal(res.gameResult.multiplier, 1);
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore);
   });
 
   test('G3 reçoit les rouleaux tirés et leur interprétation', () => {
@@ -175,7 +175,7 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
 
     assert.equal(res.gameResult.outcome, 'win', 'outcome déduit du multiplicateur 5');
     assert.equal(playCalls.length, 1, 'play() est appelé sans lever d\'erreur');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 40);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore + 40);
   });
 
   test('le VRAI Core tire les trois rouleaux via tirageAvecPoids (draw du jeu, écart 8)', () => {
@@ -189,6 +189,7 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
     });
 
     for (let i = 0; i < 20; i += 1) {
+      const balanceBefore = coreService.getState().balance;
       const res = game.start([MISE]);
       const { symbols } = res.renderPayload.raw;
 
@@ -207,7 +208,7 @@ describe('G2 - montage slots (#31) : orchestrateur + règles + Core', () => {
       );
       assert.equal(
         res.renderPayload.economy.newBalance,
-        START_BALANCE + 10 * (payout.multiplier - 1)
+        balanceBefore + 10 * (payout.multiplier - 1)
       );
     }
   });
@@ -227,11 +228,11 @@ describe('G2 - montage scratch (#31) : orchestrateur + règles + Core', () => {
     assert.equal(res.gameResult.details.symbol, 'trèfle');
     assert.equal(playCalls.length, 1, 'une seule appelée à play() par partie (§ 4.3)');
     assert.equal(playCalls[0].bet, 10);
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 10);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore + 10);
   });
 
   test('grattage perdant : la mise est retenue', () => {
-    const { core } = makeTestCore(makeFixtureRoll([0.2]));
+    const { core, playCalls } = makeTestCore(makeFixtureRoll([0.2]));
     const game = createGame({ id: 'scratch', rules: scratchRules, config: SCRATCH_CONFIG, core });
 
     const res = game.start([MISE]);
@@ -239,11 +240,11 @@ describe('G2 - montage scratch (#31) : orchestrateur + règles + Core', () => {
     assert.equal(res.gameResult.outcome, 'loss');
     assert.equal(res.gameResult.multiplier, 0);
     assert.equal(res.gameResult.details.symbol, 'brebis');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE - 10);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore - 10);
   });
 
   test('grattage gagnant x5 : le sort le plus rare', () => {
-    const { core } = makeTestCore(makeFixtureRoll([0.9]));
+    const { core, playCalls } = makeTestCore(makeFixtureRoll([0.9]));
     const game = createGame({ id: 'scratch', rules: scratchRules, config: SCRATCH_CONFIG, core });
 
     const res = game.start([MISE]);
@@ -251,7 +252,7 @@ describe('G2 - montage scratch (#31) : orchestrateur + règles + Core', () => {
     assert.equal(res.gameResult.outcome, 'win');
     assert.equal(res.gameResult.multiplier, 5);
     assert.equal(res.gameResult.details.symbol, 'couronne');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 40);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore + 40);
   });
 
   test('gameResult au format du contrat : { outcome, multiplier, details }', () => {
@@ -269,6 +270,7 @@ describe('G2 - montage scratch (#31) : orchestrateur + règles + Core', () => {
     const game = createGame({ id: 'scratch', rules: scratchRules, config: SCRATCH_CONFIG });
 
     for (let i = 0; i < 20; i += 1) {
+      const balanceBefore = coreService.getState().balance;
       const res = game.start([MISE]);
       const { value } = res.renderPayload.raw;
 
@@ -282,7 +284,7 @@ describe('G2 - montage scratch (#31) : orchestrateur + règles + Core', () => {
       );
       assert.equal(
         res.renderPayload.economy.newBalance,
-        START_BALANCE + 10 * (band.multiplier - 1)
+        balanceBefore + 10 * (band.multiplier - 1)
       );
     }
   });
