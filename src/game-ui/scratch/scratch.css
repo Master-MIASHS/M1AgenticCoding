@@ -1,0 +1,61 @@
+.scratch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium, 16px);
+  color: var(--color-text, #eeeeee);
+}
+
+.scratch__ticket {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: 280px;
+  aspect-ratio: 3 / 2;
+  margin: 0 auto;
+  background: var(--color-surface, #1e1e2a);
+  border: 3px dashed var(--color-accent, #ffd166);
+  border-radius: var(--radius-medium, 12px);
+  overflow: hidden;
+}
+
+.scratch__symbol {
+  font-size: 4rem;
+}
+
+/* Symbole de la config sans icône connue : son identifiant est écrit en texte. */
+.scratch__symbol--text {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Couche à gratter, au-dessus du symbole. */
+.scratch__cover {
+  position: absolute;
+  inset: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #3a3a3a;
+  background: repeating-linear-gradient(45deg, #c0c0c0, #c0c0c0 10px, #a9a9a9 10px, #a9a9a9 20px);
+  border: none;
+  cursor: pointer;
+}
+
+.scratch__cover:disabled {
+  cursor: default;
+  opacity: 0.9;
+}
+
+.scratch__cover:focus-visible {
+  outline: 3px solid var(--color-primary, #7c5cff);
+  outline-offset: -3px;
+}
+
+.scratch__message {
+  margin: 0;
+  text-align: center;
+}
+
+.scratch__error {
+  color: var(--color-danger, #e74c3c);
+}
