@@ -2,7 +2,7 @@
 // Core - Classement (Groupe 1, #327)
 // ---------------------------------------------------------------------------
 // Calcule le classement à partir des états des joueurs, avec la forme cible
-// d'AGENTS.md : pseudo, meilleur solde (le score), niveau ; badges après #273.
+// d'AGENTS.md : pseudo, meilleur solde (le score), niveau, badges obtenus.
 //
 //  * Un seul profil aujourd'hui : le classement contient le joueur courant.
 //    calculerClassement(profils) servira tel quel aux profils multiples (n°5).
@@ -10,6 +10,7 @@
 //  * Conception détaillée : docs/design/classement.md
 // ---------------------------------------------------------------------------
 
+import { calculerBadges, compteursDuJoueur } from './badges.js';
 import { getState } from './state.js';
 
 /**
@@ -22,12 +23,15 @@ const estNombre = (valeur) => typeof valeur === 'number' && Number.isFinite(vale
 /**
  * Crée l'entrée de classement d'un joueur à partir de son état.
  *
- * @param {{ pseudo?: string, bestBalance: number, balance: number, level: number }} etat -
- *   État du joueur (les autres champs sont ignorés).
- * @returns {{ pseudo: string|null, bestBalance: number, balance: number, level: number }}
- *   Nouvel objet ; `pseudo` vaut null pour une sauvegarde sans profil.
- * @throws {Error} Si l'état n'est pas un objet ou si un montant ou le niveau
- *   n'est pas un nombre fini.
+ * @param {{ pseudo?: string, bestBalance: number, balance: number, level: number,
+ *   history: Array, faillites?: number }} etat - État du joueur (les autres
+ *   champs sont ignorés).
+ * @returns {{ pseudo: string|null, bestBalance: number, balance: number, level: number,
+ *   badges: Array<{ id: string, nom: string }> }} Nouvel objet ; `pseudo` vaut
+ *   null pour une sauvegarde sans profil ; `badges` ne liste que les badges
+ *   obtenus (définitions de config/badges.config.js, #273).
+ * @throws {Error} Si l'état n'est pas un objet, si un montant ou le niveau
+ *   n'est pas un nombre fini, ou si l'historique n'est pas un tableau.
  */
 export function entreeDeClassement(etat) {
   if (etat === null || typeof etat !== 'object' || Array.isArray(etat)) {
@@ -42,6 +46,9 @@ export function entreeDeClassement(etat) {
     bestBalance,
     balance,
     level,
+    badges: calculerBadges(compteursDuJoueur(etat))
+      .filter((badge) => badge.obtenu)
+      .map(({ id, nom }) => ({ id, nom })),
   };
 }
 
