@@ -100,7 +100,8 @@ try {
 - `GAMES` est un objet indexé par identifiant, **gelé ainsi que chaque entrée**
   `{ id, name, unlockLevel }`. `unlockLevel` est le niveau **par défaut** : ne pas
   l’utiliser comme seuil administrable effectif ni comme autorisation de jouer.
-  Ne pas ajouter localement les jeux absents : l’extension du catalogue est séparée.
+  Il contient les 13 jeux d’AGENTS.md, dont `memory` (8), `quiz` (9) et `bingo` (10) (#318).
+  Ne pas ajouter localement un jeu absent : demander au G1.
 - Seul `setGameConfig(gameId, config)` permet une écriture, après contrôle du rôle
   admin dans le Core. Une section fournie remplace cette section ; une section
   omise reste inchangée. Une erreur de validation laisse la configuration intacte.
