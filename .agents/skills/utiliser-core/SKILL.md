@@ -303,8 +303,10 @@ const resultat = purchaseShopItem(article.id);     // { status, itemId, balance,
   l’afficher, puis relire l’inventaire. Le meilleur solde, l’XP et le niveau ne changent pas.
 - L’UI ne décide jamais d’un achat : elle envoie l’identifiant et affiche le statut.
 - Une erreur levée signifie un échec d’écriture : ne pas annoncer l’achat.
-- Le catalogue est **vide** tant que le G5 n’a pas fixé le contenu de la boutique
-  (décision ouverte, #205) : prévoir l’affichage d’un catalogue vide. Jamais de vrai argent.
+- Le catalogue contient les 4 articles de la maquette du G4 (#325) : `avatar_chapeau`,
+  `theme_nuit`, `effect_confettis`, `badge_fidele`. Ne plus lire `src/mocks/shop.mock.js` :
+  « possédé » vient de `getShopInventory()`, « indisponible » de `available: false`.
+  Le contenu peut changer (décision G5) : prévoir quand même un catalogue vide. Jamais de vrai argent.
 - L’effet d’un article (avatar, thème…) relève de l’affichage, pas du Core.
 
 ### Réglages admin : capital de départ et événements bonus
