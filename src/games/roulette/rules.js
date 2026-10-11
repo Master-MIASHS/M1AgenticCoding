@@ -20,6 +20,12 @@
 // is NOT modelled here. G1 owns the randomness, G3 owns the animation. This
 // module only settles, betting type by betting type against the `match` list
 // the admin configured.
+//
+// COLOUR (décision #191, actée le 09/10 sur la discussion #8) : `details.color`
+// is DERIVED from the admin config, never hardcoded. A number belongs to a
+// colour when it is in the `match` list of the `red` / `black` bet types the
+// admin configured; 0 is `green`; anything else (an admin layout without
+// red/black lists) stays `null`. G3 reads `renderPayload.interpretation.color`.
 // ---------------------------------------------------------------------------
 
 /**
@@ -103,6 +109,29 @@ function outcomeFor(multiplier) {
 }
 
 /**
+ * Derives the colour of a drawn number from the admin config.
+ *
+ * Décision #191 : never hardcoded. A number is red when it is in the `match`
+ * list of the configured `red` bet, black for the `black` bet, green for 0.
+ * When the admin layout exposes no red/black lists (or the number is in
+ * neither), the colour is `null`: G3 renders the number without a colour
+ * rather than the rules inventing one (AGENTS.md rule 10).
+ *
+ * @param {number} raw - the drawn number (0..36).
+ * @param {RouletteConfig} config - must provide `bets`, the paytable.
+ * @returns {'red' | 'black' | 'green' | null}
+ */
+function colorFor(raw, config) {
+  const bets = config?.bets ?? {};
+  const red = bets.red?.match;
+  const black = bets.black?.match;
+  if (Array.isArray(red) && red.includes(raw)) return 'red';
+  if (Array.isArray(black) && black.includes(raw)) return 'black';
+  if (raw === 0) return 'green';
+  return null;
+}
+
+/**
  * Settles one roulette spin for every placed bet.
  *
  * @param {number} raw - the number drawn by the Core (0..36).
@@ -170,6 +199,7 @@ export function resolve(raw, { bets, config } = {}) {
     multiplier,
     details: {
       raw,
+      color: colorFor(raw, config),
       bets: settledBets,
       totalBet,
       payout,

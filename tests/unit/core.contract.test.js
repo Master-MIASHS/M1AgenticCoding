@@ -29,6 +29,7 @@ const EXPECTED_API = [
   'getUnlockedGames',
   'getLeaderboard',
   'getHistory',
+  'getBadges',
   'setGameConfig',
   'getGlobalStats',
   'exportSave',
@@ -94,7 +95,7 @@ test('importSave rejects invalid JSON, unsupported versions, and invalid state s
 });
 
 test('importSave restores the state after validating the save', () => {
-  const originalState = coreService.getState();
+  const originalState = JSON.parse(coreService.exportSave()).data;
   const restoredState = {
     ...originalState,
     balance: originalState.balance + 250,
@@ -103,12 +104,12 @@ test('importSave restores the state after validating the save', () => {
   const save = createSave(restoredState);
 
   assert.deepEqual(coreService.importSave(save), restoredState);
-  assert.deepEqual(coreService.getState(), restoredState);
+  assert.deepEqual(coreService.getState(), { ...restoredState, xpForNextLevel: 100 });
   assert.deepEqual(coreService.importSave(coreService.exportSave()), restoredState);
 });
 
 test('importSave persists state and does not replace memory if persistence fails', async () => {
-  const originalState = coreService.getState();
+  const originalState = JSON.parse(coreService.exportSave()).data;
   const originalSave = coreService.exportSave();
   const originalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
   let storedState = null;

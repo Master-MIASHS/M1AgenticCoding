@@ -19,9 +19,6 @@ import { createGame } from '../../../src/games/_template/createGame.js';
 import * as blackjackRules from '../../../src/games/blackjack/rules.js';
 import { draw as blackjackDraw } from '../../../src/games/blackjack/index.js';
 
-// Solde du mock d'état G1 (src/core/state.js) au moment de l'écriture.
-const START_BALANCE = coreService.getState().balance;
-
 // Configuration de test : forme de #189 (§ 6 encore ouvert, #122).
 const CONFIG = { paytable: { blackjack: 2.5, win: 2 } };
 const BETS = [{ type: 'main', amount: 10 }];
@@ -88,6 +85,8 @@ describe('G2 - montage blackjack (#189) : orchestrateur + règles + deck.js + Co
     ]);
     const game = makeGame(core);
 
+    // play() est persistant (#218) : le solde est lu juste avant de jouer.
+    const balanceBefore = coreService.getState().balance;
     const opened = game.start(BETS);
     assert.equal(opened.terminal, false);
     assert.deepEqual(opened.availableActions, ['hit', 'stand', 'double']);
@@ -104,7 +103,7 @@ describe('G2 - montage blackjack (#189) : orchestrateur + règles + deck.js + Co
     assert.equal(shuffleCalls[0], 52, 'un paquet neuf de 1 jeu');
     assert.equal(playCalls.length, 1);
     assert.equal(playCalls[0].bet, 10);
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 10);
+    assert.equal(res.renderPayload.economy.newBalance, balanceBefore + 10);
   });
 
   test('G3 ne reçoit jamais la carte cachée du croupier ni le paquet pendant la manche', () => {
@@ -134,12 +133,13 @@ describe('G2 - montage blackjack (#189) : orchestrateur + règles + deck.js + Co
     ]);
     const game = makeGame(core);
 
+    const balanceBefore = coreService.getState().balance;
     const opened = game.start(BETS);
     const res = game.action(opened.sessionId, 'double');
     assert.equal(res.gameResult.outcome, 'win');
     assert.equal(res.gameResult.details.totalBet, 20);
     assert.equal(playCalls[0].bet, 20, 'le Core règle la mise doublée');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 20);
+    assert.equal(res.renderPayload.economy.newBalance, balanceBefore + 20);
   });
 
   test('blackjack naturel : manche réglée dès la distribution, gain 3:2', () => {
@@ -149,12 +149,13 @@ describe('G2 - montage blackjack (#189) : orchestrateur + règles + deck.js + Co
       card('K', 'diamonds'),
       card('8', 'clubs'),
     ]);
+    const balanceBefore = coreService.getState().balance;
     const res = makeGame(core).start(BETS);
 
     assert.equal(res.terminal, true);
     assert.equal(res.gameResult.outcome, 'win');
     assert.equal(res.gameResult.multiplier, 2.5);
     assert.equal(playCalls.length, 1);
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 15);
+    assert.equal(res.renderPayload.economy.newBalance, balanceBefore + 15);
   });
 });
