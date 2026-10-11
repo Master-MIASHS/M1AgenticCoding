@@ -21,9 +21,6 @@ import * as wheelRules from '../../../src/games/wheel/rules.js';
 import * as plinkoRules from '../../../src/games/plinko/rules.js';
 import { makeFixtureDraw } from '../../fixtures/g2/rolls.js';
 
-// Solde du mock d'état G1 (src/core/state.js) au moment de l'écriture.
-const START_BALANCE = coreService.getState().balance;
-
 // Configurations de test : la forme est celle proposée par les règles
 // (§ 6 encore ouvert), les valeurs sont arbitraires et propres au test.
 const WHEEL_CONFIG = {
@@ -34,16 +31,20 @@ const WHEEL_CONFIG = {
 };
 const PLINKO_CONFIG = { paytable: [0, 0.5, 1, 2, 5] };
 
-/** Core de test : vrai mock coreService, roll() remplacé, play() espionné. */
+/**
+ * Core de test : vrai mock coreService, roll() remplacé, play() espionné.
+ * play() est persistant (#131, #218) : chaque appel note le solde juste avant
+ * le règlement (`balanceBefore`), et les tests vérifient le gain par différence.
+ */
 function makeTestCore(draws) {
   const fixture = makeFixtureDraw(draws);
   const playCalls = [];
   const core = {
     ...coreService,
     roll: fixture.roll,
-    play: (gameId, bet, gameResult) => {
-      playCalls.push({ gameId, bet, gameResult });
-      return coreService.play(gameId, bet, gameResult);
+    play: (gameId, bet, gameResult, options) => {
+      playCalls.push({ gameId, bet, gameResult, options, balanceBefore: coreService.getState().balance });
+      return coreService.play(gameId, bet, gameResult, options);
     },
   };
   return { core, rollCalls: fixture.calls, playCalls };
@@ -64,7 +65,7 @@ describe('G2 - montage wheel (#26) : orchestrateur + règles + Core', () => {
     assert.deepEqual(res.renderPayload.raw, segment, 'G3 reçoit le segment tiré pour l\'animation');
     assert.equal(playCalls.length, 1);
     assert.equal(playCalls[0].bet, 10);
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 10);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore + 10);
   });
 
   test('mises multiples (option A, #73) : un seul play(), mise totale et multiplicateur agrégé', () => {
@@ -82,7 +83,7 @@ describe('G2 - montage wheel (#26) : orchestrateur + règles + Core', () => {
     assert.equal(res.gameResult.outcome, 'win');
     assert.ok(Math.abs(res.gameResult.multiplier - 20 / 15) < 1e-12);
     assert.equal(res.gameResult.details.bets.length, 2, 'détail par mise dans details');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 5);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore + 5);
   });
 
   test('écart 8 (levé) : le VRAI Core tire un segment via draw + tirageAvecPoids (#141, #115)', () => {
@@ -101,11 +102,12 @@ describe('G2 - montage wheel (#26) : orchestrateur + règles + Core', () => {
 
     // Vrai hasard du Core : on vérifie des invariants, jamais un tirage précis.
     for (let i = 0; i < 20; i += 1) {
+      const balanceBefore = coreService.getState().balance;
       const res = game.start([{ type: 'red', amount: 10 }]);
       assert.ok(segments.includes(res.renderPayload.raw), 'le brut est un des segments');
       const won = res.renderPayload.raw.color === 'red';
       assert.equal(res.gameResult.outcome, won ? 'win' : 'loss');
-      assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + (won ? 10 : -10));
+      assert.equal(res.renderPayload.economy.newBalance, balanceBefore + (won ? 10 : -10));
     }
   });
 });
@@ -126,17 +128,17 @@ describe('G2 - montage plinko (#26) : orchestrateur + règles + Core', () => {
       assert.equal(res.gameResult.outcome, outcome);
       assert.equal(res.gameResult.details.slot, slot);
       assert.equal(playCalls[0].bet, 10);
-      assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + delta);
+      assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore + delta);
     });
   }
 
   test('écart 9 (résolu, #135) : un multiplicateur fractionnaire se règle sans erreur', () => {
     // Mise 1 sur la case 1 (x0,5) : les règles disent `loss` (multiplier < 1),
     // ce que le Core accepte ; 0,5 jeton reversé, arrondi au centième (#135).
-    const { core } = makeTestCore([1]);
+    const { core, playCalls } = makeTestCore([1]);
     const game = createGame({ id: 'plinko', rules: plinkoRules, config: PLINKO_CONFIG, core });
     const res = game.start([{ type: 'slot', amount: 1 }]);
     assert.equal(res.gameResult.outcome, 'loss');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE - 0.5);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore - 0.5);
   });
 });
