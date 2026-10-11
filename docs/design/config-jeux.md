@@ -33,18 +33,3 @@ Vérifications : suite entière Node, lint et build Vite ; aucune modification U
 Base `7bd792f` : 575 tests, 572 réussis, 0 échec, 3 TODO ; lint 0 erreur et 2 avertissements préexistants ; build réussi (1135 modules).
 
 Cycle rouge/vert : 15 tests échouent sur le module initial, puis les 18 tests ciblés passent. Suite finale : 593 tests, 590 réussis, 0 échec, mêmes 3 TODO ; lint 0 erreur et mêmes 2 avertissements (`rng.js`, `games/dice/rules.js`) ; build réussi (1135 modules). Relecture indépendante : aucun retour critique ou requis. Vérifications exécutées avec le runtime Node fourni, équivalentes aux scripts npm.
-
-## Configuration enregistrée (#350)
-
-Problème : `setGameConfig` écrivait dans une `Map` en mémoire. Au rechargement, les réglages de l'admin étaient perdus.
-
-| Élément | Choix |
-|---|---|
-| Stockage | `createStockageLocal('casino_config_jeux', {}, { valider })` (#262) : réglage global, hors de `casino_state` et des sauvegardes du joueur |
-| Forme | `{ [gameId]: { probabilities: {…}, multipliers: {…} } }`, seulement pour les jeux réglés |
-| Validation au chargement | Objet simple ; chaque clé est un jeu de `GAMES` (`Object.hasOwn`, donc ni `__proto__` ni propriété héritée) ; chaque valeur ne contient que `probabilities` et `multipliers`, tables de nombres finis ≥ 0 |
-| Valeur invalide | Avertissement, configuration vide, clé conservée jusqu'à la prochaine écriture réussie |
-| Écriture | `setGameConfig` valide tout, puis écrit l'objet complet ; rien n'est écrit en cas d'erreur |
-| API | `getGameConfig` / `setGameConfig` inchangées (mêmes retours, mêmes erreurs) |
-
-Tests : `tests/unit/config-jeux-persistante.test.js` (faux `localStorage`, module rechargé comme après un rechargement de page).
