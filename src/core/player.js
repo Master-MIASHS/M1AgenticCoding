@@ -14,7 +14,7 @@
 // ---------------------------------------------------------------------------
 
 import { GAMES } from './config/games.config.js';
-import { PLAYER_CONFIG, getCapitalDeDepartActuel } from './config/player.config.js';
+import { PLAYER_CONFIG, PROFIL_CONFIG, getCapitalDeDepartActuel } from './config/player.config.js';
 import { getState, updateState, initializePlayerState } from './state.js';
 
 // Un nouveau joueur commence toujours au niveau 1 (schéma de casino_state).
@@ -45,7 +45,7 @@ export function validerPseudo(pseudo) {
  * Valide la date de naissance d'un nouveau joueur.
  *
  * La date est facultative (le schéma de casino_state l'autorise à null).
- * Aucun âge minimum n'est appliqué : ce point n'est pas défini par le projet.
+ * L'âge minimum est vérifié à part, par verifierAgeMinimum (#339).
  *
  * @param {string|null|undefined} dateNaissance - Date au format AAAA-MM-JJ,
  *   ou null / undefined si elle n'est pas renseignée.
@@ -87,6 +87,33 @@ export function validerDateNaissance(dateNaissance, maintenant = new Date()) {
     throw new Error('validerDateNaissance : la date de naissance ne peut pas être dans le futur');
   }
   return dateNaissance;
+}
+
+/**
+ * Vérifie qu'une personne a l'âge minimum révolu à la date du jour.
+ *
+ * Calcul sur les dates UTC, comme validerDateNaissance. Une personne née un
+ * 29 février a ses ans le 1er mars les années non bissextiles.
+ *
+ * @param {string} dateNaissance - Date déjà validée (AAAA-MM-JJ).
+ * @param {Date} maintenant - Date du jour.
+ * @param {number} ageMinimum - Âge révolu exigé (entier ≥ 0).
+ * @returns {void}
+ * @throws {Error} Si l'âge minimum est invalide ou si la personne est trop jeune.
+ */
+export function verifierAgeMinimum(dateNaissance, maintenant, ageMinimum) {
+  if (!Number.isSafeInteger(ageMinimum) || ageMinimum < 0) {
+    throw new Error("verifierAgeMinimum : l'âge minimum doit être un entier positif");
+  }
+  const [annee, mois, jour] = dateNaissance.split('-').map(Number);
+  const anneeDuJour = maintenant.getUTCFullYear();
+  const moisDuJour = maintenant.getUTCMonth() + 1;
+  const jourDuJour = maintenant.getUTCDate();
+  const anniversairePasse = moisDuJour > mois || (moisDuJour === mois && jourDuJour >= jour);
+  const age = anneeDuJour - annee - (anniversairePasse ? 0 : 1);
+  if (age < ageMinimum) {
+    throw new Error(`verifierAgeMinimum : il faut avoir au moins ${ageMinimum} ans pour créer un profil`);
+  }
 }
 
 /**
@@ -148,9 +175,15 @@ export function creerJoueur(
     throw new Error('creerJoueur : le capital de départ doit être un nombre fini strictement positif');
   }
 
+  const pseudo = validerPseudo(infos.pseudo);
+  const birthDate = validerDateNaissance(infos.dateNaissance, maintenant);
+  if (birthDate !== null) {
+    verifierAgeMinimum(birthDate, maintenant, PROFIL_CONFIG.ageMinimum);
+  }
+
   return {
-    pseudo: validerPseudo(infos.pseudo),
-    birthDate: validerDateNaissance(infos.dateNaissance, maintenant),
+    pseudo,
+    birthDate,
     balance: capital,
     bestBalance: capital,
     xp: 0,
