@@ -37,8 +37,8 @@
 //     terminal: true,
 //     state: 'done',
 //     outcome: 'win' | 'loss' | 'push',
-//     multiplier: number,  // net profit multiplier on the total bet
-//                          // (1 for a 1:1 win, 0 for loss or push)
+//     multiplier: number,  // TOTAL return multiplier, stake included
+//                          // (2 for a 1:1 win, 1 for a push, 0 for a loss)
 //     payout: number,      // tokens returned to the player, stake included
 //     totalBet: number,
 //     point: number | null,// point established during the round (if any)
@@ -185,7 +185,10 @@ export function resolve(raw, { bets, config }) {
     throw new RangeError('dice: not enough raw results to reach a terminal state');
   }
 
-  const multiplier = outcome === 'win' ? PAYTABLE.winMultiplier : 0;
+  // Contract G2 2.2 (#68, #159): the multiplier INCLUDES the stake so that the
+  // Core can settle it (#135): 1:1 win -> 2, push -> 1, loss -> 0.
+  const multiplier =
+    outcome === 'win' ? 1 + PAYTABLE.winMultiplier : outcome === 'push' ? 1 : 0;
   const payout =
     outcome === 'win' ? bet * (1 + PAYTABLE.winMultiplier) : outcome === 'push' ? bet : 0;
 

@@ -13,6 +13,8 @@ Skills disponibles pour les agents du projet Casino Fantôme. Chaque skill vit d
 | `expert-javascript`, `expert-react`, `expert-securite-frontend`, `expert-tests-node`, `expert-vite` | Expertise technique par domaine |
 | `skills-structure-validator` | Linter de conformité des dossiers de skills (attention : décrit encore `skills/` comme racine, à mettre à jour suite à la migration vers `.agents/skills/`) |
 | `audit-activite-projet` | Scripts d'agrégation de l'activité GitHub du projet (commits, PR, issues) |
+| `expert-git-commit-push` | Guide de synchronisation Git et règles de commit/push |
+| `pr-validation` | Protocole de revue et critères de validation d'une Pull Request |
 
 ## Skills du projet (créées à l'origine dans ce projet)
 
@@ -24,6 +26,12 @@ Skills disponibles pour les agents du projet Casino Fantôme. Chaque skill vit d
 | [ci-cd-et-automatisation](ci-cd-et-automatisation/SKILL.md) | Pipeline CI/CD GitHub Actions et Quality Gate. |
 | [dev-par-les-tests](dev-par-les-tests/SKILL.md) | Méthodologie TDD, runner natif `node --test`. |
 | [jsdoc-et-documentation](jsdoc-et-documentation/SKILL.md) | Standard de documentation JSDoc. |
+| [utiliser-core](utiliser-core/SKILL.md) | Guide d'intégration et consommation de la façade `coreService.js`. |
+| [jeux-g2](jeux-g2/SKILL.md) | Interface des jeux, orchestration et règles pures. |
+| [game-ui](game-ui/SKILL.md) | Règles de développement des composants visuels internes aux jeux. |
+| [jeux-ui-g3](jeux-ui-g3/SKILL.md) | Contrat d'intégration UI des jeux : slots, roulette, props et rendu. |
+| [composants-communs-g4](composants-communs-g4/SKILL.md) | Spécifications des composants d'interface réutilisables (header, badges, cartes). |
+| [pages-et-routage-g4](pages-et-routage-g4/SKILL.md) | Architecture des routes, navigation et structure des pages hors-jeu. |
 
 ## Skills adoptées depuis GitHub
 

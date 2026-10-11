@@ -19,17 +19,29 @@
 // }
 // ---------------------------------------------------------------------------
 
+import { getCapitalDeDepartActuel } from './config/player.config.js';
+
 export const STORAGE_KEY = 'casino_state';
 
-const DEFAULT_STATE = {
-  balance: 1000,
-  bestBalance: 1000,
-  xp: 0,
-  level: 1,
-  unlockedGames: ['slots', 'dice'],
-  history: [],
-  role: 'player',
-};
+// Droit privé accordé seulement par un démarrage sans sauvegarde.
+let canInitializePlayer = false;
+
+/**
+ * Construit l’état provisoire avec le capital effectif, sans écrire.
+ * @returns {object} Nouvel état initial indépendant.
+ */
+function createDefaultState() {
+  const capital = getCapitalDeDepartActuel();
+  return {
+    balance: capital,
+    bestBalance: capital,
+    xp: 0,
+    level: 1,
+    unlockedGames: ['slots', 'dice'],
+    history: [],
+    role: 'player',
+  };
+}
 
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -40,6 +52,7 @@ function validateState(state) {
     isRecord(state) &&
     Number.isFinite(state.balance) &&
     Number.isFinite(state.bestBalance) &&
+    state.bestBalance >= state.balance &&
     Number.isFinite(state.xp) &&
     state.xp >= 0 &&
     Number.isInteger(state.level) &&
@@ -58,21 +71,48 @@ function cloneState(state) {
   return structuredClone(state);
 }
 
+/**
+ * Démarre avec l'état par défaut quand l'état enregistré est inutilisable.
+ * casino_state n'est pas écrasé ici : il ne sera remplacé qu'au prochain
+ * enregistrement réussi (tâche n°27, #239).
+ * @param {string} reason - Cause affichée dans l'avertissement.
+ * @param {unknown} error - Erreur d'origine, pour le diagnostic.
+ * @returns {object} Copie de l'état par défaut.
+ */
+function startFromDefault(reason, error) {
+  console.warn(
+    `state: ${reason} ; démarrage avec l'état par défaut (casino_state conservé jusqu'au prochain enregistrement).`,
+    error
+  );
+  return createDefaultState();
+}
+
+/**
+ * Lit l'état enregistré au démarrage sans jamais faire échouer le chargement
+ * du module : un stockage inaccessible, un JSON invalide ou un schéma invalide
+ * donnent l'état par défaut avec un avertissement. Le démarrage accepte
+ * exactement les états qu'accepte la restauration d'une sauvegarde.
+ * @returns {object} État initial validé.
+ */
 function readInitialState() {
-  const storedState = globalThis.localStorage?.getItem(STORAGE_KEY);
-  if (storedState === null || storedState === undefined) {
-    return cloneState(DEFAULT_STATE);
-  }
-
-  let parsedState;
+  let storedState;
   try {
-    parsedState = JSON.parse(storedState);
-  } catch {
-    throw new Error('state: stored state is not valid JSON.');
+    storedState = globalThis.localStorage?.getItem(STORAGE_KEY);
+  } catch (error) {
+    return startFromDefault('stockage local inaccessible', error);
+  }
+  if (storedState === null || storedState === undefined) {
+    canInitializePlayer = true;
+    return createDefaultState();
   }
 
-  validateState(parsedState);
-  return cloneState(parsedState);
+  try {
+    const parsedState = JSON.parse(storedState);
+    validateState(parsedState);
+    return cloneState(parsedState);
+  } catch (error) {
+    return startFromDefault('état enregistré illisible ou non conforme', error);
+  }
 }
 
 let currentState = readInitialState();
@@ -120,6 +160,7 @@ function persistState(nextState) {
   const serializedState = JSON.stringify(nextState);
   globalThis.localStorage?.setItem(STORAGE_KEY, serializedState);
   currentState = nextState;
+  canInitializePlayer = false;
   return result;
 }
 
@@ -178,6 +219,8 @@ export function getState() {
 
 /**
  * Replaces the current state after full validation.
+ * The restored best balance must cover its own balance; it may be lower
+ * than the current best balance when loading an older consistent save.
  * This internal operation is used by save restoration, not exposed to the UI.
  *
  * @param {object} savedState
@@ -189,6 +232,43 @@ export function restoreState(savedState) {
   try {
     validateState(savedState);
     return persistState(cloneState(savedState));
+  } finally {
+    writing = false;
+  }
+}
+
+/**
+ * Enregistre une première création uniquement sur une session encore vierge.
+ * Toute sauvegarde chargée ou écriture réussie interdit cette initialisation.
+ * Le droit et l’état restent inchangés en cas d’échec de validation/persistance.
+ * Interne G1 : jamais exposé via coreService ; les infos sont validées par player.
+ * @param {object} player - Joueur neuf construit depuis la configuration effective.
+ * @returns {object} Copie indépendante du premier état enregistré.
+ * @throws {Error} Partie existante, joueur invalide ou stockage indisponible.
+ */
+export function initializePlayerState(player) {
+  assertIdle();
+  writing = true;
+  try {
+    if (currentState.pseudo !== undefined) {
+      throw new Error('creerProfil : un profil existe déjà');
+    }
+    if (!canInitializePlayer) {
+      throw new Error('creerProfil : partie existante ou stockage non vérifiable');
+    }
+    if (!isRecord(player)) throw new TypeError('creerProfil : joueur initial attendu');
+    const nextState = cloneState({ ...currentState, ...player });
+    validateState(nextState);
+    validateJSON(nextState);
+    if (typeof nextState.pseudo !== 'string' || nextState.pseudo.trim() === '' ||
+        nextState.balance <= 0 || nextState.bestBalance !== nextState.balance ||
+        nextState.xp !== 0 || nextState.level !== 1 || nextState.role !== 'player' ||
+        nextState.history.length !== 0 ||
+        (nextState.ownedItemIds !== undefined &&
+          (!Array.isArray(nextState.ownedItemIds) || nextState.ownedItemIds.length !== 0))) {
+      throw new Error('creerProfil : joueur initial invalide');
+    }
+    return persistState(nextState);
   } finally {
     writing = false;
   }

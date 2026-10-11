@@ -33,9 +33,9 @@ function makeRecordingCore(drawValues) {
       log.push('roll');
       return { gameId, value, nonce: i };
     },
-    play(gameId, bets, gameResult) {
+    play(gameId, bets, gameResult, options) {
       log.push('play');
-      playCalls.push({ gameId, bets, gameResult });
+      playCalls.push({ gameId, bets, gameResult, options });
       return { newBalance: 0, xpGained: 1, leveledUp: false };
     },
   };
@@ -376,6 +376,253 @@ test('rules.view() decides what G3 sees: no raw deck, no session internals', () 
   assert.equal('interpretation' in end.renderPayload, false);
   assert.deepEqual(end.renderPayload.economy, { newBalance: 0, xpGained: 1, leveledUp: false });
   assert.deepEqual(viewCalls, ['playing', 'result']);
+});
+
+test('a stake raised during the round (double) is settled through details.totalBet', () => {
+  const core = makeRecordingCore([0.1, 0.2]);
+  const rules = {
+    start() {
+      return { needsDraw: true, stake: 10, availableActions: ['double', 'stand'] };
+    },
+    step(session, action) {
+      const stake = action === 'double' ? session.stake * 2 : session.stake;
+      return { outcome: 'loss', multiplier: 0, details: { totalBet: stake } };
+    },
+  };
+  const game = createGame({ id: 'mock-multi', rules, core });
+  const { sessionId } = game.start({ type: 'main', amount: 10 });
+  game.action(sessionId, 'double');
+  assert.equal(core.playCalls[0].bets, 20, 'the doubled stake is lost, not only the opening bet');
+});
+
+test('details.totalBet below the opening bets is rejected before play()', () => {
+  const core = makeRecordingCore([0.1]);
+  const game = createGame({
+    id: 'mock-single',
+    rules: { resolve: () => ({ outcome: 'loss', multiplier: 0, details: { totalBet: 5 } }) },
+    core,
+  });
+  assert.throws(() => game.start({ type: 'red', amount: 10 }), RangeError);
+  assert.deepEqual(core.playCalls, []);
+});
+
+/** Rules with a 'double' raise, used by the balance tests below. */
+function makeDoubleRules(outcome, multiplier) {
+  return {
+    start() {
+      return { needsDraw: true, stake: 10, availableActions: ['double'] };
+    },
+    step(session, action) {
+      if (action === 'double') return { ...session, stake: 20, totalBet: 20 };
+      return { outcome, multiplier, details: { totalBet: session.stake } };
+    },
+  };
+}
+
+/** Recording core that also exposes a fixed balance, like coreService. */
+function withBalance(core, balance) {
+  return { ...core, getBalance: () => balance };
+}
+
+test('a doubled stake that wins is settled on the doubled amount', () => {
+  const core = withBalance(makeRecordingCore([0.1, 0.2, 0.3]), 100);
+  const game = createGame({ id: 'mock-multi', rules: makeDoubleRules('win', 2), core });
+  const { sessionId } = game.start({ type: 'main', amount: 10 });
+  game.action(sessionId, 'double');
+  const end = game.action(sessionId, 'stand');
+  assert.equal(core.playCalls[0].bets, 20);
+  assert.equal(end.gameResult.multiplier, 2, '20 x 2 returned, stake included');
+});
+
+test('the balance is handed to the rules as data', () => {
+  const core = withBalance(makeRecordingCore([0.1]), 42);
+  const rules = makeDoubleRules('loss', 0);
+  let seen;
+  const spy = { ...rules, start: (raw, ctx) => ((seen = ctx.balance), rules.start(raw, ctx)) };
+  createGame({ id: 'mock-multi', rules: spy, core }).start({ type: 'main', amount: 10 });
+  assert.equal(seen, 42);
+});
+
+test('an opening bet above the balance is refused before any draw', () => {
+  const core = withBalance(makeRecordingCore([0.1]), 5);
+  const game = createGame({ id: 'mock-single', rules: singleStepRules, core });
+  assert.throws(() => game.start({ type: 'red', amount: 10 }), /insufficient balance/);
+  assert.deepEqual(core.log, []);
+});
+
+test('a raise above the balance is refused, the session is kept and the round goes on', () => {
+  const core = withBalance(makeRecordingCore([0.1, 0.2, 0.3]), 15);
+  const game = createGame({ id: 'mock-multi', rules: makeDoubleRules('loss', 0), core });
+  const { sessionId } = game.start({ type: 'main', amount: 10 });
+
+  assert.throws(() => game.action(sessionId, 'double'), /insufficient balance/);
+  assert.deepEqual(core.playCalls, [], 'nothing is settled');
+
+  const end = game.action(sessionId, 'stand');
+  assert.equal(end.terminal, true);
+  assert.equal(core.playCalls[0].bets, 10, 'the opening stake only');
+});
+
+test('a raise that ENDS the round (blackjack double) above the balance is refused too', () => {
+  // 'double' raises the stake to 20 AND ends the round at once, so the raise
+  // is only reported as details.totalBet on the terminal result.
+  const rules = {
+    start() {
+      return { needsDraw: true, availableActions: ['double', 'stand'] };
+    },
+    step(session, action) {
+      const totalBet = action === 'double' ? 20 : 10;
+      return { outcome: 'loss', multiplier: 0, details: { totalBet } };
+    },
+  };
+  const core = withBalance(makeRecordingCore([0.1, 0.2, 0.3]), 15);
+  const game = createGame({ id: 'mock-multi', rules, core });
+  const { sessionId } = game.start({ type: 'main', amount: 10 });
+
+  assert.throws(() => game.action(sessionId, 'double'), /insufficient balance/);
+  assert.deepEqual(core.playCalls, [], 'nothing is settled on a refused raise');
+
+  // Refused = the session is kept and the round goes on with its stake.
+  const end = game.action(sessionId, 'stand');
+  assert.equal(end.terminal, true);
+  assert.equal(core.playCalls[0].bets, 10);
+});
+
+test('instant games also receive the balance as data in resolve()', () => {
+  let seen;
+  const rules = {
+    resolve(raw, ctx) {
+      seen = ctx.balance;
+      return { outcome: 'loss', multiplier: 0, details: {} };
+    },
+  };
+  createGame({ id: 'mock-single', rules, core: withBalance(makeRecordingCore([0.5]), 77) }).start({
+    type: 'red',
+    amount: 1,
+  });
+  assert.equal(seen, 77);
+});
+
+test('a core without getBalance() means no balance check and balance undefined', () => {
+  let seen = 'not called';
+  const rules = {
+    resolve(raw, ctx) {
+      seen = ctx.balance;
+      return { outcome: 'loss', multiplier: 0, details: {} };
+    },
+  };
+  const core = makeRecordingCore([0.5]);
+  createGame({ id: 'mock-single', rules, core }).start({ type: 'red', amount: 1e6 });
+  assert.equal(seen, undefined);
+  assert.equal(core.playCalls[0].bets, 1e6, 'no check: the Core stays the authority');
+});
+
+test('a non-numeric balance is rejected instead of silently disabling the check', () => {
+  const core = { ...makeRecordingCore([0.5]), getBalance: () => ({ balance: 10 }) };
+  const game = createGame({ id: 'mock-single', rules: singleStepRules, core });
+  assert.throws(() => game.start({ type: 'red', amount: 1 }), /finite number/);
+  assert.deepEqual(core.log, [], 'no draw, no settlement');
+});
+
+// --- roundId: one identifier per round, handed to play() (#218) -------------
+
+/** Deterministic roundId factory, so that tests can follow each round. */
+function makeCountingRoundIds() {
+  let n = 0;
+  const factory = () => {
+    n += 1;
+    return `round-${n}`;
+  };
+  return { factory, count: () => n };
+}
+
+test('play() receives the roundId of the round as { roundId }', () => {
+  const core = makeRecordingCore([0.1]);
+  const ids = makeCountingRoundIds();
+  createGame({ id: 'mock-single', rules: singleStepRules, core, makeRoundId: ids.factory }).start({
+    type: 'red',
+    amount: 10,
+  });
+  assert.deepEqual(core.playCalls[0].options, { roundId: 'round-1' });
+});
+
+test('a multi-step round keeps the SAME roundId from start() to the settlement', () => {
+  const core = makeRecordingCore([0.2, 0.3, 0.2, 0.3]);
+  const ids = makeCountingRoundIds();
+  const game = createGame({ id: 'mock-multi', rules: multiStepRules, core, makeRoundId: ids.factory });
+
+  const first = game.start([{ type: 'main', amount: 20 }]);
+  const second = game.start([{ type: 'main', amount: 20 }]);
+  assert.equal(ids.count(), 2, 'one roundId per round, created by start()');
+
+  game.action(second.sessionId, 'draw');
+  game.action(first.sessionId, 'draw');
+  assert.deepEqual(
+    core.playCalls.map((call) => call.options.roundId),
+    ['round-2', 'round-1'],
+    'each round is settled with its own roundId'
+  );
+  assert.equal(ids.count(), 2, 'actions never create a new roundId');
+});
+
+test('if play() fails, the round is kept and a retry is settled with the same roundId', () => {
+  const core = makeRecordingCore([0.2, 0.3, 0.3]);
+  let failures = 1;
+  const failingOnce = {
+    ...core,
+    play(...args) {
+      if (failures > 0) {
+        failures -= 1;
+        throw new Error('persistence failed');
+      }
+      return core.play(...args);
+    },
+  };
+  const ids = makeCountingRoundIds();
+  const game = createGame({
+    id: 'mock-multi',
+    rules: multiStepRules,
+    core: failingOnce,
+    makeRoundId: ids.factory,
+  });
+  const { sessionId } = game.start([{ type: 'main', amount: 20 }]);
+
+  assert.throws(() => game.action(sessionId, 'draw'), /persistence failed/);
+  const end = game.action(sessionId, 'draw');
+
+  assert.equal(end.terminal, true);
+  assert.equal(core.playCalls.length, 1, 'settled once');
+  assert.deepEqual(core.playCalls[0].options, { roundId: 'round-1' });
+  assert.throws(() => game.action(sessionId, 'draw'), /unknown or finished session/);
+});
+
+test('makeRoundId must be a function returning a non-empty string', () => {
+  assert.throws(
+    () => createGame({ id: 'mock-single', rules: singleStepRules, makeRoundId: 'id' }),
+    TypeError
+  );
+  const core = makeRecordingCore([0.1]);
+  const game = createGame({ id: 'mock-single', rules: singleStepRules, core, makeRoundId: () => '' });
+  assert.throws(() => game.start({ type: 'red', amount: 1 }), /non-empty string/);
+  assert.deepEqual(core.log, [], 'no draw, no settlement');
+});
+
+test('the default roundId is unique, prefixed by the game id, and never uses Math.random()', () => {
+  const originalRandom = Math.random;
+  Math.random = () => {
+    throw new Error('Math.random() is forbidden (rule 2)');
+  };
+  try {
+    const core = makeRecordingCore([0.1]);
+    const game = createGame({ id: 'mock-single', rules: singleStepRules, core });
+    game.start({ type: 'red', amount: 1 });
+    game.start({ type: 'red', amount: 1 });
+    const [a, b] = core.playCalls.map((call) => call.options.roundId);
+    assert.match(a, /^mock-single-[0-9a-f-]{32,36}$/);
+    assert.notEqual(a, b);
+  } finally {
+    Math.random = originalRandom;
+  }
 });
 
 test('config stays undefined when not provided (no default value invented)', () => {

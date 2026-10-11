@@ -1,12 +1,12 @@
 // ---------------------------------------------------------------------------
 // Core - Progression
 // ---------------------------------------------------------------------------
-// XP / niveaux avec adaptateur temporaire ; autres fonctions encore mockées.
+// XP / niveaux sur l’état partagé ; autres fonctions encore mockées.
 // ---------------------------------------------------------------------------
 
-import { getState } from './state.js';
+import { getState, updateState } from './state.js';
 import { TEMPORARY_LEVEL_THRESHOLDS } from './config/progression.config.js';
-import { createProgressionMock } from './progression.mock.js';
+import { createProgressionStore } from './progression.store.js';
 
 /**
  * Vérifie qu'une quantité d'XP est finie et positive ou nulle.
@@ -88,28 +88,29 @@ export function createProgression(store, thresholds = TEMPORARY_LEVEL_THRESHOLDS
   };
 }
 
-// Initialisation différée : capture du state à la première utilisation seulement.
+// Initialisation différée du service ; l’adaptateur relit l’état à chaque appel.
 let defaultProgression;
 
 /**
- * Fournit l'instance temporaire en attendant l'adaptateur du groupe Core.
- * @returns {ReturnType<typeof createProgression>} Service local de progression.
+ * Fournit le service de progression branché sur l’état persistant du Core.
+ * @returns {ReturnType<typeof createProgression>} Service partagé de progression.
  */
 function getProgression() {
-  defaultProgression ??= createProgression(createProgressionMock(getState()));
+  defaultProgression ??= createProgression(createProgressionStore({ getState, updateState }));
   return defaultProgression;
 }
 
 /**
- * Ajoute de l'XP dans le mock de progression, sans écrire dans le state Core.
+ * Ajoute de l’XP et persiste XP/niveau ensemble dans l’état du Core.
  * @param {number} amount - Gain positif ou nul.
  * @returns {{ xp: number, level: number }}
+ * @throws {Error} Gain invalide, état invalide ou échec de persistance.
  */
 export function addXP(amount) {
   return getProgression().addXP(amount);
 }
 
-/** @returns {number} Niveau courant du mock de progression. */
+/** @returns {number} Niveau calculé depuis la progression courante du Core. */
 export function getLevel() {
   return getProgression().getLevel();
 }

@@ -29,7 +29,7 @@ const game = createGame({ id: 'wheel', rules, config });
 const res = game.start([{ type: 'red', amount: 10 }]);
 // res.terminal === true, res.gameResult est présent : la partie est finie.
 
-// Jeu multi-étapes (blackjack, vidéo poker, poker)
+// Jeu multi-étapes (blackjack, vidéo poker, poker, memory, quiz, bingo)
 let step = game.start([{ type: 'main', amount: 20 }]);   // terminal: false
 step = game.action(step.sessionId, 'hit');              // tant que !terminal
 step = game.action(step.sessionId, 'stand');            // terminal: true
@@ -39,7 +39,12 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
   mise. Plusieurs mises (roulette) = plusieurs entrées : le G2 règle tout en
   **une seule** fois.
 - `id` : `slots`, `dice`, `scratch`, `blackjack`, `wheel`, `roulette`,
-  `baccarat`, `plinko`, `video-poker`, `poker`.
+  `baccarat`, `plinko`, `video-poker`, `poker`, `memory`, `quiz`, `bingo`
+  (règles de memory, quiz et bingo en PR : #300, #302, #310).
+- **Jeu multi-étapes : une seule instance.** La session vit dans l'instance
+  créée par `createGame` : `start()` et `action()` doivent être appelés sur la
+  **même** instance, sinon `action()` lève « unknown or finished session »
+  (contrat § 5.4).
 - `start()` / `action()` sont dans `main` depuis la PR #136. `playRound(bets)`
   reste disponible pour un jeu instantané joué en un seul appel.
 - Tant que les règles d'un jeu ne sont pas livrées, G3 utilise un mock qui
@@ -62,7 +67,17 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
 - `gameResult.outcome` : `'win' | 'loss' | 'push'` (`push` = mise rendue).
 - `gameResult.multiplier` **inclut la mise** : total reversé = mise totale ×
   `multiplier`, arrondi au centième par le Core. Pas de champ `payout`.
-- `playerAction` est une valeur de `availableActions`, jamais une chaîne libre.
+- `playerAction` est une valeur de `availableActions`, jamais une chaîne libre :
+
+| Jeu | Actions |
+| --- | --- |
+| Blackjack | `hit`, `stand`, `double` (#189) |
+| Vidéo poker | `hold-0` … `hold-4` (bascule la carte gardée), puis `draw` (validé G3, #8) |
+| Poker | `fold`, `check`, `call`, `raise` ; `raise` relance d'un **pas fixe** lu dans la config, pas de montant libre (#196, contrat v0.8.5) |
+| Memory | `reveal-<index>` (cartes encore cachées), puis `continue` après une paire ratée (#274) |
+| Quiz | `answer-<index>`, puis `next` ou `stop` (encaisser) après une bonne réponse (#275) |
+| Bingo | `next` (tirer la boule suivante) (#276) |
+| Instantanés | aucune (`start()` est déjà terminal) |
 
 ## 3. `renderPayload`
 
@@ -70,13 +85,64 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
 { gameId, phase: 'playing' | 'result', raw, interpretation, economy }
 ```
 
-- `raw` : le tirage brut (segment de roue, case plinko…), pour l'animation.
+- `raw` : le tirage brut (segment de roue, case plinko, nombre entier de
+  roulette 0–36…), pour l'animation.
 - `interpretation` : les `details` du résultat (à la fin).
 - `economy` : `{ newBalance, xpGained, leveledUp }` renvoyé par le Core (à la
   fin).
-- 🟠 Le contenu **par jeu** n'est pas encore figé (contrat § 5.2). Il faut
-  l'aligner avec le responsable du jeu dans la discussion #8. Si une donnée
-  manque pour l'affichage, la demander au G2, ne jamais la deviner.
+- Formes déjà posées (contrat § 5.2) :
+  - slots : `interpretation = { symbols, combination, stake }` (#216) ;
+  - roulette : numéro tiré dans `raw` ; la couleur (`details.color` :
+    `red` / `black` / `green`) sera calculée par les règles à partir de la
+    config (décision #191, code à venir) ;
+  - dés : `interpretation = { point, rolls, rawValues, totalBet, payout }`
+    (PR #303).
+- Pour un autre jeu, aligner le contenu avec son responsable (discussion #8).
+  Si une donnée manque pour l'affichage, la demander au G2, ne jamais la
+  deviner.
+- **Jeux avec `rules.view(...)`** (blackjack, vidéo poker, et à venir poker,
+  memory, quiz, bingo) : l'UI reçoit `{ gameId, phase, view, economy? }`,
+  **sans** `raw` ni `interpretation` (#168). `view` ne contient que ce qui
+  est visible (jamais le paquet, la carte cachée, la main du bot, les
+  boules à venir ni la bonne réponse avant le choix du joueur).
+- La **disposition** d'un jeu (segments de la roue, types de pari…) n'est pas
+  dans le `renderPayload` : c'est de la configuration, à lire via
+  `coreService.getGameConfig(id)` quand il sera exposé (#158).
+
+### Blackjack (#189) : `renderPayload.view`
+
+Le blackjack fournit `rules.view()` : G3 lit `renderPayload.view`, jamais de
+`raw` (le paquet mélangé et la carte cachée ne sont pas envoyés, #168).
+
+```js
+// pendant la manche (phase 'playing')
+{ phase: 'playing', playerHand, playerTotal, dealerHand: [carteVisible], dealerHiddenCards: 1 }
+// à la fin (phase 'result')
+{ phase: 'result', playerHand, playerTotal, dealerHand, dealerTotal, outcome, natural }
+```
+
+- Cartes au format `{ rank, suit }` (contrat cartes).
+- `availableActions` : `['hit', 'stand', 'double']` à la distribution, puis
+  `['hit', 'stand']` après une carte ; `double` absent si le solde connu ne
+  couvre pas la mise doublée.
+- Blackjack naturel : la manche se termine dès `start(bets)` (`terminal: true`).
+
+### Memory, quiz, bingo : `renderPayload.view` (PR #300, #302, #310)
+
+Formes proposées dans les PR (relues par le G2), à confirmer au merge :
+
+```js
+// memory
+{ cards: [{ position, symbol /* null si cachée */, revealed, matched }],
+  turnsUsed, turnsRemaining, maxTurns, pairsFound, pendingMismatch }
+// quiz : correctIndex / isCorrect seulement une fois la réponse donnée
+{ questionId, question, options, questionNumber, totalQuestions, answered,
+  selectedIndex?, correctIndex?, isCorrect? }
+// bingo : pendant la partie, seulement l'avancement des bots
+{ drawnBalls, currentBall, playerGrid, bots: [{ id, remaining }] }
+// bingo, phase 'result' : grilles des bots révélées et gagnants
+{ drawnBalls, currentBall, playerGrid, bots: [{ id, grid }], winnerIds, outcome }
+```
 
 ## 4. La `config` d'un jeu
 
@@ -87,28 +153,77 @@ les règles lèvent une erreur si elle manque (règle 4, rien en dur).
 | --- | --- |
 | `wheel` | `{ bets: { <type>: { match: { <champ>: <valeur> }, multiplier } } }` |
 | `plinko` | `{ paytable: number[] }`, index = numéro de case |
+| `blackjack` | `{ paytable: { blackjack, win } }`, multiplicateurs mise incluse (ex. `{ blackjack: 2.5, win: 2 }`) ; égalité → 1, perte → 0 (#189) |
+| `video-poker` | « Jacks or Better » 9/6 (#125) : `paytable` par `category` de `evaluatePokerHand()`, mise incluse : 10 → 250, 9 → 50, 8 → 25, 7 → 9, 6 → 6, 5 → 4, 4 → 3, 3 → 2, 2 → 1 seulement pour une paire de valets ou mieux (sinon 0), 1 → 0 |
+| `roulette` | `{ bets: { <type>: { match: number[], multiplier } } }`, `match` = liste des nombres gagnants (#191) |
+| `slots` | `{ symbols: { bands: [{ max, symbol }] }, paytable: { <combinaison>: { multiplier } } }` : `bands` (lu par `slots/draw.js`) couvre tout [0, 1), clé de `paytable` = les 3 symboles accolés (#216) |
+| `scratch` | `{ paytable: { bands: [{ max, symbol, multiplier }] } }`, bandes triées par `max` croissant (#216) |
+| `dice` | 🟠 gain encore dans les règles ; passage en config à faire (#159) |
+| `baccarat` | 🟠 règles en cours (#220) |
+| `memory` | `{ paytable: { 8: m, …, 16: m } }`, multiplicateur selon le nombre de tours utilisés (PR #300) |
+| `quiz` | `{ paytable: { 1: m, …, 5: m } }`, multiplicateur selon le nombre de bonnes réponses (PR #302) |
+| `bingo` | `{ paytable: { win }, botCount }` : `win > 1`, `botCount` entier ≥ 1 ; joueur et bot sur la même boule → `push` (PR #310) |
+| `poker` | `{ smallBlind, bigBlind, botStack, raiseStep }`, montants fixes en jetons : pas de sélecteur de mise, la mise d'ouverture est la blinde du joueur (contrat v0.8.6, #196) |
 
-🟠 La forme côté Core / admin est en discussion dans #122. La source finale
-sera `getGameConfig` via `coreService`.
+Forme côté Core / admin, **validée dans #122** (G1, G2, G4) :
+
+- roue : `{ paytable: { <type>: { match, multiplier } }, segments: [{ id,
+  label, color, …champs de match, weight }] }`. L'ordre du tableau donne
+  l'ordre d'affichage, et `weight` est le poids du tirage (distinct des
+  gains). G2 assemble `{ bets: config.paytable }` pour `rules.js` ;
+- plinko : `{ paytable: number[], weights: number[] }`, de même longueur.
+
+La source finale sera `getGameConfig` via `coreService` (#158, pas encore
+exposé). En attendant, les configs des jeux branchés dans l'application sont
+provisoires (`src/config/gamesProvisional.config.js`, PR #296 du G5).
 
 ## 5. Brancher un nouveau jeu (G2)
 
 1. `src/games/<jeu>/rules.js`, **pur** : aucun import du Core, pas de
    `Math.random()`.
-   - instantané : `resolve(raw, { bets, config })` → `gameResult`
-   - multi-étapes : `start(raw, { bets, config })` → session avec
+   - instantané : `resolve(raw, { bets, config, balance })` → `gameResult`
+   - multi-étapes : `start(raw, { bets, config, balance })` → session avec
      `needsDraw: true`, puis `step(session, action, raw)` → session (toujours
      `needsDraw: true`) ou `gameResult` (fin)
 2. Si le brut attendu n'est pas `roll()` → `{ value }`, fournir un
    `draw(core, context)` dans le fichier du jeu (**pas** dans `rules.js`), qui
    appelle la bonne primitive : `core.tirageEntier`, `core.tirageAvecPoids`,
    `core.melanger` (PR #141 pour `draw`, PR #115 pour les primitives).
-3. Cartes : `{ rank, suit }` et utilitaires de `src/games/cardUtils.js`
+   Jeux de cartes : `core.melanger(buildDeck(n))` (de `src/games/deck.js`) au
+   début de la manche, `null` pendant les actions (pioche au curseur dans la
+   session). Modèles : `blackjack/index.js`, `video-poker/draw.js`.
+   Exemples livrés : `src/games/roulette/index.js` → `core.tirageEntier(0, 36)`
+   (#191) ; `slots/draw.js` → `core.tirageAvecPoids` (#216) ; la roue passe
+   son propre draw dans le test de montage (`core.tirageAvecPoids`).
+   Memory, quiz, bingo : `core.melanger` une seule fois au `start`, puis
+   `null` (PR #300, #302, #310).
+   **Poker** (bots) : c'est le `draw` qui joue les tours du bot. Il applique
+   l'action du joueur avec un moteur pur partagé avec `rules.js`, appelle
+   `core.choisirAction(...)` à chaque tour du bot et transmet les décisions
+   dans `raw.aiActions` (liste ordonnée). Les règles restent pures (contrat
+   v0.8.6, § 4.4).
+3. **Mise qui augmente** (double, relance) : la session en cours porte
+   `totalBet`, et le résultat final `details.totalBet`. L'orchestrateur règle
+   ce montant (#166). Une hausse au-delà du solde est refusée : l'action lève
+   une erreur, la session reste inchangée et la manche continue (#199).
+   `balance` (le solde, en simple donnée) permet aux règles de masquer une
+   action non payable.
+4. **Ce que voit G3** : un jeu de cartes fournit `view({ phase, raw,
+   session, gameResult })` (§ 3, #168).
+5. Cartes : `{ rank, suit }` et utilitaires de `src/games/cardUtils.js`
    (`blackjackTotal`, `baccaratTotal`, `evaluatePokerHand`, `hasPair`,
-   `RANKS`, `SUITS`).
-4. Tests unitaires des règles + un test de montage dans
-   `tests/integration/g2/` (modèle : `montage.wheel-plinko.test.js`, fixtures
-   `tests/fixtures/g2/rolls.js`).
+   `RANKS`, `SUITS` ; `bestPokerHand` et `comparePokerHands` arrivent avec
+   le poker, #196).
+6. **Règlement** : rien à faire dans les règles. L'orchestrateur crée un
+   `roundId` au `start()` et appelle une seule fois `core.play(gameId, bet,
+   gameResult, { roundId })` en fin de manche. Si `play()` échoue, la manche
+   reste ouverte avec le même `roundId` (#218, PR #311).
+7. Tests unitaires des règles + un test de montage dans
+   `tests/integration/g2/` (modèles : `montage.wheel-plinko.test.js`,
+   `montage.blackjack.test.js` ; fixtures `tests/fixtures/g2/rolls.js`).
+   `play()` est persistant (#287) : vérifier le solde **par différence**
+   (solde lu juste avant la partie), jamais avec un solde de départ lu une
+   seule fois.
 
 ## À ne jamais faire
 
@@ -117,5 +232,7 @@ sera `getGameConfig` via `coreService`.
 - Décider d'un gain, d'un résultat ou d'un bouton actif côté UI.
 - Lancer une partie par mise pour un même tour (roulette) : toutes les mises
   d'un tour vont dans un seul `start(bets)`, qui fait un seul règlement.
+- Recréer `createGame` entre `start()` et `action()` d'un jeu multi-étapes :
+  la session serait perdue.
 - Modifier `src/games/` depuis un autre groupe : ouvrir une issue
   `groupe: G2`.
