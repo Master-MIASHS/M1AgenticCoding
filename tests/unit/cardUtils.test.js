@@ -413,6 +413,162 @@ describe('evaluatePokerHand', () => {
   });
 });
 
+describe('bestPokerHand', () => {
+  it('chooses the strongest five-card combination from five to seven cards', () => {
+    const hand = [
+      card('A', 'hearts'),
+      card('K', 'hearts'),
+      card('Q', 'hearts'),
+      card('J', 'hearts'),
+      card('10', 'hearts'),
+      card('2', 'clubs'),
+      card('3', 'diamonds'),
+    ];
+    assert.deepStrictEqual(cardUtils.bestPokerHand(hand), {
+      category: 10,
+      tiebreakers: [14],
+    });
+  });
+
+  it('returns the evaluation for a five-card hand', () => {
+    const hand = [
+      card('K', 'hearts'),
+      card('K', 'spades'),
+      card('7', 'diamonds'),
+      card('7', 'clubs'),
+      card('A', 'hearts'),
+    ];
+    assert.deepStrictEqual(cardUtils.bestPokerHand(hand), {
+      category: 3,
+      tiebreakers: [13, 7, 14],
+    });
+  });
+
+  it('chooses the best combination from exactly six cards', () => {
+    const hand = [
+      card('A', 'hearts'),
+      card('A', 'spades'),
+      card('A', 'diamonds'),
+      card('K', 'clubs'),
+      card('K', 'hearts'),
+      card('2', 'spades'),
+    ];
+    assert.deepStrictEqual(cardUtils.bestPokerHand(hand), {
+      category: 7,
+      tiebreakers: [14, 13],
+    });
+  });
+
+  it('scores a straight with a low ace as five-high', () => {
+    const hand = [
+      card('A', 'spades'),
+      card('2', 'hearts'),
+      card('3', 'diamonds'),
+      card('4', 'clubs'),
+      card('5', 'spades'),
+      card('K', 'hearts'),
+    ];
+    assert.deepStrictEqual(cardUtils.bestPokerHand(hand), {
+      category: 5,
+      tiebreakers: [5],
+    });
+  });
+
+  it('rejects hands outside five to seven cards and duplicate cards', () => {
+    assert.throws(() => cardUtils.bestPokerHand([card('A', 'hearts')]), TypeError);
+    assert.throws(
+      () =>
+        cardUtils.bestPokerHand([
+          card('A', 'hearts'),
+          card('K', 'hearts'),
+          card('Q', 'hearts'),
+          card('J', 'hearts'),
+          card('10', 'hearts'),
+          card('9', 'hearts'),
+          card('8', 'hearts'),
+          card('7', 'hearts'),
+        ]),
+      TypeError,
+    );
+    assert.throws(
+      () =>
+        cardUtils.bestPokerHand([
+          card('A', 'hearts'),
+          card('A', 'hearts'),
+          card('Q', 'hearts'),
+          card('J', 'hearts'),
+          card('10', 'hearts'),
+        ]),
+      TypeError,
+    );
+  });
+});
+
+describe('comparePokerHands', () => {
+  it('compares categories and breaks ties by rank in order', () => {
+    assert.strictEqual(
+      cardUtils.comparePokerHands(
+        { category: 5, tiebreakers: [5] },
+        { category: 4, tiebreakers: [14, 13, 12] },
+      ),
+      1,
+    );
+    assert.strictEqual(
+      cardUtils.comparePokerHands(
+        { category: 3, tiebreakers: [13, 7, 14] },
+        { category: 3, tiebreakers: [13, 7, 12] },
+      ),
+      1,
+    );
+    assert.strictEqual(
+      cardUtils.comparePokerHands(
+        { category: 3, tiebreakers: [12, 11, 14] },
+        { category: 3, tiebreakers: [13, 2, 14] },
+      ),
+      -1,
+    );
+  });
+
+  it('returns zero when all category and tiebreaker values are equal', () => {
+    assert.strictEqual(
+      cardUtils.comparePokerHands(
+        { category: 9, tiebreakers: [5] },
+        { category: 9, tiebreakers: [5] },
+      ),
+      0,
+    );
+  });
+
+  it('ties royal flushes in different suits', () => {
+    assert.strictEqual(
+      cardUtils.comparePokerHands(
+        { category: 10, tiebreakers: [14] },
+        { category: 10, tiebreakers: [14] },
+      ),
+      0,
+    );
+  });
+
+  it('rejects invalid evaluations', () => {
+    assert.throws(
+      () =>
+        cardUtils.comparePokerHands(
+          { category: 0, tiebreakers: [] },
+          { category: 1, tiebreakers: [14, 13, 9, 5, 2] },
+        ),
+      TypeError,
+    );
+    assert.throws(
+        () =>
+          cardUtils.comparePokerHands(
+            { category: 3, tiebreakers: [13, 7] },
+            { category: 3, tiebreakers: [12, 11, 14] },
+          ),
+        TypeError,
+    );
+  });
+});
+
 describe('hasPair', () => {
   it('returns true for two cards of the same rank', () => {
     assert.strictEqual(cardUtils.hasPair([card('K', 'hearts'), card('K', 'spades')]), true);
@@ -461,12 +617,14 @@ describe('RANKS and SUITS', () => {
 });
 
 describe('module contract', () => {
-  it('exports exactly the five public functions and the RANKS / SUITS constants', () => {
+  it('exports the public functions and the RANKS / SUITS constants', () => {
     assert.deepStrictEqual(Object.keys(cardUtils).sort(), [
       'RANKS',
       'SUITS',
       'baccaratTotal',
+      'bestPokerHand',
       'blackjackTotal',
+      'comparePokerHands',
       'evaluatePokerHand',
       'hasPair',
       'isBlackjack',
@@ -495,6 +653,7 @@ describe('module contract', () => {
     ];
     const pokerSnapshot = cloneHand(pokerHand);
     cardUtils.evaluatePokerHand(pokerHand);
+    cardUtils.bestPokerHand([...pokerHand, card('2', 'hearts')]);
     assert.deepStrictEqual(pokerHand, pokerSnapshot);
   });
 });

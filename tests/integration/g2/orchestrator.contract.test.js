@@ -40,9 +40,9 @@ function makeTestCore(rollValues) {
   const core = {
     ...coreService,
     roll: fixture.roll,
-    play: (gameId, bet, gameResult) => {
-      playCalls.push({ gameId, bet, gameResult });
-      return coreService.play(gameId, bet, gameResult);
+    play: (gameId, bet, gameResult, options) => {
+      playCalls.push({ gameId, bet, gameResult, options });
+      return coreService.play(gameId, bet, gameResult, options);
     },
   };
   return { core, rollCalls: fixture.calls, playCalls };
@@ -167,6 +167,7 @@ describe('G2 - contrat orchestrateur (v0.4)', () => {
       assert.equal(playCalls[0].gameId, 'roulette');
       assert.equal(playCalls[0].bet, 15, 'play() doit recevoir la somme des mises, pas le tableau (écart § 8 n°4)');
       assert.deepEqual(playCalls[0].gameResult, res.gameResult);
+      assert.match(playCalls[0].options.roundId, /^roulette-/, 'play() reçoit l\'identifiant de la manche (#218)');
     });
   });
 
