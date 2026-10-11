@@ -258,7 +258,7 @@ Le Groupe 2 décide **ce qui se passe** dans une partie : les règles de chaque 
 
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
-| Donia-alfonsi | Alfonsi Donia | Alfonsi Donia | moteur de cartes partagé, constructeur de paquet, Blackjack et son tirage · tests associés |
+| Donia-alfonsi | Donia-alfonsi, Donia Alfonsi | Alfonsi, Donia | moteur de cartes partagé `cardUtils.js` (#23, #67, #120), constructeur de paquet `deck.js` (#102, #169), Blackjack et son tirage (#189, #203) · tests associés, dont le montage blackjack (#299, #301) |
 | Zelyx21 | Clem, Zelyx21 | Beaulieu, Clémentine | créer le socle commun, se coordonner avec les autres groupes · vidéo poker, Memory, Quiz et Bingo (#125, #274, #275, #276) |
 | raphoulefoufou | raphoulefoufou | Capristo,Raphaël | création jeu de dés,test sur ces derniers · poker contre les bots (#196) |
 | camilhamdach5-byte | camilhamdach5-byte, Camil-Hamdach | Hamdach,Camil | Création de la logique des jeux Slots, Scratch et Baccarat (#31, #216, #220) |
