@@ -10,7 +10,14 @@ async function renderLobby() {
   try {
     const { default: Lobby } = await server.ssrLoadModule('/src/pages/Lobby/Lobby.jsx');
     const { GAME_REGISTRY } = await server.ssrLoadModule('/src/config/gameRegistry.js');
-    return { html: renderToStaticMarkup(createElement(Lobby)), games: GAME_REGISTRY };
+    const { GAME_UIS } = await server.ssrLoadModule('/src/pages/Game/GamePage.jsx');
+    const { getUnlockedGames } = await server.ssrLoadModule('/src/services/coreService.js');
+    return {
+      html: renderToStaticMarkup(createElement(Lobby)),
+      games: GAME_REGISTRY,
+      screens: GAME_UIS,
+      unlocked: getUnlockedGames(),
+    };
   } finally {
     await server.close();
   }
@@ -30,11 +37,18 @@ test('Lobby lists every game of the registry with its game page link or lock', a
 });
 
 test('Lobby shows "Bientôt" for an unlocked game without a screen, and French names', async () => {
-  const { html, games } = await renderLobby();
-  // At level 1 the Core unlocks slots and dice; only slots has a screen (Groupe 3).
-  assert.ok(html.includes('Bientôt'), 'dice is unlocked but not playable yet');
-  assert.ok(html.includes('href="#/game/slots"'));
-  assert.ok(!html.includes('href="#/game/dice"'));
+  const { html, games, screens, unlocked } = await renderLobby();
+  // Derived from the Core and from the games that have a screen, so the test does not
+  // depend on which games Groupe 3 has delivered so far.
+  const soon = games.filter((game) => unlocked.includes(game.id) && !screens[game.id]);
+  const playable = games.filter((game) => unlocked.includes(game.id) && screens[game.id]);
+  assert.equal(html.includes('Bientôt'), soon.length > 0);
+  for (const game of playable) {
+    assert.ok(html.includes(`href="#/game/${game.id}"`), `${game.id} links to its page`);
+  }
+  for (const game of soon) {
+    assert.ok(!html.includes(`href="#/game/${game.id}"`), `${game.id} has no link yet`);
+  }
   for (const english of ['Slots', 'Dice', 'Wheel', 'Scratch', 'Video Poker']) {
     assert.ok(!games.some((game) => game.name === english), `${english} is not a registry name`);
   }
