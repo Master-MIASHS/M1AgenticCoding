@@ -23,6 +23,17 @@ export const PLAYER_CONFIG = Object.freeze({
 });
 
 /**
+ * Règles de création d'un profil.
+ * `ageMinimum` : âge révolu exigé à la création quand une date de naissance
+ * est fournie (18 ans, demande du G5 dans la discussion #9, #339).
+ *
+ * @type {Readonly<{ ageMinimum: number }>}
+ */
+export const PROFIL_CONFIG = Object.freeze({
+  ageMinimum: 18,
+});
+
+/**
  * Crée un stockage en mémoire de la configuration réglée par l'admin, en
  * attendant le branchement sur casino_state (n°8).
  *
