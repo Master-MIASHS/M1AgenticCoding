@@ -35,6 +35,9 @@ describe('lecture publique de la configuration (#158)', () => {
     assert.deepEqual(first, { probabilities: { red: 0.4 }, multipliers: { red: 2 } });
     first.probabilities.red = 77;
     first.multipliers.red = 77;
+    assert.deepEqual(core.getGameConfig('roulette'), {
+      probabilities: { red: 0.4 }, multipliers: { red: 2 },
+    });
     core.setGameConfig('roulette', { multipliers: { red: 3 } });
     assert.deepEqual(core.getGameConfig('roulette'), {
       probabilities: { red: 0.4 }, multipliers: { red: 3 },
