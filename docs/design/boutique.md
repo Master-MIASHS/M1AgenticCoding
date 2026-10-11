@@ -68,7 +68,7 @@ Permettre au joueur d'**acheter un article de la boutique avec ses jetons fictif
 | Achat seulement si `solde ≥ prix` | Le solde ne passe jamais sous 0 : on n'a pas à trancher la décision ouverte « le solde peut-il passer sous 0 ? ». |
 | Meilleur solde, XP et niveau inchangés | Invariants d'`AGENTS.md` : l'XP se gagne en jouant, le meilleur solde ne redescend jamais. |
 | Prix entiers ≥ 0 | Évite les erreurs d'arrondi ; un prix nul reste possible. |
-| Catalogue vide par défaut | Contenu = décision ouverte ; question posée au G5 dans #205. |
+| Catalogue : les 4 articles de la maquette G4 (#325) | Le G5 n'a pas répondu (#205, #20) et la page doit fonctionner lundi : on reprend les articles déjà montrés par le G4, sans en inventer. Un autre contenu ne demande que de modifier `config/shop.config.js`. |
 | Inventaire dans le champ `ownedItemIds` de l'état | Nom proposé par le G4 ; à confirmer par @ahmed-abc73 (propriétaire de `state.js`). |
 | Erreurs de stockage propagées | Comme `updateState` (#139) : ne jamais annoncer un achat qui n'a pas été enregistré. |
 | Erreurs `Error` avec message en français | Cohérent avec `rng.js`, `player.js` et `ai/poker.js`. |
@@ -77,15 +77,28 @@ Permettre au joueur d'**acheter un article de la boutique avec ses jetons fictif
 
 `shop.js` crée une boutique branchée sur l'état réel (`createShop({ getState, updateState })`) et exporte `getShopCatalog`, `getShopInventory` et `purchaseShopItem`, réexportées par `core.js` puis `coreService.js` (contrat proposé par le G4). Testé dans `tests/unit/shop.core.test.js` et `core.contract.test.js`.
 
+## Catalogue (#325)
+
+`config/shop.config.js` reprend les 4 articles de `src/mocks/shop.mock.js` (G4) : mêmes `id`, `name`, `description`, `category`, `price` et `visual`.
+
+| id | Prix |
+|---|---|
+| `avatar_chapeau` | 200 |
+| `theme_nuit` | 500 |
+| `effect_confettis` | 750 |
+| `badge_fidele` | 350 |
+
+- Les quatre sont `available: true`. Dans le mock, `owned` et `unavailable` étaient des exemples d'affichage : la possession vient de `getShopInventory()`, propre à chaque joueur.
+- Le champ `availability` du mock n'est pas repris : le contrat du Core utilise `available` (booléen).
+
 ## Points ouverts
 
-- **Contenu du catalogue** : articles et prix à fixer par le G5 (#205).
+- **Contenu du catalogue** : les 4 articles de la maquette (#325), à confirmer ou remplacer par le G5.
 - **Champ `ownedItemIds`** dans le schéma de `casino_state` : à confirmer et à ajouter par @ahmed-abc73 au branchement.
 - **Synchrone ou `Promise`** : le G4 accepte les deux ; le Core reste synchrone comme le reste de son API.
 
 ## Risques
 
-- Tant que le catalogue est vide, la boutique n'affiche aucun article.
 - Tant que `Shop.jsx` (G4) lit `shop.mock.js`, l'écran n'utilise pas ces fonctions.
 - Si `ownedItemIds` est renommé dans l'état, seul `shop.js` est à adapter.
 

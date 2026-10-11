@@ -1,0 +1,213 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+
+const stateURL = new URL('../../src/core/state.js', import.meta.url).href;
+const coreURL = new URL('../../src/services/coreService.js', import.meta.url).href;
+const configURL = new URL('../../src/core/config/player.config.js', import.meta.url).href;
+const legacy = { balance: 1000, bestBalance: 1000, xp: 0, level: 1,
+  unlockedGames: ['slots', 'dice'], history: [], role: 'player' };
+
+/** Charge configuration et état dans un processus neuf, sans cache partagé. */
+function run(source, { capital = 500, saved = null } = {}) {
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    const values = new Map([
+      ['casino_config_joueur', JSON.stringify({ capitalDeDepart: ${capital} })],
+      ['casino_state', ${JSON.stringify(saved)}],
+    ]);
+    let writes = 0;
+    let failWrite = false;
+    globalThis.localStorage = {
+      getItem: key => values.get(key) ?? null,
+      setItem(key, value) {
+        if (failWrite) throw Error('quota dépassé');
+        values.set(key, value);
+        if (key === 'casino_state') writes++;
+      },
+    };
+    const state = await import(${JSON.stringify(stateURL)});
+    const config = await import(${JSON.stringify(configURL)});
+    const core = await import(${JSON.stringify(coreURL)});
+    ${source}
+  `], { encoding: 'utf8', timeout: 10000 });
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+}
+
+describe('capital initial effectif (#253)', () => {
+  for (const capital of [500, 2500]) {
+    it(`initialise les deux soldes à ${capital} sans écrire`, () => {
+      run(`
+        assert.equal(state.getState().balance, ${capital});
+        assert.equal(state.getState().bestBalance, ${capital});
+        assert.equal(writes, 0);
+        assert.equal(values.get('casino_state'), null);
+      `, { capital });
+    });
+  }
+
+  it('conserve une ancienne sauvegarde malgré une autre configuration', () => {
+    run(`
+      assert.deepEqual(state.getState(), ${JSON.stringify(legacy)});
+      assert.equal(writes, 0);
+    `, { saved: JSON.stringify(legacy) });
+  });
+});
+
+describe('première initialisation atomique interne (#253)', () => {
+  it('initialise une fois avec un capital réduit, sans exposer l’opération à l’UI', () => {
+    run(`
+      assert.equal(core.initializePlayerState, undefined);
+      const player = { ...state.getState(), balance: 250, bestBalance: 250, pseudo: 'Alice' };
+      const result = state.initializePlayerState(player);
+      assert.deepEqual(state.getState(), player);
+      assert.deepEqual(JSON.parse(values.get('casino_state')), player);
+      assert.equal(writes, 1);
+      result.unlockedGames.push('poker');
+      assert.deepEqual(state.getState(), player);
+      assert.throws(() => state.initializePlayerState(player), /profil|partie/);
+      assert.equal(writes, 1);
+    `);
+  });
+
+  it('conserve l’état et le droit de réessayer après un échec de persistance', () => {
+    run(`
+      const before = state.getState();
+      const player = { ...before, balance: 250, bestBalance: 250, pseudo: 'Alice' };
+      failWrite = true;
+      assert.throws(() => state.initializePlayerState(player), /quota/);
+      assert.deepEqual(state.getState(), before);
+      assert.equal(writes, 0);
+      failWrite = false;
+      state.initializePlayerState(player);
+      assert.equal(writes, 1);
+    `);
+  });
+
+  for (const method of ['updateState(s => s)', 'restoreState(state.getState())']) {
+    it(`refuse de recréer un joueur après ${method}`, () => {
+      run(`
+        state.${method};
+        const before = state.getState();
+        assert.throws(() => state.initializePlayerState({ ...before, pseudo: 'Alice' }), /partie/);
+        assert.deepEqual(state.getState(), before);
+        assert.equal(writes, 1);
+      `);
+    });
+  }
+
+  it('refuse une première création imbriquée dans une mise à jour', () => {
+    run(`
+      const before = state.getState();
+      assert.throws(() => state.updateState(s => {
+        state.initializePlayerState({ ...s, pseudo: 'Alice' });
+        return s;
+      }), /écriture/);
+      assert.deepEqual(state.getState(), before);
+      assert.equal(writes, 0);
+      state.initializePlayerState({ ...before, pseudo: 'Alice' });
+      assert.equal(writes, 1);
+    `);
+  });
+
+  it('valide le joueur initial avant toute écriture et permet la correction', () => {
+    run(`
+      const before = state.getState();
+      for (const invalid of [
+        { balance: 0, bestBalance: 0 }, { bestBalance: 999 }, { xp: 1 },
+        { level: 2 }, { role: 'admin' }, { history: [{}] },
+        { ownedItemIds: ['article'] }, { pseudo: '' },
+      ]) {
+        assert.throws(() => state.initializePlayerState({ ...before, pseudo: 'Alice', ...invalid }));
+      }
+      assert.deepEqual(state.getState(), before);
+      assert.equal(writes, 0);
+      state.initializePlayerState({ ...before, pseudo: 'Alice' });
+      assert.equal(writes, 1);
+    `);
+  });
+});
+
+describe('création publique avec le capital effectif (#253)', () => {
+  for (const capital of [500, 2500]) {
+    it(`crée et recharge un profil à ${capital}`, () => {
+      run(`
+        const created = core.creerProfil({ pseudo: ' Alice ' });
+        assert.equal(created.pseudo, 'Alice');
+        assert.equal(created.balance, ${capital});
+        assert.equal(created.bestBalance, ${capital});
+        assert.equal(writes, 1);
+        const stored = values.get('casino_state');
+        const reloaded = await import(${JSON.stringify(stateURL + '?after-profile')});
+        assert.deepEqual(reloaded.getState(), created);
+        assert.equal(values.get('casino_state'), stored);
+        config.reglerCapitalDeDepart(200);
+        assert.deepEqual(state.getState(), created);
+        const exported = core.exportSave();
+        assert.deepEqual(core.importSave(exported), created);
+        assert.throws(() => core.creerProfil({ pseudo: 'Autre' }), /profil/);
+        assert.equal(writes, 2); // création et import uniquement
+      `, { capital });
+    });
+  }
+
+  it('relit le capital à la création sans autoriser des options choisies par l’UI', () => {
+    run(`
+      config.reglerCapitalDeDepart(200);
+      let called = false;
+      const created = core.creerProfil({ pseudo: 'Alice' }, {
+        config: { capitalDeDepart: 999999 },
+        jeux: { poker: { id: 'poker', unlockLevel: 1 } },
+        stockage: { updateState() { called = true; } },
+      });
+      assert.equal(created.balance, 200);
+      assert.equal(created.bestBalance, 200);
+      assert.deepEqual(created.unlockedGames, ['slots', 'dice']);
+      assert.equal(called, false);
+      assert.equal(writes, 1);
+    `);
+  });
+
+  it('permet de réessayer après validation refusée et échec du stockage', () => {
+    run(`
+      const before = state.getState();
+      assert.throws(() => core.creerProfil({ pseudo: ' ' }), /pseudo/);
+      failWrite = true;
+      assert.throws(() => core.creerProfil({ pseudo: 'Alice' }), /quota/);
+      assert.deepEqual(state.getState(), before);
+      assert.equal(values.get('casino_state'), null);
+      assert.equal(writes, 0);
+      failWrite = false;
+      config.reglerCapitalDeDepart(250);
+      assert.equal(core.creerProfil({ pseudo: 'Alice' }).bestBalance, 250);
+      assert.equal(writes, 1);
+    `);
+  });
+
+  for (const [name, saved] of [
+    ['identique au défaut sans pseudo', JSON.stringify(legacy)],
+    ['illisible', '{JSON cassé'],
+  ]) {
+    it(`ne recrée pas un profil depuis une sauvegarde ${name}`, () => {
+      run(`
+        const before = state.getState();
+        assert.throws(() => core.creerProfil({ pseudo: 'Alice' }), /partie|stockage/);
+        assert.deepEqual(state.getState(), before);
+        assert.equal(values.get('casino_state'), ${JSON.stringify(saved)});
+        assert.equal(writes, 0);
+      `, { saved, capital: 1000 });
+    });
+  }
+
+  it('refuse la création si l’absence de sauvegarde n’a pas pu être vérifiée', () => {
+    run(`
+      globalThis.localStorage.getItem = () => { throw Error('SecurityError'); };
+      const unavailable = await import(${JSON.stringify(stateURL + '?unavailable')});
+      const before = unavailable.getState();
+      assert.throws(() => unavailable.initializePlayerState({ ...before, pseudo: 'Alice' }), /stockage/);
+      assert.deepEqual(unavailable.getState(), before);
+      assert.equal(writes, 0);
+    `);
+  });
+});

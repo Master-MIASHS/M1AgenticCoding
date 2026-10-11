@@ -241,7 +241,7 @@ function Profile() {
           <UnlockedGames games={unlockedGames} />
         </ProfileSection>
 
-        <ProfileSection title="Statistiques">
+        <ProfileSection title="Statistiques_TEEEEST">
           <div className="profile__stats">
             <StatCard label="Meilleur solde" value={formatNumber(data.bestBalance)} />
             <StatCard label="Jeux déverrouillés" value={formatNumber(unlockedGames.length)} />

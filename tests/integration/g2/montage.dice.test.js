@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
-// Tests d'intégration G2 - montage Dice / craps (#159)
+// Tests d'intégration G2 - montage Dice / craps (#159, #218)
 // ---------------------------------------------------------------------------
 // Chaîne testée : start(bets) -> dice draw -> rules.resolve() -> gameResult
-// -> un règlement Core -> renderPayload.interpretation pour G3.
+// -> un règlement Core avec roundId -> renderPayload.interpretation pour G3.
 // ---------------------------------------------------------------------------
 
 import { test, describe } from 'node:test';
@@ -28,9 +28,9 @@ function makeTestCore(faces) {
       }
       return queue.shift();
     },
-    play(gameId, bet, gameResult) {
-      playCalls.push({ gameId, bet, gameResult });
-      return coreService.play(gameId, bet, gameResult);
+    play(gameId, bet, gameResult, options) {
+      playCalls.push({ gameId, bet, gameResult, options });
+      return coreService.play(gameId, bet, gameResult, options);
     },
   };
   return { core, drawCalls, playCalls, remainingFaces: () => [...queue] };
@@ -60,6 +60,7 @@ describe('G2 - montage Dice (#159) : orchestrateur + tirage + règles + Core', (
     assert.deepEqual(drawCalls, [[1, 6], [1, 6]]);
     assert.equal(playCalls.length, 1);
     assert.equal(playCalls[0].bet, 10);
+    assert.match(playCalls[0].options.roundId, /^dice-/);
   });
 
   test('come-out 7 gagne le multiplicateur configuré, mise incluse', () => {
@@ -68,6 +69,7 @@ describe('G2 - montage Dice (#159) : orchestrateur + tirage + règles + Core', (
     assert.equal(result.gameResult.multiplier, 2);
     assert.equal(result.renderPayload.economy.newBalance, balanceBefore + 10);
     assert.equal(playCalls.length, 1);
+    assert.match(playCalls[0].options.roundId, /^dice-/);
   });
 
   test('come-out 12 est une défaite, sans égalité ni retour de mise', () => {
@@ -104,6 +106,7 @@ describe('G2 - montage Dice (#159) : orchestrateur + tirage + règles + Core', (
     assert.deepEqual(drawCalls, Array.from({ length: 6 }, () => [1, 6]));
     assert.equal(playCalls.length, 1);
     assert.equal(playCalls[0].bet, 10);
+    assert.match(playCalls[0].options.roundId, /^dice-/);
     assert.deepEqual(remainingFaces(), [1, 4]);
   });
 

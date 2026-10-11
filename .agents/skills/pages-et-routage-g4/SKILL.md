@@ -63,7 +63,9 @@ en lui passant `href`. Le composant ne construit pas d'URL.
   (`gameId`, lu dans `#/game/<gameId>`). `GamePage` retrouve le jeu dans `gameRegistry` ; pour
   un identifiant inconnu, elle affiche « Jeu introuvable ».
 - `GamePage` contient une table `GAME_UIS` (identifiant du jeu → composant de `src/game-ui/`).
-  Aujourd'hui : `slots` → `SlotsGame`, `roulette` → `RouletteGame` et `wheel` → `WheelGame`. Un jeu qui n'est pas
+  Aujourd'hui : `slots` → `SlotsGame`, `roulette` → `RouletteGame`, `wheel` → `WheelGame` et `plinko` → `PlinkoGame`.
+  `GamePage` vérifie aussi le déblocage (`getUnlockedGames()` via `coreService`) : un jeu
+  verrouillé affiche « Jeu verrouillé » au lieu de son UI, même si on tape l'URL. Un jeu qui n'est pas
   dans la table affiche « Ce jeu sera bientôt jouable ».
 - Le composant reçoit `balance` (lu via `coreService.getBalance()`) et `renderResult`
   (affiche l'issue et le multiplicateur du `gameResult`, sans rien calculer). `start` n'est
