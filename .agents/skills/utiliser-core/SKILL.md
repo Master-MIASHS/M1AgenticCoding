@@ -300,6 +300,21 @@ try {
   conservé jusqu’au prochain enregistrement réussi (#240). Ce cas est distinct d’un
   import refusé, qui conserve la partie déjà chargée.
 
+### Modération : setPlayerStatus(status)
+
+```js
+import { setPlayerStatus } from '<chemin-relatif>/services/coreService.js';
+
+setPlayerStatus('banned'); // modérateur ou admin : désactive le compte courant
+setPlayerStatus('active'); // le réactive, acquis intacts
+```
+
+- Rôle vérifié dans le Core (modérateur ou plus) ; un joueur reçoit une erreur.
+- Compte désactivé (`getState().isBanned === true`) : `play`, `purchaseShopItem` et
+  `claimDailyBonus` lèvent une erreur (« compte désactivé… ») sans rien écrire. Les
+  lectures restent possibles : afficher un message, ne pas masquer seulement les boutons.
+- Un seul argument : le statut porte sur le profil courant (profils multiples : n°5).
+
 ### Statistiques globales : getGlobalStats()
 
 Utiliser pour la page Statistiques et le tableau de bord Admin (G4).
@@ -378,21 +393,6 @@ try {
   et `creerProfil` est le branchement #253.
 - G1 (`play()`) : lire `getMultiplicateurBonus(cible)` depuis `config/events.config.js`
   au moment du règlement (arbitrage G5 du 07/10), dans la même transaction.
-
-### Modération : setPlayerStatus(status)
-
-```js
-import { setPlayerStatus } from '<chemin-relatif>/services/coreService.js';
-
-setPlayerStatus('banned'); // modérateur ou admin : désactive le compte courant
-setPlayerStatus('active'); // le réactive, acquis intacts
-```
-
-- Rôle vérifié dans le Core (modérateur ou plus) ; un joueur reçoit une erreur.
-- Compte désactivé (`getState().isBanned === true`) : `play`, `purchaseShopItem` et
-  `claimDailyBonus` lèvent une erreur (« compte désactivé… ») sans rien écrire. Les
-  lectures restent possibles : afficher un message, ne pas masquer seulement les boutons.
-- Un seul argument : le statut porte sur le profil courant (profils multiples : n°5).
 
 ## G1 uniquement : écriture et progression internes
 
