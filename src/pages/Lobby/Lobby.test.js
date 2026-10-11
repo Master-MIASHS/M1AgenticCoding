@@ -39,7 +39,7 @@ test('Lobby shows "Bientôt" for an unlocked game without a screen, and French n
     assert.ok(!games.some((game) => game.name === english), `${english} is not a registry name`);
   }
   for (const game of games) {
-    assert.ok(['hasard', 'cartes'].includes(game.category), `${game.id} has a game type`);
+    assert.ok(['hasard', 'cartes', 'adresse'].includes(game.category), `${game.id} has a game type`);
   }
 });
 

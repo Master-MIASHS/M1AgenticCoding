@@ -14,7 +14,10 @@ describe('boutique via coreService (vrai état du Core)', () => {
   });
 
   it('lit le catalogue de la config et un inventaire vide au départ', () => {
-    assert.deepStrictEqual(coreService.getShopCatalog(), []);
+    assert.deepStrictEqual(
+      coreService.getShopCatalog().map((article) => article.id),
+      ['avatar_chapeau', 'theme_nuit', 'effect_confettis', 'badge_fidele'],
+    );
     assert.deepStrictEqual(coreService.getShopInventory(), { ownedItemIds: [] });
   });
 
@@ -24,5 +27,14 @@ describe('boutique via coreService (vrai état du Core)', () => {
     assert.strictEqual(resultat.status, 'rejected');
     assert.strictEqual(resultat.balance, avant);
     assert.strictEqual(coreService.getBalance(), avant);
+  });
+
+  it('achète un article du catalogue avec le solde du joueur (#325)', () => {
+    const avant = coreService.getBalance();
+    const resultat = coreService.purchaseShopItem('avatar_chapeau');
+    assert.strictEqual(resultat.status, 'purchased');
+    assert.strictEqual(coreService.getBalance(), avant - 200);
+    assert.deepStrictEqual(coreService.getShopInventory(), { ownedItemIds: ['avatar_chapeau'] });
+    assert.strictEqual(coreService.purchaseShopItem('avatar_chapeau').status, 'already-owned');
   });
 });

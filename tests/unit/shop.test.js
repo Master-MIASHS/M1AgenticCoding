@@ -8,13 +8,35 @@ import { validerCatalogue, createShop } from '../../src/core/shop.js';
 import { getState, updateState } from '../../src/core/state.js';
 
 describe('shop.config', () => {
-  it('fournit un catalogue vide par défaut (contenu de la boutique non décidé)', () => {
-    assert.deepStrictEqual(SHOP_CONFIG.catalogue, []);
+  it('reprend les 4 articles de la maquette du G4 (#325)', () => {
+    assert.deepStrictEqual(
+      SHOP_CONFIG.catalogue.map(({ id, name, category, price, visual }) => ({ id, name, category, price, visual })),
+      [
+        { id: 'avatar_chapeau', name: 'Le Grand Chapeau', category: 'avatars', price: 200, visual: '🎩' },
+        { id: 'theme_nuit', name: 'Nuit de velours', category: 'thèmes', price: 500, visual: '🌙' },
+        { id: 'effect_confettis', name: 'Pluie de confettis', category: 'effets visuels', price: 750, visual: '🎉' },
+        { id: 'badge_fidele', name: 'Habitué du Fantôme', category: 'badges', price: 350, visual: '👻' },
+      ],
+    );
+  });
+
+  it('propose les 4 articles à la vente, avec une description', () => {
+    for (const article of SHOP_CONFIG.catalogue) {
+      assert.strictEqual(article.available, true, article.id);
+      assert.ok(article.description.length > 0, article.id);
+    }
+  });
+
+  it('fournit un catalogue valide', () => {
+    assert.doesNotThrow(() => validerCatalogue(SHOP_CONFIG.catalogue));
   });
 
   it('ne peut pas être modifiée par erreur', () => {
     assert.ok(Object.isFrozen(SHOP_CONFIG));
     assert.ok(Object.isFrozen(SHOP_CONFIG.catalogue));
+    for (const article of SHOP_CONFIG.catalogue) {
+      assert.ok(Object.isFrozen(article), article.id);
+    }
   });
 });
 

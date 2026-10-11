@@ -4,11 +4,12 @@
 // (rendering, actions) belongs to Groupe 3 (`src/game-ui/`) and is plugged in
 // later: nothing here knows any game rule.
 
-import { getBalance } from '../../services/coreService.js';
+import { getBalance, getUnlockedGames } from '../../services/coreService.js';
 import { getGameMeta } from '../../config/gameRegistry.js';
 import SlotsGame from '../../game-ui/slots/SlotsGame.jsx';
 import RouletteGame from '../../game-ui/roulette/RouletteGame.jsx';
 import WheelGame from '../../game-ui/wheel/WheelGame.jsx';
+import PlinkoGame from '../../game-ui/plinko/PlinkoGame.jsx';
 import './game.css';
 
 // Games whose UI (Groupe 3) exists. Any other game keeps the waiting message.
@@ -16,6 +17,7 @@ export const GAME_UIS = {
   slots: SlotsGame,
   roulette: RouletteGame,
   wheel: WheelGame,
+  plinko: PlinkoGame,
 };
 
 const OUTCOME_LABELS = { win: 'Gagné', loss: 'Perdu', push: 'Égalité' };
@@ -26,6 +28,18 @@ function readBalance() {
     return typeof balance === 'number' && Number.isFinite(balance) ? balance : 0;
   } catch {
     return 0;
+  }
+}
+
+// The lock lives here too (not only in the lobby): a locked game must not open
+// from its URL. The unlocked list comes from the Core; if it cannot be read, the
+// game stays locked.
+function readUnlockedGames() {
+  try {
+    const ids = getUnlockedGames();
+    return Array.isArray(ids) ? ids : [];
+  } catch {
+    return [];
   }
 }
 
@@ -43,12 +57,13 @@ function renderResult(gameResult) {
   );
 }
 
-function GamePage({ gameId }) {
+function GamePage({ gameId, unlockedGames = readUnlockedGames() }) {
   const game = typeof gameId === 'string' ? getGameMeta(gameId) : undefined;
-  const GameUI = game ? GAME_UIS[game.id] : undefined;
+  const locked = game ? !unlockedGames.includes(game.id) : false;
+  const GameUI = game && !locked ? GAME_UIS[game.id] : undefined;
 
   return (
-    <main className="page-game">
+    <div className="page-game">
       <a className="game__back" href="#/">
         ← Retour au lobby
       </a>
@@ -56,7 +71,12 @@ function GamePage({ gameId }) {
         <>
           <h1 className="game__title">{game.name}</h1>
           <p className="game__category">{game.category}</p>
-          {GameUI ? (
+          {locked ? (
+            <p className="game__text game__locked" role="status">
+              Jeu verrouillé
+              {typeof game.unlockLevel === 'number' && ` : niveau ${game.unlockLevel} requis`}.
+            </p>
+          ) : GameUI ? (
             <>
               <p className="game__demo">
                 Mode démonstration : les résultats sont simulés et le solde n&apos;est pas modifié.
@@ -75,7 +95,7 @@ function GamePage({ gameId }) {
           </p>
         </>
       )}
-    </main>
+    </div>
   );
 }
 
