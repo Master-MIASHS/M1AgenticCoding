@@ -59,8 +59,50 @@ import { choisirAction as choisirActionInterne } from './ai/poker.js';
 export function choisirAction(payload) {
   return choisirActionInterne(payload);
 }
-export { play, getBalance, claimDailyBonus, requestLoan } from './economy.js';
-export { getShopCatalog, getShopInventory, purchaseShopItem } from './shop.js';
+// Un compte désactivé par un modérateur (#352) ne peut plus jouer, acheter ni
+// réclamer le bonus : refus dans le Core, avant toute écriture (règle 5).
+import {
+  play as playInterne,
+  claimDailyBonus as claimDailyBonusInterne,
+} from './economy.js';
+import { purchaseShopItem as purchaseShopItemInterne } from './shop.js';
+import { assertCompteActif } from './moderation.js';
+
+/**
+ * Règle une partie (voir economy.js), refusée si le compte est désactivé.
+ * @param {...*} args - Arguments de play(gameId, bet, gameResult, options?).
+ * @returns {object} Résultat du règlement.
+ * @throws {Error} Si le compte est désactivé (rien n'est écrit).
+ */
+export function play(...args) {
+  assertCompteActif(readState());
+  return playInterne(...args);
+}
+
+/**
+ * Réclame le bonus quotidien, refusé si le compte est désactivé.
+ * @returns {object} Résultat de la réclamation.
+ * @throws {Error} Si le compte est désactivé (rien n'est écrit).
+ */
+export function claimDailyBonus() {
+  assertCompteActif(readState());
+  return claimDailyBonusInterne();
+}
+
+/**
+ * Achète un article de la boutique, refusé si le compte est désactivé.
+ * @param {string} itemId - Identifiant de l'article.
+ * @returns {object} Résultat de l'achat.
+ * @throws {Error} Si le compte est désactivé (rien n'est écrit).
+ */
+export function purchaseShopItem(itemId) {
+  assertCompteActif(readState());
+  return purchaseShopItemInterne(itemId);
+}
+
+export { setPlayerStatus } from './moderation.js';
+export { getBalance, requestLoan } from './economy.js';
+export { getShopCatalog, getShopInventory } from './shop.js';
 export { getBadges } from './badges.js';
 export {
   addXP,
