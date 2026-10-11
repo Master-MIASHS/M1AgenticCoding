@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import "./BetPanel.css";
 
 export default function BetPanel({ balance, onPlay, disabled = false, minBet = 1, maxBet = 1000 }) {
   const [betInput, setBetInput] = useState(String(minBet));
