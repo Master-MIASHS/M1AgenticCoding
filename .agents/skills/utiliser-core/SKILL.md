@@ -325,14 +325,16 @@ Utiliser pour la page Classement (G4).
 import { getLeaderboard } from '<chemin-relatif>/services/coreService.js';
 
 getLeaderboard();
-// → [{ pseudo: 'Olti', bestBalance: 1250, balance: 800, level: 3 }]
+// → [{ pseudo: 'Olti', bestBalance: 1250, balance: 800, level: 3, badges: [] }]
 ```
 
 - Le Core classe : par `bestBalance` décroissant (le score d’AGENTS.md), puis niveau, puis
   pseudo. L’UI affiche dans l’ordre reçu, sans trier ; le rang est la position.
 - Afficher **`bestBalance`** comme score (« Meilleur solde »), pas `balance`.
 - Un seul profil aujourd’hui : la liste contient le joueur courant. `pseudo` vaut `null`
-  pour une ancienne sauvegarde sans profil. Les badges arriveront avec #273.
+  pour une ancienne sauvegarde sans profil.
+- `badges` : badges **obtenus** seulement, `[{ id, nom }]` (vide sinon) ; afficher `nom`.
+  La progression vers un badge se lit avec `getBadges()`.
 
 ### Boutique : getShopCatalog(), getShopInventory(), purchaseShopItem()
 

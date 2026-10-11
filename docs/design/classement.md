@@ -2,7 +2,7 @@
 
 ## Objectif
 
-Remplacer les joueurs fictifs de `getLeaderboard()` (`alice`, `bob`) par un classement **calculé à partir de l'état du joueur**, avec la forme cible d'AGENTS.md : pseudo, meilleur solde, niveau (badges après #273).
+Remplacer les joueurs fictifs de `getLeaderboard()` (`alice`, `bob`) par un classement **calculé à partir de l'état du joueur**, avec la forme cible d'AGENTS.md : pseudo, meilleur solde, niveau, badges obtenus (#273).
 
 ## Non-objectifs
 
@@ -16,13 +16,13 @@ Remplacer les joueurs fictifs de `getLeaderboard()` (`alice`, `bob`) par un clas
 
 | Fonction | Rôle |
 |---|---|
-| `entreeDeClassement(etat)` | Pure : `{ pseudo, bestBalance, balance, level }` d'un état de joueur |
+| `entreeDeClassement(etat)` | Pure : `{ pseudo, bestBalance, balance, level, badges }` d'un état de joueur ; `badges` = badges obtenus `[{ id, nom }]` via `calculerBadges(compteursDuJoueur(etat))` |
 | `calculerClassement(profils)` | Pure : entrées triées par `bestBalance` décroissant, puis `level` décroissant, puis `pseudo` |
 | `getLeaderboard()` | `calculerClassement([getState()])`, exposée par `core.js` → `coreService` |
 
 ```js
 getLeaderboard();
-// → [{ pseudo: 'Olti', bestBalance: 1250, balance: 800, level: 3 }]
+// → [{ pseudo: 'Olti', bestBalance: 1250, balance: 800, level: 3, badges: [] }]
 ```
 
 ## Décisions
