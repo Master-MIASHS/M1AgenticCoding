@@ -9,7 +9,7 @@ metadata:
 
 # Préparation de Pull Request
 
-Préparer le titre et le corps d'une PR depuis le diff de la branche courante. Le titre suit le format strict du projet ; le corps est factuel, structuré, et ne contient que des vérifications réellement exécutées.
+L'agent utilise cette skill pour rédiger le titre et le corps d'une PR. Pour s'assurer que la PR est techniquement prête avant l'envoi, l'agent doit utiliser `pr-checklist`.
 
 ## Entrée
 

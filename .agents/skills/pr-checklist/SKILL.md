@@ -12,7 +12,7 @@ description: Vérifie qu'une tâche respecte la "Définition de terminé" d'AGEN
 
 ## Ce que fait cette skill
 
-Vérifie chaque point de la « Définition de terminé » (`AGENTS.md`) et rapporte un statut clair par point :
+Cette skill est l'outil d'auto-vérification technique de l'auteur avant la soumission. Elle valide que le code est "prêt pour la revue" en s'appuyant sur la Définition de terminé d'AGENTS.md. Pour la rédaction finale de la PR, utiliser `prepare-pr`.
 
 1. **Tests** : tests écrits ou mis à jour pour la tâche, et au vert (`npm test`).
 2. **Lint** : au vert (`npm run lint`).

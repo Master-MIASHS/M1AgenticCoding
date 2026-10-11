@@ -1,7 +1,7 @@
 # Skill : Validation des Pull Requests (PR) — Groupe 5
 
 ## Description
-Ce skill définit les règles de gouvernance, de qualité et d'architecture obligatoires pour toute contribution au projet Casino Fantôme. Il sert de guide de référence pour les relecteurs et de checklist pour les auteurs de PR.
+Ce skill définit les critères d'approbation et de qualité pour le relecteur (G5). Il s'assure que la contribution respecte les invariants d'architecture et de sécurité avant le merge. L'auteur doit avoir préalablement utilisé `pr-checklist`.
 
 ---
 
