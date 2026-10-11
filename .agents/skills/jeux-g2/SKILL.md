@@ -96,9 +96,10 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
   - roulette : numéro tiré dans `raw` ; couleur dans `interpretation.color`
     (`red` / `black` / `green`, ou `null` si la config n'a pas de listes
     `red` / `black`), calculée par les règles à partir de la config (#191, #321) ;
-  - dés : `interpretation = { point, rolls, rawValues, totalBet, payout }`
-    (PR #303). Craps classique (#159) : `rolls` contient un total par lancer,
-    et la liste peut dépasser deux lancers.
+  - dés : `interpretation = { point, rolls, rawValues, dice, totalBet, payout }`
+    (PR #342). Craps classique en pass line (#159) : `rolls` contient un total
+    par lancer (la liste peut dépasser deux lancers), `dice` les paires de
+    faces. 2, 3 ou 12 au premier lancer = perdu : jamais d'égalité.
 - Pour un autre jeu, aligner le contenu avec son responsable (discussion #8).
   Si une donnée manque pour l'affichage, la demander au G2, ne jamais la
   deviner.
@@ -173,7 +174,7 @@ les règles lèvent une erreur si elle manque (règle 4, rien en dur).
 | `roulette` | `{ bets: { <type>: { match: number[], multiplier } } }`, `match` = liste des nombres gagnants (#191) |
 | `slots` | `{ symbols: { bands: [{ max, symbol }] }, paytable: { <combinaison>: { multiplier } } }` : `bands` (lu par `slots/draw.js`) couvre tout [0, 1), clé de `paytable` = les 3 symboles accolés (#216) |
 | `scratch` | `{ paytable: { bands: [{ max, symbol, multiplier }] } }`, bandes triées par `max` croissant (#216) |
-| `dice` | `{ paytable: { pass: m } }`, multiplicateur mise incluse (2 = gain 1:1) : décidé (#159), 🟠 code en cours |
+| `dice` | `{ paytable: { pass: m } }`, multiplicateur mise incluse (2 = gain 1:1), `m > 1` ; mises de type `pass` uniquement (#159, PR #342) |
 | `baccarat` | 🟠 règles en cours (#220) |
 | `memory` | `{ paytable: { 8: m, …, 16: m } }`, multiplicateur selon le nombre de tours utilisés (#300) |
 | `quiz` | `{ paytable: { 1: m, …, 5: m } }`, multiplicateur selon le nombre de bonnes réponses (#302) |
