@@ -183,6 +183,8 @@ export function play(gameId, bet, gameResult, options = {}) {
       xp,
       level,
       history: [...current.history, historyEntry],
+      faillites: current.faillites +
+        (current.balance > 0 && settlement.newBalance === 0 ? 1 : 0),
       settledRoundIds: normalizedRoundId === null
         ? settledRoundIds
         : [...settledRoundIds, normalizedRoundId],

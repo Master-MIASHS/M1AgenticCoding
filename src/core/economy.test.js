@@ -145,6 +145,25 @@ describe('play', () => {
     assert.equal(new Date(updated.history[0].playedAt).toISOString(), updated.history[0].playedAt);
   });
 
+  it('counts one bankruptcy when a settlement moves the balance from positive to zero', () => {
+    restoreState({ ...getState(), balance: 100, bestBalance: 100, faillites: 4 });
+    const result = play('slots', 100, { outcome: 'loss', multiplier: 0 },
+      { roundId: 'slots-bankruptcy' });
+    assert.deepEqual(result, { newBalance: 0, xpGained: 10, leveledUp: false });
+    assert.equal(getState().faillites, 5);
+
+    const duplicate = play('slots', 100, { outcome: 'loss', multiplier: 0 },
+      { roundId: 'slots-bankruptcy' });
+    assert.deepEqual(duplicate, { success: false, reason: 'already_settled' });
+    assert.equal(getState().faillites, 5);
+  });
+
+  it('does not count a bankruptcy while the settled balance stays positive', () => {
+    restoreState({ ...getState(), balance: 100, bestBalance: 100, faillites: 2 });
+    play('slots', 25, { outcome: 'loss', multiplier: 0 }, { roundId: 'slots-loss-positive' });
+    assert.equal(getState().faillites, 2);
+  });
+
   it('applies an active gains event only to a positive net gain', () => {
     const eventId = 'economy-test-gains-positive';
     const now = Date.now();

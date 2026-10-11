@@ -12,6 +12,7 @@ const DEFAULT_STATE = {
   unlockedGames: ['slots', 'dice'],
   history: [],
   settledRoundIds: [],
+  faillites: 0,
   role: 'player',
 };
 
@@ -73,6 +74,10 @@ describe('démarrage avec un casino_state inutilisable', () => {
       ...DEFAULT_STATE,
       settledRoundIds: ['round-1', 'round-1'],
     }),
+    'un compteur de faillites négatif': JSON.stringify({
+      ...DEFAULT_STATE,
+      faillites: -1,
+    }),
   };
 
   for (const [label, content] of Object.entries(unusable)) {
@@ -120,9 +125,10 @@ describe('démarrage avec un casino_state inutilisable', () => {
 });
 
 describe('démarrage sans problème (non-régression)', () => {
-  it('ajoute un registre vide aux sauvegardes antérieures à roundId', async () => {
-    const { settledRoundIds, ...legacyState } = DEFAULT_STATE;
+  it('ajoute les champs Core absents aux anciennes sauvegardes', async () => {
+    const { settledRoundIds, faillites, ...legacyState } = DEFAULT_STATE;
     void settledRoundIds;
+    void faillites;
     saved = JSON.stringify(legacyState);
     const state = await loadState();
     assert.deepEqual(state.getState(), DEFAULT_STATE);

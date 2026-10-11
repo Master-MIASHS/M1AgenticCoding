@@ -16,6 +16,7 @@
 //   unlockedGames: string[],
 //   history: [],
 //   settledRoundIds: string[],
+//   faillites: number,
 //   role: "player" | "admin"
 // }
 // ---------------------------------------------------------------------------
@@ -30,6 +31,7 @@ const DEFAULT_STATE = {
   unlockedGames: ['slots', 'dice'],
   history: [],
   settledRoundIds: [],
+  faillites: 0,
   role: 'player',
 };
 
@@ -38,8 +40,12 @@ function isRecord(value) {
 }
 
 function normalizeState(state) {
-  if (!isRecord(state) || state.settledRoundIds !== undefined) return state;
-  return { ...state, settledRoundIds: [] };
+  if (!isRecord(state)) return state;
+  return {
+    ...state,
+    ...(state.settledRoundIds === undefined ? { settledRoundIds: [] } : {}),
+    ...(state.faillites === undefined ? { faillites: 0 } : {}),
+  };
 }
 
 function validateState(state) {
@@ -59,6 +65,8 @@ function validateState(state) {
     state.settledRoundIds.every((roundId) =>
       typeof roundId === 'string' && roundId.trim() !== '') &&
     new Set(state.settledRoundIds).size === state.settledRoundIds.length &&
+    Number.isSafeInteger(state.faillites) &&
+    state.faillites >= 0 &&
     (state.role === 'player' || state.role === 'admin');
 
   if (!valid) {
@@ -208,6 +216,7 @@ export function updateState(updater) {
  *   unlockedGames: string[],
  *   history: Array,
  *   settledRoundIds: string[],
+ *   faillites: number,
  *   role: string
  * }}
  */

@@ -24,6 +24,9 @@ le meilleur solde, l'XP, le niveau et l'historique dans une seule transaction.
 - L'historique reçoit les montants déjà calculés et ajoute une entrée en fin de
   tableau, sans troncature dans ce premier lot.
 - Le meilleur solde ne diminue pas.
+- Le compteur `faillites` augmente une seule fois lorsqu'un règlement fait
+  passer le solde de strictement positif à zéro. Un doublon refusé ne le
+  modifie pas.
 
 ## Dépendances d'intégration
 

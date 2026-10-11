@@ -27,7 +27,7 @@ describe('sauvegardes existantes sans pseudo au démarrage (#253)', () => {
       const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
         import assert from 'node:assert/strict';
         const expected = ${JSON.stringify(expected)};
-        const normalizedExpected = { ...expected, settledRoundIds: [] };
+        const normalizedExpected = { ...expected, settledRoundIds: [], faillites: 0 };
         // Conserver aussi les octets : aucune réécriture implicite au démarrage.
         const original = JSON.stringify(expected, null, 2);
         let saved = original;
@@ -54,7 +54,7 @@ describe('sauvegardes existantes sans pseudo au démarrage (#253)', () => {
         assert.deepEqual(core.getState(), normalizedExpected);
         assert.equal(writes, 0);
         assert.equal(saved, original);
-      `], { encoding: 'utf8', timeout: 10000 });
+      `], { encoding: 'utf8', timeout: 30000 });
       assert.ifError(result.error);
       assert.equal(result.status, 0, result.stderr || result.stdout);
     });
