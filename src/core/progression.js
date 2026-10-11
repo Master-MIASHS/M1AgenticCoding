@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Core - Progression
 // ---------------------------------------------------------------------------
-// XP / niveaux sur l’état partagé ; autres fonctions encore mockées.
+// XP / niveaux, jeux débloqués et historique sur l’état partagé.
 // ---------------------------------------------------------------------------
 
 import { getState, updateState } from './state.js';
@@ -144,7 +144,11 @@ export function getLeaderboard() {
   ];
 }
 
-/** @returns {Array} (mock) game history. */
+/**
+ * Historique du joueur (#344) : parties enregistrées par play() (#131) et
+ * ajustements de l'admin (`type: 'ADMIN_ADJUSTMENT'`, #322), dans l'ordre.
+ * @returns {Array<object>} Copie indépendante de `state.history`.
+ */
 export function getHistory() {
-  return [];
+  return getState().history;
 }
