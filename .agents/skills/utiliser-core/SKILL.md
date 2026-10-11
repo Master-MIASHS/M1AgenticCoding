@@ -193,6 +193,22 @@ getBadges();
 - `actuel` des parties = nombre de parties de l’historique ; celui des faillites reste à 0
   tant que `play()` ne tient pas le compteur `faillites` (#131).
 
+### Jeux débloqués et historique : getUnlockedGames(), getHistory()
+
+```js
+import { getUnlockedGames, getHistory } from '<chemin-relatif>/services/coreService.js';
+
+getUnlockedGames(); // ['slots', 'dice', 'scratch', 'blackjack'] au niveau 3
+getHistory();       // [{ roundId, gameId, bet, outcome, payout, netGain, playedAt }, …]
+```
+
+- `getUnlockedGames()` (#344) : jeux acquis plus jeux dont le niveau requis est atteint.
+  Ne jamais comparer soi-même `level` et `unlockLevel` dans l’UI : afficher cette liste.
+  Un acquis n’est jamais retiré (joueur ruiné compris).
+- `getHistory()` : entrées dans l’ordre d’enregistrement, copie indépendante. Les parties
+  n’ont pas de `type` ; un ajustement de l’admin a `type: 'ADMIN_ADJUSTMENT'` (#322).
+- Lectures seules : relire après un `play()` réussi pour afficher la mise à jour.
+
 ### Tirer du hasard brut : roll(), tirageEntier(), tirageAvecPoids(), melanger()
 
 | Fonction | Quand l’utiliser | Retour / précaution |
