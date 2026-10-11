@@ -10,7 +10,9 @@
 // facade), which itself only depends on this file.
 // ---------------------------------------------------------------------------
 
-import { getState } from './state.js';
+import { getState as readState } from './state.js';
+import { getLevel } from './progression.js';
+import { calculateXPForNextLevel } from './nextLevel.js';
 import { setGameConfig as setGameConfigUnchecked } from './config/games.config.js';
 import { assertCanModifyConfig } from './permissions.js';
 import {
@@ -25,7 +27,22 @@ import {
 } from './config/events.config.js';
 import { creerProfil as creerProfilInterne } from './player.js';
 
-export { getState };
+/**
+ * Lit une copie de l’état avec le seuil total du prochain niveau effectif.
+ * Le seuil est dérivé à chaque appel, sans écriture ni ajout au stockage.
+ * Relire après une mutation ; getLevel() fournit le niveau effectif tandis que
+ * le champ level conserve la valeur enregistrée (pas de migration en lecture).
+ * @returns {ReturnType<typeof readState> & { xpForNextLevel: number|null }}
+ * Copie indépendante ; null si aucun niveau suivant n’est configuré.
+ */
+export function getState() {
+  const state = readState();
+  // Une ancienne sauvegarde peut contenir un entier non sûr. Il dépasse déjà
+  // toute longueur de tableau JS : aucun seuil suivant possible. Borner seulement
+  // l’entrée du calcul conserve la lecture sans réécrire le niveau enregistré.
+  const level = state.level > Number.MAX_SAFE_INTEGER ? Number.MAX_SAFE_INTEGER : getLevel();
+  return { ...state, xpForNextLevel: calculateXPForNextLevel(level) };
+}
 export { roll, tirageEntier, tirageAvecPoids, melanger } from './rng.js';
 import { choisirAction as choisirActionInterne } from './ai/poker.js';
 
@@ -76,7 +93,7 @@ export function creerProfil(infos) {
  * @throws {Error} Si le rôle stocké n'est pas administrateur.
  */
 export function setGameConfig(gameId, config = {}) {
-  assertCanModifyConfig(getState().role);
+  assertCanModifyConfig(readState().role);
   return setGameConfigUnchecked(gameId, config);
 }
 
@@ -104,7 +121,7 @@ export function getStartingCapital() {
  *   capital est invalide (rien n'est alors modifié).
  */
 export function setStartingCapital(amount) {
-  assertCanModifyConfig(getState().role);
+  assertCanModifyConfig(readState().role);
   return reglerCapitalDeDepart(amount);
 }
 
@@ -135,7 +152,7 @@ export function getMultiplicateurBonus(cible) {
  *   invalide ou en conflit (rien n'est alors modifié).
  */
 export function lancerEvenementBonus(evenement) {
-  assertCanModifyConfig(getState().role);
+  assertCanModifyConfig(readState().role);
   return lancerEvenementBonusSansControle(evenement);
 }
 
@@ -147,6 +164,6 @@ export function lancerEvenementBonus(evenement) {
  *   n'existe pas.
  */
 export function arreterEvenementBonus(id) {
-  assertCanModifyConfig(getState().role);
+  assertCanModifyConfig(readState().role);
   return arreterEvenementBonusSansControle(id);
 }

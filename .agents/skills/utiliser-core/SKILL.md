@@ -45,7 +45,30 @@ const { balance, bestBalance, xp, level, unlockedGames, history, role } = snapsh
 Le résultat est une copie indépendante, pas une référence réactive. Le modifier
 ne met pas à jour le joueur. Relire après une opération réussie du Core.
 `pseudo` et `birthDate` n’existent qu’après `creerProfil()` (absents avant : prévoir
-un affichage par défaut). Ne pas inventer `xpForNextLevel` avant sa disponibilité.
+un affichage par défaut).
+
+`xpForNextLevel` fournit le **seuil total d’XP du niveau suivant**, pas l’XP
+restante. Utiliser pour les barres et écrans de progression G3/G4 :
+
+```js
+import { getState, getLevel } from '<chemin-relatif>/services/coreService.js';
+const { xp, xpForNextLevel } = getState();
+const niveauEffectif = getLevel();
+// xpForNextLevel === null : aucun niveau suivant configuré.
+// Sinon, transmettre xp et xpForNextLevel au composant XPBar.
+```
+
+Le seuil est recalculé à chaque lecture depuis le niveau effectif (sans perdre
+un niveau acquis). Les seuils viennent de la configuration **temporaire** du Core :
+l’UI ne définit aucun barème. Le champ `level` reste la valeur enregistrée ; sur
+une ancienne sauvegarde, il peut être inférieur au niveau effectif de `getLevel()`.
+
+La lecture n’écrit rien. Le champ dérivé n’est pas ajouté à `casino_state` ni à
+`exportSave()` ; une ancienne valeur importée est ignorée dans le snapshot public.
+Après `addXP()`, `importSave()` ou `creerProfil()`, relire `getState()` : les retours
+de ces mutations ne sont pas des snapshots enrichis. Utiliser `exportSave()` pour
+sauvegarder, sans sérialiser le snapshot public à sa place.
+
 La lecture peut échouer si l’initialisation du stockage échoue dans la version
 utilisée : vérifier le comportement courant et le traitement d’erreur prévu.
 

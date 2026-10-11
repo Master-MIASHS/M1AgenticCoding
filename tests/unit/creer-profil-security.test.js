@@ -1,9 +1,9 @@
 import { afterEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { creerProfil, getState } from '../../src/services/coreService.js';
+import { creerProfil, getState, exportSave } from '../../src/services/coreService.js';
 import { restoreState, updateState } from '../../src/core/state.js';
 
-const initial = getState();
+const initial = JSON.parse(exportSave()).data;
 const storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
 afterEach(() => {
   delete globalThis.localStorage;
