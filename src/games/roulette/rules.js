@@ -32,7 +32,7 @@
  * A bet placed on a roulette spin.
  *
  * @typedef {object} Bet
- * @property {string} type - bet type, must be a key of `config.bets`.
+ * @property {string} type - bet type, must be a key of `config.paytable`.
  * @property {number} amount - staked chips, a positive number.
  */
 
@@ -118,13 +118,13 @@ function outcomeFor(multiplier) {
  * rather than the rules inventing one (AGENTS.md rule 10).
  *
  * @param {number} raw - the drawn number (0..36).
- * @param {RouletteConfig} config - must provide `bets`, the paytable.
+ * @param {RouletteConfig} config - must provide `paytable`, the paytable.
  * @returns {'red' | 'black' | 'green' | null}
  */
 function colorFor(raw, config) {
-  const bets = config?.bets ?? {};
-  const red = bets.red?.match;
-  const black = bets.black?.match;
+  const paytable = config?.paytable ?? {};
+  const red = paytable.red?.match;
+  const black = paytable.black?.match;
   if (Array.isArray(red) && red.includes(raw)) return 'red';
   if (Array.isArray(black) && black.includes(raw)) return 'black';
   if (raw === 0) return 'green';
@@ -137,7 +137,7 @@ function colorFor(raw, config) {
  * @param {number} raw - the number drawn by the Core (0..36).
  * @param {object} [options]
  * @param {Bet[]} [options.bets] - always an array, even for a single bet.
- * @param {RouletteConfig} [options.config] - must provide `bets`, the paytable.
+ * @param {RouletteConfig} [options.config] - must provide `paytable`, the paytable.
  * @returns {{ outcome: 'win' | 'loss' | 'push', multiplier: number, details: object }}
  * @throws {Error} when the draw, the bets or the config are unusable.
  */
@@ -161,11 +161,11 @@ export function resolve(raw, { bets, config } = {}) {
   if (typeof config !== 'object' || config === null) {
     throw new Error('roulette: config is required. The paytable is admin data and must never be hardcoded.');
   }
-  if (typeof config.bets !== 'object' || config.bets === null) {
-    throw new Error('roulette: config.bets (the paytable) is required');
+  if (typeof config.paytable !== 'object' || config.paytable === null) {
+    throw new Error('roulette: config.paytable (the paytable) is required');
   }
 
-  const paytable = config.bets;
+  const paytable = config.paytable;
 
   const settledBets = bets.map((bet) => {
     const rule = paytable[bet.type];

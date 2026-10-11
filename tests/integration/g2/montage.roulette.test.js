@@ -28,7 +28,7 @@ const BLACKS = [2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 
 
 // Configuration de test : paytable injectée (règle 4, aucun gain en dur).
 const CONFIG = {
-  bets: {
+  paytable: {
     'straight-17': { match: [17], multiplier: 36 },
     red: { match: REDS, multiplier: 2 },
     black: { match: BLACKS, multiplier: 2 },
