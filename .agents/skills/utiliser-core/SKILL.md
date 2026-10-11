@@ -92,12 +92,20 @@ try {
 - Le Core valide tout : pseudo non vide (espaces retirés), date `AAAA-MM-JJ` existante
   et pas dans le futur. L’UI ne recalcule ni le capital ni les jeux de départ.
 - Une seule écriture : en cas d’erreur, l’état n’est pas modifié.
-- **Un seul profil, sur une partie neuve** : refus si un profil existe déjà ou si une
-  partie a déjà été jouée, le solde diffère du capital initial, un inventaire existe
-  ou les jeux/rôle diffèrent de ceux d’un nouveau joueur. Aucun acquis n’est réinitialisé. Plusieurs
-  profils : tâche n°5, pas encore disponible.
-- Refus aussi si le capital réglé par l’admin est inférieur au meilleur solde de
-  l’état par défaut (le meilleur solde ne baisse jamais) : à trancher au branchement.
+- **Un seul profil sur une première session vérifiée** : seule l’absence de
+  `casino_state` au démarrage autorise la création. Sans stockage, une nouvelle
+  session en mémoire est également possible. Toute écriture de partie réussie
+  (y compris un import) ferme ce droit ; un échec permet de réessayer.
+- Le capital effectif est relu au moment de `creerProfil()` : `balance` et
+  `bestBalance` prennent ensemble cette valeur, même sous 1000. Un changement
+  ultérieur du réglage admin ne modifie jamais un joueur existant.
+- Une ancienne sauvegarde sans pseudo reste une partie existante, même avec
+  XP nulle, historique vide et soldes identiques au défaut. Ne pas déduire une
+  première session de la seule absence de pseudo. L’UI peut proposer de continuer
+  sans profil (parcours G4), mais ne doit pas effacer la sauvegarde pour contourner
+  le refus. Un stockage illisible/inaccessible n’autorise pas non plus la création.
+- Le solde visible avant création est provisoire : le capital peut changer
+  avant l’enregistrement du profil. Plusieurs profils restent hors de ce parcours.
 - Après la création, relire `getState()` : `pseudo` et `birthDate` y figurent.
 
 ### XP et niveaux : addXP(amount), getLevel()
@@ -335,6 +343,18 @@ try {
 
 Ces exemples supposent #139 et #144 intégrées dans la base de travail. Ils ne
 constituent pas une autorisation d’import interne pour G2/G3/G4.
+
+### initializePlayerState(player) — interne G1
+
+Utiliser uniquement pour enregistrer le premier joueur construit par `creerProfil`.
+Le Core contrôle le cycle de vie : absence de sauvegarde vérifiée au démarrage,
+aucune écriture réussie depuis, validation du joueur initial et une seule écriture
+avant publication en mémoire. Toute erreur conserve l’état et permet une nouvelle
+tentative si la session était vierge. Ne pas exposer cette fonction via `coreService`.
+
+Ne pas utiliser `restoreState` pour créer un profil, ni assouplir la monotonie de
+`updateState`. Les opérations sur une partie existante continuent de passer par
+`updateState` ; elles rendent ensuite impossible une première initialisation.
 
 ### updateState(updater)
 
