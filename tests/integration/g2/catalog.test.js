@@ -122,7 +122,7 @@ describe('G2 - catalogue des jeux (contrat § 5.4)', () => {
 
   test(
     'poker : au début d’une nouvelle rue, les actions proposées sont celles du JOUEUR',
-    { todo: 'écart 13 (#196, #334) : advanceStreet() met toAct = ai et propose au joueur les actions du bot' },
+    { todo: 'écart 13 (#413) : advanceStreet() met toAct = ai et propose au joueur les actions du bot' },
     () => {
       // Le joueur suit jusqu'au tapis ou à l'abattage ; à chaque étape, l'action
       // proposée doit être acceptée par action() (aucune erreur).
