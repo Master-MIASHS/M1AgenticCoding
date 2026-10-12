@@ -1,6 +1,6 @@
 ---
 name: git-governance
-description: Source unique de vérité pour le cycle de vie Git : création de branches, formatage des commits et stratégie de push.
+description: "Source unique de vérité pour le cycle de vie Git : création de branches, formatage des commits et stratégie de push."
 ---
 
 ## Compétence : git-governance

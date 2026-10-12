@@ -1,6 +1,6 @@
 ---
 name: feat-dev
-description: Workflow complet de bout en bout pour implémenter une feature non triviale : investigation, document de conception, plan de tests, implémentation, vérification, audit et relecture. À utiliser quand on demande d'ajouter une feature ou un comportement nouveau non trivial.
+description: "Workflow complet de bout en bout pour implémenter une feature non triviale : investigation, document de conception, plan de tests, implémentation, vérification, audit et relecture. À utiliser quand on demande d'ajouter une feature ou un comportement nouveau non trivial."
 license: MIT
 metadata:
   source: https://github.com/QwenLM/qwen-code
