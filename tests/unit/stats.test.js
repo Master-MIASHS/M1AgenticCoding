@@ -126,3 +126,27 @@ describe('calculerStatistiques : identifiants de jeu dangereux (relecture G5 de 
     assert.strictEqual(Object.plays, undefined);
   });
 });
+
+describe('calculerStatistiques : ajustements de l’admin (#322)', () => {
+  const ajustement = {
+    type: 'ADMIN_ADJUSTMENT',
+    amount: 150,
+    balanceBefore: 400,
+    balanceAfter: 550,
+    adjustedAt: '2026-10-10T18:00:00.000Z',
+  };
+
+  it('ne compte pas un ajustement de l’admin comme une partie', () => {
+    const stats = calculerStatistiques([partie(), ajustement]);
+    assert.strictEqual(stats.totalPlays, 1);
+    assert.strictEqual(stats.totalWagered, 10);
+    assert.strictEqual(stats.totalWon, 20);
+    assert.deepStrictEqual(stats.mostPlayed, ['roulette']);
+  });
+
+  it('ne compte aucun joueur actif avec seulement des ajustements', () => {
+    const stats = calculerStatistiques([ajustement]);
+    assert.strictEqual(stats.totalPlays, 0);
+    assert.strictEqual(stats.activePlayers, 0);
+  });
+});

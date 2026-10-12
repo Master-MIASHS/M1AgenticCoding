@@ -100,6 +100,13 @@ describe('compteursDuJoueur', () => {
     assert.deepStrictEqual(compteursDuJoueur({ history: [] }), { partiesJouees: 0, faillites: 0 });
   });
 
+  it('ne compte pas les ajustements de l’admin comme des parties (#322)', () => {
+    const ajustement = { type: 'ADMIN_ADJUSTMENT', amount: 50, balanceBefore: 0, balanceAfter: 50,
+      adjustedAt: '2026-10-11T10:00:00.000Z' };
+    const etat = { history: [{ gameId: 'slots' }, ajustement, { gameId: 'dice' }] };
+    assert.deepStrictEqual(compteursDuJoueur(etat), { partiesJouees: 2, faillites: 0 });
+  });
+
   it('rejette un état sans historique', () => {
     for (const etat of [null, {}, { history: 'parties' }]) {
       assert.throws(() => compteursDuJoueur(etat), /badges/, JSON.stringify(etat));
