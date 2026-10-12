@@ -10,7 +10,7 @@ import { DAILY_BONUS_CONFIG } from './config/economy.config.js';
 import { getMultiplicateurBonus } from './config/events.config.js';
 import { calculateBestBalance } from './bestBalance.js';
 import { createHistoryEntry } from './history.js';
-import { calculateLevel } from './progression.js';
+import { calculateLevel, getUnlockedGames } from './progression.js';
 import { getState, updateState } from './state.js';
 import { calculateXPGained } from './xp.js';
 
@@ -126,6 +126,11 @@ export function play(gameId, bet, gameResult, options = {}) {
   if (roundId !== undefined && roundId !== null &&
       (typeof roundId !== 'string' || roundId.trim() === '')) {
     throw new TypeError('economy: roundId must be a non-empty string or null.');
+  }
+  // Permissions are checked in the Core (rule 5): a locked or unknown game
+  // never settles, whatever the UI showed (#292).
+  if (typeof gameId !== 'string' || !getUnlockedGames().includes(gameId)) {
+    throw new RangeError(`economy: game '${String(gameId)}' is locked or unknown.`);
   }
   const normalizedRoundId = roundId ?? null;
   if (normalizedRoundId === null) {

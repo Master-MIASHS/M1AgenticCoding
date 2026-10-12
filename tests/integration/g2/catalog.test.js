@@ -22,6 +22,7 @@ import {
 } from '../../../src/games/catalog.js';
 import { GAME_FIXTURES } from '../../fixtures/g2/configs.js';
 
+import '../../helpers/unlock-all-games.js';
 // Action choisie quand plusieurs sont possibles : on va vers la fin de la
 // manche. Le poker se couche : voir le test `todo` plus bas (actions du bot
 // proposées au joueur au début d'une nouvelle rue).

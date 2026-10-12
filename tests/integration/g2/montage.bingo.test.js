@@ -15,6 +15,7 @@ import { createGame } from '../../../src/games/_template/createGame.js';
 import * as bingoRules from '../../../src/games/bingo/rules.js';
 import { draw as drawBingo } from '../../../src/games/bingo/draw.js';
 
+import '../../helpers/unlock-all-games.js';
 const CONFIG = { botCount: 3, paytable: { win: 4 } };
 
 // Fixture identique à montage de référence : les 4 grilles sont construites

@@ -12,6 +12,7 @@ import { createGame } from '../../../src/games/_template/createGame.js';
 import { draw as pokerDraw } from '../../../src/games/poker/draw.js';
 import { rules as pokerRules } from '../../../src/games/poker/rules.js';
 
+import '../../helpers/unlock-all-games.js';
 const START_BALANCE = coreService.getState().balance;
 const CONFIG = {
   smallBlind: 1,

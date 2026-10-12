@@ -16,6 +16,7 @@ import { QUESTION_BANK } from '../../../src/games/quiz/questions.js';
 import * as quizRules from '../../../src/games/quiz/rules.js';
 import { draw as drawQuiz } from '../../../src/games/quiz/draw.js';
 
+import '../../helpers/unlock-all-games.js';
 const CONFIG = { paytable: { 1: 1.5, 2: 2, 3: 3, 4: 5, 5: 10 } };
 
 function playQuiz(core) {

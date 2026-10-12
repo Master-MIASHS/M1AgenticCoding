@@ -19,6 +19,7 @@ import { createGame } from '../../../src/games/_template/createGame.js';
 import * as blackjackRules from '../../../src/games/blackjack/rules.js';
 import { draw as blackjackDraw } from '../../../src/games/blackjack/index.js';
 
+import '../../helpers/unlock-all-games.js';
 // Configuration de test : forme de #189 (§ 6 encore ouvert, #122).
 const CONFIG = { paytable: { blackjack: 2.5, win: 2 } };
 const BETS = [{ type: 'main', amount: 10 }];

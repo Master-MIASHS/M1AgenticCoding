@@ -6,6 +6,7 @@ import {
   getLevel 
 } from '../../../src/core/core.js';
 
+import '../../helpers/unlock-all-games.js';
 // Mock for getState since we are in Node.js environment and state.js might depend on browser/global state
 // In a real scenario, we should import the state and set it.
 // Since we don't have a full test runner setup with mocks yet, 

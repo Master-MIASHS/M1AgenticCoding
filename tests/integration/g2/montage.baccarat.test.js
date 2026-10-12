@@ -27,6 +27,7 @@ import { createGame } from '../../../src/games/_template/createGame.js';
 import * as baccaratRules from '../../../src/games/baccarat/rules.js';
 import { draw as drawBaccarat } from '../../../src/games/baccarat/index.js';
 
+import '../../helpers/unlock-all-games.js';
 const CONFIG = { paytable: { player: 2, banker: 1.95, tie: 9 } };
 const BET_PLAYER = [{ type: 'player', amount: 10 }];
 

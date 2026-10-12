@@ -19,6 +19,7 @@ import { createGame } from '../../../src/games/_template/createGame.js';
 import * as rouletteRules from '../../../src/games/roulette/rules.js';
 import { draw as rouletteDraw } from '../../../src/games/roulette/index.js';
 
+import '../../helpers/unlock-all-games.js';
 /**
  * European roulette red numbers. Test fixture data only: in the real game
  * this layout comes from the admin configuration, never from the source.
