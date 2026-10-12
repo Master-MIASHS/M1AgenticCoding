@@ -10,6 +10,8 @@ import SlotsGame from '../../game-ui/slots/SlotsGame.jsx';
 import RouletteGame from '../../game-ui/roulette/RouletteGame.jsx';
 import WheelGame from '../../game-ui/wheel/WheelGame.jsx';
 import PlinkoGame from '../../game-ui/plinko/PlinkoGame.jsx';
+import PokerGame from '../../game-ui/poker/PokerGame.jsx';
+import { mockPokerPayload } from '../../game-ui/poker/poker.mock.js';
 import './game.css';
 
 // Games whose UI (Groupe 3) exists. Any other game keeps the waiting message.
@@ -18,6 +20,7 @@ const GAME_UIS = {
   roulette: RouletteGame,
   wheel: WheelGame,
   plinko: PlinkoGame,
+  poker: PokerGame,
 };
 
 const OUTCOME_LABELS = { win: 'Gagné', loss: 'Perdu', push: 'Égalité' };
@@ -60,7 +63,10 @@ function renderResult(gameResult) {
 function GamePage({ gameId, unlockedGames = readUnlockedGames() }) {
   const game = typeof gameId === 'string' ? getGameMeta(gameId) : undefined;
   const locked = game ? !unlockedGames.includes(game.id) : false;
-  const GameUI = game && !locked ? GAME_UIS[game.id] : undefined;
+  const pokerDevMode = import.meta.env.DEV && game?.id === 'poker';
+  const GameUI = game && (!locked || pokerDevMode)
+  ? GAME_UIS[game.id]
+  : undefined;
 
   return (
     <div className="page-game">
@@ -81,7 +87,8 @@ function GamePage({ gameId, unlockedGames = readUnlockedGames() }) {
               <p className="game__demo">
                 Mode démonstration : les résultats sont simulés et le solde n&apos;est pas modifié.
               </p>
-              <GameUI balance={readBalance()} renderResult={renderResult} />
+              <GameUI balance={readBalance()} renderResult={renderResult}
+              renderPayload={game.id === 'poker' ? mockPokerPayload : undefined} />
             </>
           ) : (
             <p className="game__text">Ce jeu sera bientôt jouable.</p>

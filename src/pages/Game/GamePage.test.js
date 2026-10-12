@@ -12,7 +12,7 @@ test('GamePage identifies a game from its id and handles unknown ids', async (t)
     const { GAME_REGISTRY } = await server.ssrLoadModule('/src/config/gameRegistry.js');
     const render = (props) => renderToStaticMarkup(createElement(GamePage, props));
 
-    const WITH_UI = ['slots', 'roulette', 'wheel', 'plinko'];
+    const WITH_UI = ['slots', 'roulette', 'wheel', 'plinko', 'poker'];
     const ALL = GAME_REGISTRY.map((g) => g.id);
 
     await t.test('every registered game shows its name', () => {
