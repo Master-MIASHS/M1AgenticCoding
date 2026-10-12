@@ -13,6 +13,12 @@ import RouletteGame from '../../game-ui/roulette/RouletteGame.jsx';
 import WheelGame from '../../game-ui/wheel/WheelGame.jsx';
 import PlinkoGame from '../../game-ui/plinko/PlinkoGame.jsx';
 import DiceGame from '../../game-ui/dice/DiceGame.jsx';
+import ScratchGame from '../../game-ui/scratch/ScratchGame.jsx';
+import BlackjackGame from '../../game-ui/blackjack/BlackjackGame.jsx';
+import VideoPokerGame from '../../game-ui/video-poker/VideoPokerGame.jsx';
+import MemoryGame from '../../game-ui/memory/MemoryGame.jsx';
+import QuizGame from '../../game-ui/quiz/QuizGame.jsx';
+import BingoGame from '../../game-ui/bingo/BingoGame.jsx';
 import './game.css';
 
 // Games whose UI (Groupe 3) exists. Any other game keeps the waiting message.
@@ -22,6 +28,12 @@ export const GAME_UIS = {
   wheel: WheelGame,
   plinko: PlinkoGame,
   dice: DiceGame,
+  scratch: ScratchGame,
+  blackjack: BlackjackGame,
+  'video-poker': VideoPokerGame,
+  memory: MemoryGame,
+  quiz: QuizGame,
+  bingo: BingoGame,
 };
 
 const OUTCOME_LABELS = { win: 'Gagné', loss: 'Perdu', push: 'Égalité' };

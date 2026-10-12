@@ -12,7 +12,19 @@
       const { GAME_REGISTRY } = await server.ssrLoadModule('/src/config/gameRegistry.js');
       const render = (props) => renderToStaticMarkup(createElement(GamePage, props));
 
-      const WITH_UI = ['slots', 'roulette', 'wheel', 'plinko', 'dice'];
+      const WITH_UI = [
+        'slots',
+        'roulette',
+        'wheel',
+        'plinko',
+        'dice',
+        'scratch',
+        'blackjack',
+        'video-poker',
+        'memory',
+        'quiz',
+        'bingo',
+      ];
       const ALL = GAME_REGISTRY.map((g) => g.id);
 
       await t.test('every registered game shows its name', () => {
