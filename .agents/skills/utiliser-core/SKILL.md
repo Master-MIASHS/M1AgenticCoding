@@ -129,6 +129,10 @@ try {
   et le stockage sont choisis par le Core ; les options d’injection restent internes à G1.
 - Le Core valide tout : pseudo non vide (espaces retirés), date `AAAA-MM-JJ` existante
   et pas dans le futur. L’UI ne recalcule ni le capital ni les jeux de départ.
+- **18 ans révolus** (#339) : si `dateNaissance` est fournie et que la personne a moins
+  de 18 ans, `creerProfil` lève une erreur (« il faut avoir au moins 18 ans… ») et
+  n’enregistre rien. L’UI affiche `erreur.message` ; elle ne refait pas le calcul.
+  La date reste facultative : sans date, pas de vérification.
 - Une seule écriture : en cas d’erreur, l’état n’est pas modifié.
 - **Un seul profil sur une première session vérifiée** : seule l’absence de
   `casino_state` au démarrage autorise la création. Sans stockage, une nouvelle

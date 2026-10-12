@@ -70,3 +70,20 @@ Une configuration interne différente doit correspondre à l’état initialisé
 la création de profil n’est pas une opération de modification du capital.
 La configuration administrable partagée et l’attachement d’une identité à une
 partie déjà utilisée restent des intégrations séparées.
+
+## Âge minimum de 18 ans (#339)
+
+Demande du G5 (@Nina253, discussion #9, 11/10) : le Core refuse la création d'un profil si la personne a strictement moins de 18 ans révolus.
+
+| Élément | Choix |
+|---|---|
+| Valeur | `PROFIL_CONFIG.ageMinimum = 18` dans `config/player.config.js` (règle 4 : pas de valeur en dur dans la logique) |
+| Fonction | `verifierAgeMinimum(dateNaissance, maintenant, ageMinimum)` dans `player.js`, appelée par `creerJoueur` après `validerDateNaissance` |
+| Calcul | Âge révolu sur les dates UTC (comme `validerDateNaissance`) : années écoulées, moins 1 si l'anniversaire de l'année n'est pas encore passé |
+| 29 février | Les années non bissextiles, l'anniversaire tombe le 1ᵉʳ mars : la personne a 18 ans le 1ᵉʳ mars |
+| Refus | `Error` avec un message en français ; `creerProfil` n'écrit rien (la validation précède toute écriture) |
+| Date absente | Toujours acceptée : sans date, aucune vérification n'est possible. La rendre obligatoire casserait le formulaire actuel du G4 (pseudo seul). Signalé dans la PR. |
+
+`validerDateNaissance` ne change pas : elle vérifie seulement le format, l'existence de la date et l'absence de date future.
+
+Tests : `player.test.js` (veille de l'anniversaire refusée, jour J accepté, 29 février, date absente) et `creer-profil.test.js` / façade (refus sans écriture).
