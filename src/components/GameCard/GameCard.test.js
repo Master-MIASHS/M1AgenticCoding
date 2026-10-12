@@ -50,6 +50,23 @@ test('GameCard renders playable and locked games', async (t) => {
       assert.ok(!html.includes('href='));
     });
 
+    await t.test('a coming-soon card is disabled, says "Bientôt" and has no link', () => {
+      const html = render({ name: 'Dés', comingSoon: true, href: '#/game/dice', onSelect: () => {} });
+      assert.ok(html.includes('Bientôt'));
+      assert.ok(html.includes('disabled'));
+      assert.ok(html.includes('game-card--soon'));
+      assert.ok(!html.includes('<a '));
+      assert.ok(!html.includes('href='));
+      assert.ok(!html.includes('Jouer'));
+    });
+
+    await t.test('a locked card stays locked even if marked coming soon', () => {
+      const html = render({ name: 'Poker', locked: true, unlockLevel: 12, comingSoon: true });
+      assert.ok(html.includes('Niveau 12 requis'));
+      assert.ok(html.includes('game-card--locked'));
+      assert.ok(!html.includes('Bientôt'));
+    });
+
     await t.test('a locked card without a valid level says "Verrouillé"', () => {
       for (const unlockLevel of [undefined, null, 0, -1, NaN, '3']) {
         const html = render({ name: 'Poker', locked: true, unlockLevel });

@@ -8,6 +8,7 @@ import { useCallback, useState } from 'react';
 import { getState, getLevel, getUnlockedGames } from '../../services/coreService.js';
 import { GAME_REGISTRY } from '../../config/gameRegistry.js';
 import GameCard from '../../components/GameCard/GameCard.jsx';
+import { GAME_UIS } from '../Game/GamePage.jsx';
 import PlayerHeader from '../../components/PlayerHeader/PlayerHeader.jsx';
 import './lobby.css';
 
@@ -77,6 +78,7 @@ function Lobby() {
               name={game.name}
               category={game.category}
               locked={!unlockedIds.has(game.id)}
+              comingSoon={!GAME_UIS[game.id]}
               unlockLevel={game.unlockLevel}
               href={`#/game/${game.id}`}
             />

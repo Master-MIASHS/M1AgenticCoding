@@ -48,3 +48,19 @@ Commande cible : `node --test tests/unit/economy.dailyBonus.test.js`.
 - `propage un echec de stockage sans publier de nouvel etat` : absent avant implementation, puis erreur et etat inchange.
 
 Verification finale : `npm run lint`, `npm test`, puis `npm run build`.
+
+## Date de réclamation enregistrée dans l'état (#348)
+
+Problème : `lastDailyBonusClaimAt` était une variable du module. Après un rechargement, le délai de 24 h était perdu et le bonus pouvait être réclamé de nouveau, sans limite.
+
+| Élément | Choix |
+|---|---|
+| Champ | `lastDailyBonusClaimAt` dans `casino_state` : entier ≥ 0 (ms), ou `null` / absent si le bonus n'a jamais été réclamé |
+| Lecture | `coreDailyBonusStore.read()` lit le champ dans `getState()` ; une valeur absente ou invalide vaut `null` |
+| Écriture | Dans le même `updateState` que `balance` et `bestBalance` : tout ou rien |
+| Anciennes sauvegardes | Sans le champ : « jamais réclamé », aucune migration nécessaire |
+| `createDailyBonus` | Inchangé : seul le stockage de l'instance partagée change |
+
+`state.js` n'est pas modifié : sa validation accepte les champs supplémentaires sérialisables (comme `pseudo` ou `ownedItemIds`).
+
+Tests : `tests/unit/bonus-quotidien-persistant.test.js` (via `coreService`) : la date est écrite dans l'état, une date récente lue dans l'état bloque une nouvelle réclamation (délai), une date ancienne la permet, et l'absence du champ vaut « jamais réclamé ».

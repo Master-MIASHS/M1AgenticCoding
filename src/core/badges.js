@@ -9,6 +9,7 @@
 //  * Conception détaillée : docs/design/badges.md
 // ---------------------------------------------------------------------------
 
+import { estAjustementAdmin } from './admin.js';
 import { BADGES_CONFIG } from './config/badges.config.js';
 import { getState } from './state.js';
 
@@ -85,7 +86,8 @@ export function calculerBadges(compteurs, definitions = BADGES_CONFIG.definition
 /**
  * Lit les compteurs du joueur dans l'état.
  *
- * - `partiesJouees` : nombre d'entrées de l'historique (format #266) ;
+ * - `partiesJouees` : nombre de parties de l'historique (format #266), sans
+ *   les ajustements de l'admin (#322) ;
  * - `faillites` : champ `faillites` de l'état (solde tombé à 0), tenu par
  *   play() (#131). Il vaut 0 tant que ce champ n'existe pas.
  *
@@ -97,7 +99,8 @@ export function compteursDuJoueur(etat) {
   if (etat === null || typeof etat !== 'object' || !Array.isArray(etat.history)) {
     throw new Error("badges : l'état doit contenir un historique (tableau)");
   }
-  return { partiesJouees: etat.history.length, faillites: etat.faillites ?? 0 };
+  const partiesJouees = etat.history.filter((entree) => !estAjustementAdmin(entree)).length;
+  return { partiesJouees, faillites: etat.faillites ?? 0 };
 }
 
 /**

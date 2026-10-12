@@ -20,8 +20,11 @@ describe('roulette mock - start(bets)', () => {
     assert.equal(typeof res.sessionId, 'string');
     assert.deepEqual(res.availableActions, []);
     assert.equal(res.terminal, true);
-    assert.equal(typeof res.renderPayload.number, 'number');
-    assert.ok(['red', 'black', 'green'].includes(res.renderPayload.color));
+    // number drawn in raw, color in interpretation (= gameResult.details), like #233 / #321
+    assert.ok(Number.isInteger(res.renderPayload.raw));
+    assert.ok(res.renderPayload.raw >= 0 && res.renderPayload.raw <= 36);
+    assert.ok(['red', 'black', 'green', null].includes(res.renderPayload.interpretation.color));
+    assert.equal(res.renderPayload.interpretation, res.gameResult.details);
   });
 
   it('returns a gameResult { outcome, multiplier, details } for every bet type', async () => {

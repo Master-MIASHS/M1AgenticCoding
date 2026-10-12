@@ -12,14 +12,14 @@ test('GamePage identifies a game from its id and handles unknown ids', async (t)
     const { GAME_REGISTRY } = await server.ssrLoadModule('/src/config/gameRegistry.js');
     const render = (props) => renderToStaticMarkup(createElement(GamePage, props));
 
-    const WITH_UI = ['slots', 'roulette', 'wheel', 'plinko'];
+    const WITH_UI = ['slots', 'roulette', 'wheel', 'plinko', 'dice'];
     const ALL = GAME_REGISTRY.map((g) => g.id);
 
     await t.test('every registered game shows its name', () => {
       assert.ok(GAME_REGISTRY.length > 0);
       for (const { id, name } of GAME_REGISTRY) {
         const html = render({ gameId: id, unlockedGames: ALL });
-        assert.ok(html.includes(name), `${id} should show ${name}`);
+        assert.ok(html.includes(name.replace(/'/g, '&#x27;')), `${id} should show ${name}`);
         assert.ok(!html.includes('Jeu introuvable'));
       }
     });
@@ -32,10 +32,17 @@ test('GamePage identifies a game from its id and handles unknown ids', async (t)
       }
     });
 
-    await t.test('unlocked games with a Groupe 3 UI display it in demonstration mode', () => {
+    // Games plugged into the Core (gameRuntime.js) are played for real.
+    const PLUGGED = ['slots', 'roulette'];
+
+    await t.test('games with a Groupe 3 UI display it, in demo mode unless plugged', () => {
       for (const id of WITH_UI) {
-        const html = render({ gameId: id, unlockedGames: ALL });
-        assert.ok(html.includes('Mode démonstration'), `${id} is flagged as simulated`);
+        const html = render({ gameId: id });
+        assert.equal(
+          html.includes('Mode démonstration'),
+          !PLUGGED.includes(id),
+          `${id}: demo banner only when the game is not plugged into the Core`
+        );
         assert.ok(!html.includes('bientôt jouable'));
         assert.ok(!html.includes('Jeu verrouillé'));
         assert.ok(html.includes('<button'), `${id} renders its controls`);

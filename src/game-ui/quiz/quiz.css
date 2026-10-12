@@ -1,0 +1,126 @@
+.quiz {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium, 16px);
+  color: var(--color-text, #eeeeee);
+}
+
+.quiz__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium, 16px);
+  padding: var(--spacing-medium, 16px);
+  background: var(--color-surface, #1e1e2a);
+  border-radius: var(--radius-medium, 12px);
+}
+
+.quiz__progress {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #9aa0b0);
+}
+
+.quiz__question {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.quiz__options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-small, 8px);
+}
+
+.quiz__option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-small, 8px);
+  min-height: 3rem;
+  padding: var(--spacing-small, 8px);
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: var(--color-background, #12121a);
+  border: 2px solid var(--color-border, #2a2e3a);
+  border-radius: var(--radius-small, 8px);
+  cursor: pointer;
+}
+
+.quiz__option:disabled {
+  cursor: default;
+}
+
+.quiz__option:focus-visible {
+  outline: 2px solid var(--color-accent, #ffd166);
+  outline-offset: 2px;
+}
+
+.quiz__option--correct {
+  border-color: var(--color-success, #2ecc71);
+}
+
+.quiz__option--wrong {
+  border-color: var(--color-danger, #e74c3c);
+}
+
+.quiz__letter {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  font-weight: 700;
+  background: var(--color-primary, #7c5cff);
+  border-radius: 50%;
+}
+
+.quiz__message {
+  margin: 0;
+  text-align: center;
+}
+
+.quiz__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-small, 8px);
+}
+
+.quiz__next,
+.quiz__stop {
+  min-height: 2.5rem;
+  padding: 0 var(--spacing-medium, 16px);
+  font: inherit;
+  font-weight: 700;
+  border-radius: var(--radius-small, 8px);
+  cursor: pointer;
+}
+
+.quiz__next {
+  color: #ffffff;
+  background: var(--color-primary, #7c5cff);
+  border: none;
+}
+
+.quiz__stop {
+  color: #111111;
+  background: var(--color-accent, #ffd166);
+  border: none;
+}
+
+.quiz__next:focus-visible,
+.quiz__stop:focus-visible {
+  outline: 2px solid var(--color-text, #eeeeee);
+  outline-offset: 2px;
+}
+
+.quiz__error {
+  color: var(--color-danger, #e74c3c);
+}
+
+@media (max-width: 480px) {
+  .quiz__options {
+    grid-template-columns: 1fr;
+  }
+}
