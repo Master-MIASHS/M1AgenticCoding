@@ -47,8 +47,14 @@
   opacity: 0.6;
 }
 
+.game-card--soon {
+  opacity: 0.85;
+}
+
 .game-card--locked .game-card__action,
-.game-card--locked .game-card__action:disabled {
+.game-card--locked .game-card__action:disabled,
+.game-card--soon .game-card__action,
+.game-card--soon .game-card__action:disabled {
   border-color: var(--color-border);
   background: var(--color-bg);
   color: var(--color-text-muted);

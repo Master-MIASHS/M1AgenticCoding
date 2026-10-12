@@ -13,7 +13,7 @@ import PlinkoGame from '../../game-ui/plinko/PlinkoGame.jsx';
 import './game.css';
 
 // Games whose UI (Groupe 3) exists. Any other game keeps the waiting message.
-const GAME_UIS = {
+export const GAME_UIS = {
   slots: SlotsGame,
   roulette: RouletteGame,
   wheel: WheelGame,

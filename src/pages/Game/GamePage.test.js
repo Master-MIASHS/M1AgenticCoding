@@ -19,7 +19,7 @@ test('GamePage identifies a game from its id and handles unknown ids', async (t)
       assert.ok(GAME_REGISTRY.length > 0);
       for (const { id, name } of GAME_REGISTRY) {
         const html = render({ gameId: id, unlockedGames: ALL });
-        assert.ok(html.includes(name), `${id} should show ${name}`);
+        assert.ok(html.includes(name.replace(/'/g, '&#x27;')), `${id} should show ${name}`);
         assert.ok(!html.includes('Jeu introuvable'));
       }
     });
