@@ -5,7 +5,8 @@
 // Chaîne testée : start(bets) -> draw(core) = melanger(buildDeck(deckCount)).slice(0,6)
 // -> rules.resolve() -> gameResult -> coreService.play() (vrai mock G1) ->
 // réponse pour G3. La taille du sabot vient de config.deckCount (règle 4),
-// 1 paquet par défaut.
+// REQUISE comme config.paytable (contrat § 6 et #391 : pas de valeur par
+// défaut), sans valeur par défaut.
 //
 // melanger() est remplacé par un mélange contrôlé (les cartes voulues en tête
 // du paquet, le reste ensuite), pour obtenir des mains connues. Tout le reste
@@ -27,7 +28,7 @@ import { createGame } from '../../../src/games/_template/createGame.js';
 import * as baccaratRules from '../../../src/games/baccarat/rules.js';
 import { draw as drawBaccarat } from '../../../src/games/baccarat/index.js';
 
-const CONFIG = { paytable: { player: 2, banker: 1.95, tie: 9 } };
+const CONFIG = { paytable: { player: 2, banker: 1.95, tie: 9 }, deckCount: 1 };
 const BET_PLAYER = [{ type: 'player', amount: 10 }];
 
 /**
@@ -238,8 +239,8 @@ describe('montage baccarat - mains connues (mélange contrôlé)', () => {
     assert.strictEqual(shuffleCalls[0], 6 * 52, '6 paquets passent au Core');
   });
 
-  it('rejette un config.deckCount invalide', () => {
-    for (const deckCount of [0, -1, 1.5, '6']) {
+  it('rejette un config.deckCount manquant ou invalide', () => {
+    for (const deckCount of [undefined, 0, -1, 1.5, '6']) {
       const { core } = makeTestCore([
         card('3', 'hearts'),
         card('A', 'spades'),
