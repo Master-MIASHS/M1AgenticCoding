@@ -21,6 +21,8 @@ Skills disponibles pour les agents du projet Casino Fantôme. Chaque skill vit d
 | `expert-vite` | Expertise technique par domaine (Vite) |
 | `skills-structure-validator` | Linter de conformité des dossiers de skills |
 | `audit-activite-projet` | Scripts d'agrégation de l'activité GitHub du projet (commits, PR, issues) |
+| `expert-git-commit-push` | Guide de synchronisation Git et règles de commit/push |
+| `pr-validation` | Protocole de revue et critères de validation d'une Pull Request |
 
 ## 2. Skills du projet (créées à l'origine dans ce projet)
 

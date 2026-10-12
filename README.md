@@ -3,6 +3,8 @@
 > Simulateur de casino **100 % fictif**, 100 % front-end (React + Vite + JavaScript),
 > développé par des agents IA supervisés par environ 25 étudiants répartis en 5 groupes.
 
+Lien du projet : https://maximiliense.github.io/M1AgenticCoding/
+
 ## Le projet
 
 Le joueur reprend un vieux casino fermé depuis des années. Il démarre avec un
@@ -23,23 +25,23 @@ entre jetons et argent.
 - Le capital de départ (1000 par défaut), les seuils de déblocage, les
   probabilités de gain et les gains d'XP sont **configurables**, jamais codés en dur.
 
-### Jeux prévus
+### Jeux et état d'avancement (au 12/10/2026)
 
-| Jeu | Type | Débloqué (par défaut) |
-| --- | --- | --- |
-| Machine à sous | Hasard | Départ |
-| Dés / Craps | Hasard | Départ |
-| Cartes à gratter | Hasard | Niveau 2 |
-| Blackjack | Cartes | Niveau 3 |
-| Roue de la fortune | Hasard | Niveau 4 |
-| Roulette | Hasard | Niveau 5 |
-| Baccarat | Hasard | Niveau 6 |
-| Plinko | Hasard | Niveau 7 |
-| Vidéo poker | Cartes | Niveau 8 |
-| Memory casino | Adresse | Niveau 8 |
-| Quiz « risque ton argent » | Adresse | Niveau 9 |
-| Bingo (contre bots) | Hasard | Niveau 10 |
-| Poker contre l'IA (bots) | Cartes | Niveau 12 |
+| Jeu | Type | Déblocage | Règles (G2) | Interface (G3) | Statut sur le site |
+| --- | --- | --- | --- | --- | --- |
+| **Machine à sous** | Hasard | Départ | Validées | Validée | **Jouable** (connectée au Core réel via #296) |
+| **Roulette** | Hasard | Niveau 5 | Validées | Validée | **Jouable** (connectée au Core réel via #296) |
+| **Roue de la fortune** | Hasard | Niveau 4 | Validées | Validée | **Mode Démo** (UI montée, attente injection config Core #377) |
+| **Plinko** | Hasard | Niveau 7 | Validées | Validée | **Mode Démo** (UI montée, attente injection config Core #377) |
+| **Dés (Craps)** | Hasard | Départ | Validées (#342) | Validée | **Mode Démo** (UI montée, calage config en cours) |
+| **Cartes à gratter** | Hasard | Niveau 2 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Blackjack** | Cartes | Niveau 3 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Vidéo poker** | Cartes | Niveau 8 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Memory casino** | Adresse | Niveau 8 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Quiz « risque ton argent »** | Adresse | Niveau 9 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Bingo (contre bots)** | Hasard | Niveau 10 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Poker contre l'IA** | Cartes | Niveau 12 | En cours | En cours (#375) | Non monté |
+| **Baccarat** | Hasard | Niveau 6 | Non démarré | Non démarré | Non monté |
 
 ### Rôles (cumulatifs)
 
@@ -154,9 +156,17 @@ des résultats **bruts** : elles ne déterminent jamais si le joueur gagne ou pe
 Clé principale : `casino_state`. Le schéma complet est documenté dans
 `src/core/state.js`.
 
-`importSave()` valide la version, la forme des données et le hash avant de
-restaurer l'état en mémoire et dans `casino_state`. Une sauvegarde invalide ou
-une erreur d'écriture laisse l'état en mémoire inchangé. Le hash FNV-1a est le
+**Démarrage** : si `casino_state` est illisible ou non conforme, ou si
+`localStorage` est inaccessible, l'application ne plante pas : avertissement dans
+la console, état par défaut, et `casino_state` conservé jusqu'au prochain
+enregistrement réussi (#240).
+
+**Sauvegarde** : `exportSave()` exporte l'état du joueur avec un hash
+d'intégrité. `importSave()` valide la version, la forme et la cohérence des
+données (`bestBalance ≥ balance`) ainsi que le hash avant de restaurer l'état en
+mémoire et dans `casino_state`. Un import accepté remplace toute la partie, même
+avec une XP, un niveau ou un meilleur solde inférieurs (#258) ; une sauvegarde
+invalide ou une erreur d'écriture laisse l'état inchangé. Le hash FNV-1a est le
 standard retenu pour le contrôle d'intégrité non cryptographique : il détecte
 une sauvegarde abîmée, pas la triche.
 
@@ -256,12 +266,12 @@ Le Groupe 2 décide **ce qui se passe** dans une partie : les règles de chaque 
 
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
-| Donia-alfonsi | Alfonsi Donia | Alfonsi Donia | moteur de cartes partagé, constructeur de paquet, Blackjack et son tirage · tests associés |
-| Zelyx21 | Clem, Zelyx21 | Beaulieu, Clémentine | créer le socle commun, se coordiner avec les autres groupes |
-| raphoulefoufou | raphoulefoufou | Capristo,Raphaël | création jeu de dés,test sur ces derniers |
-| camilhamdach5-byte | camilhamdach5-byte, Camil-Hamdach | Hamdach,Camil | Création de la logique des jeux Blackjack, Slots et Scratch.|
-| camseveyrat | camseveyrat - Camille | Seveyrat, Camille | règles et jeux : wheel + plinko |
-| fcassius | fcassius, Cassius FELIHO | FELIHO, Cassius | référent intégration / documentation du G2 : contrats G2 ↔ G1 / G3 / G4, cohérence des formats, mocks et fixtures, tests d'intégration |
+| Donia-alfonsi | Donia-alfonsi, Donia Alfonsi | Alfonsi, Donia | moteur de cartes partagé `cardUtils.js` (#23, #67, #120), constructeur de paquet `deck.js` (#102, #169), Blackjack et son tirage (#189, #203) · tests associés, dont le montage blackjack (#299, #301) |
+| Zelyx21 | Clem, Zelyx21, Clémentine Beaulieu | Beaulieu, Clémentine | a créé le socle commun du G2, l'orchestrateur createGame (#22, #91), a coordonné le groupe avec les autres groupes, a codé les règles du vidéo poker, du Memory, du Quiz et du Bingo (#125, #274, #275, #276) |
+| raphoulefoufou | raphoulefoufou | Capristo,Raphaël | création jeu de dés,test sur ces derniers · poker contre les bots (#196) |
+| camilhamdach5-byte | camilhamdach5-byte, Camil-Hamdach | Hamdach,Camil | Création de la logique des jeux Slots, Scratch et Baccarat (#31, #216, #220) |
+| camseveyrat | camseveyrat - Camille | Seveyrat, Camille | règles et jeux : wheel + plinko + roulette (#191, #233) |
+| fcassius | fcassius, Cassius FELIHO | FELIHO, Cassius | référent intégration / documentation du G2 : contrats G2 ↔ G1 / G3 / G4 (#68), orchestrateur `createGame`, cohérence des formats, mocks et fixtures, tests d'intégration, skill `jeux-g2` |
 
 
 ### Groupe 3 — Rendu visuel
@@ -271,7 +281,7 @@ Le Groupe 3 est responsable de l'interface **à l'intérieur d'une partie** : l'
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | Zozote | Enzo Nguyen | Nguyen Enzo | UI, composants communs, review |
-| Bahar487 | Bahar487, Bahar, Ali Bahar Ali | ALI BAHAR, Ali | Responsable du groupe 3 (rendu visuel), composants communs et jeux (BetPanel, slots, roulette) |
+| Bahar487 | Bahar487, Bahar, Ali Bahar Ali | ALI BAHAR, Ali | Responsable du groupe 3 (rendu visuel) : UI de 11 jeux dans `src/game-ui/` : machine à sous (#92, alignée sur les règles G2 #282), roulette (#98, contrat G2 #192, numéro et couleur réels #332), roue de la fortune (#193), plinko (#279), dés (#286), cartes à gratter (#358), blackjack (#360), vidéo poker (#362), memory (#380), quiz (#383) et bingo (#385) ; composant commun `BetPanel` (#72, thème sombre #357) ; skills `game-ui` (#25) et `jeux-ui-g3` pour les autres groupes (#235, #283) ; périmètre du G3 dans le README ; coordination du G3 et des interfaces avec le G2 (contrat `start` / `action` / `gameResult`, actions du vidéo poker, memory, quiz, bingo, couleur de la roulette, déroulé des dés), le G4 (montage dans la page de jeu, config de la roue et du plinko) et le G5 (tickets, relectures) |
 
 ### Groupe 4 — Architecture de l'application et composants annexes / Navigation
 

@@ -5,8 +5,8 @@ import { getState } from '../../src/core/state.js';
 import { getState as getPublicState } from '../../src/core/core.js';
 
 describe('lecture de l’état du Core', () => {
-  it('expose la même fonction de lecture par l’API publique', () => {
-    assert.strictEqual(getPublicState, getState);
+  it('expose les champs persistés et le seuil dérivé par l’API publique', () => {
+    assert.deepStrictEqual(getPublicState(), { ...getState(), xpForNextLevel: 100 });
   });
 
   it('empêche un appelant de modifier les valeurs des lectures suivantes', () => {

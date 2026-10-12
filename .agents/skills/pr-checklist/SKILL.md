@@ -22,7 +22,7 @@ Vérifie chaque point de la « Définition de terminé » (`AGENTS.md`) et rappo
 6. **Règles absolues** applicables à la tâche (pas de `Math.random()` hors RNG Core, pas de valeur en dur, UI qui ne décide pas d'un résultat, permissions vérifiées côté serveur/Core).
 7. **Invariants métier** touchés par la tâche encore respectés (solde/XP indépendants, XP/niveau ne redescendent jamais, meilleur solde ne redescend jamais, jamais bloqué à 0 jeton).
 8. **Ticket** : la PR est bien liée à un ticket, avec le compte rendu attendu (fichiers modifiés, tests lancés et résultat, points bloquants).
-9. **Branche** : créée via `branch-creator`, pas de push direct sur `main`.
+9. **Branche** : créée via `git-governance`, pas de push direct sur `main`.
 10. **Taille de la PR** : diff raisonnable pour une seule tâche. Une PR anormalement large (beaucoup de fichiers hors périmètre attendu) est un signal d'alerte de portée débordante.
 11. **Commits** : historique lisible (pas de commit type "wip", "fix fix fix" en rafale) — pas bloquant en soi, mais à signaler en ⚠️.
 12. **Doublon de travail** : vérifier rapidement (`git log`, PR ouvertes) qu'aucune autre PR en cours ne touche déjà les mêmes fichiers pour une autre tâche — sinon remonter le conflit potentiel à G5 avant d'aller plus loin.
