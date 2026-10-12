@@ -26,8 +26,9 @@ const pages = {
 
 function App() {
   const [path, setPath] = useState(getPath);
-  // Re-render after a profile is created so the player is read again from the Core.
-  const [, setProfileVersion] = useState(0);
+  // `getState()` returns a snapshot. Advance this version after a Core mutation
+  // so the shared shell (including Navbar) reads the current player again.
+  const [, setPlayerVersion] = useState(0);
   const [profileSkipped, setProfileSkipped] = useState(false);
   useEffect(() => {
     const onHashChange = () => setPath(getPath());
@@ -35,16 +36,12 @@ function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  const refreshPlayer = () => setPlayerVersion((version) => version + 1);
   const player = getState();
   // First launch: no pseudo in the Core state yet, so ask for one. Skipping only
   // lasts for the session (the Core refuses a profile on a state already played).
   if (player?.pseudo === undefined && !profileSkipped) {
-    return (
-      <CreateProfile
-        onCreated={() => setProfileVersion((version) => version + 1)}
-        onSkip={() => setProfileSkipped(true)}
-      />
-    );
+    return <CreateProfile onCreated={refreshPlayer} onSkip={() => setProfileSkipped(true)} />;
   }
   if (path.startsWith(GAME_PREFIX)) {
     return (
@@ -62,7 +59,9 @@ function App() {
           <h1 id="history-title">Mon historique</h1>
           <p>L’historique des parties sera disponible prochainement.</p>
         </section>
-      ) : <Page />}
+      ) : (
+        <Page {...(path === '/shop' ? { onPlayerUpdated: refreshPlayer } : {})} />
+      )}
     </MainLayout>
   );
 }
