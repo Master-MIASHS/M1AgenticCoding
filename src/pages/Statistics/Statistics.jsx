@@ -20,7 +20,7 @@ function Statistics() {
     <div className="page-statistics">
       <h1>Statistiques</h1>
       <p className="page-statistics__notice">
-        Les données affichées sont actuellement simulées.
+        Les statistiques sont calculées à partir de l&apos;historique de vos parties enregistrées sur cet appareil.
       </p>
 
       <section aria-labelledby="statistics-player-title">
@@ -41,29 +41,37 @@ function Statistics() {
         className="page-statistics__global"
         aria-labelledby="statistics-global-title"
       >
-        <h2 id="statistics-global-title">Statistiques globales du casino</h2>
+        <h2 id="statistics-global-title">Statistiques de vos parties</h2>
 
         {statsError ? (
           <p role="alert">Statistiques indisponibles pour le moment.</p>
         ) : (
-          <dl className="page-statistics__values">
-            <div className="page-statistics__card">
-              <dt>Nombre total de parties</dt>
-              <dd>{totalPlays}</dd>
-            </div>
-            <div className="page-statistics__card">
-              <dt>Total des mises</dt>
-              <dd>{totalWagered}</dd>
-            </div>
-            <div className="page-statistics__card">
-              <dt>Total des gains</dt>
-              <dd>{totalWon}</dd>
-            </div>
-            <div className="page-statistics__card">
-              <dt>Joueurs actifs</dt>
-              <dd>{activePlayers}</dd>
-            </div>
-          </dl>
+          <>
+            {totalPlays === 0 && (
+              <p>Aucune partie n&apos;est enregistrée dans votre historique pour le moment.</p>
+            )}
+            <p>
+              Le nombre de joueurs actifs correspond au profil local ayant enregistré au moins une partie (0 ou 1), et non au nombre de personnes connectées au casino.
+            </p>
+            <dl className="page-statistics__values">
+              <div className="page-statistics__card">
+                <dt>Nombre total de parties</dt>
+                <dd>{totalPlays}</dd>
+              </div>
+              <div className="page-statistics__card">
+                <dt>Total des mises</dt>
+                <dd>{totalWagered}</dd>
+              </div>
+              <div className="page-statistics__card">
+                <dt>Total reversé (mises incluses)</dt>
+                <dd>{totalWon}</dd>
+              </div>
+              <div className="page-statistics__card">
+                <dt>Joueurs actifs</dt>
+                <dd>{activePlayers}</dd>
+              </div>
+            </dl>
+          </>
         )}
       </section>
     </div>
