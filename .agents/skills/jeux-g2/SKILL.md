@@ -40,7 +40,8 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
   **une seule** fois.
 - `id` : `slots`, `dice`, `scratch`, `blackjack`, `wheel`, `roulette`,
   `baccarat`, `plinko`, `video-poker`, `poker`, `memory`, `quiz`, `bingo`
-  (règles de memory, quiz et bingo en PR : #300, #302, #310).
+  (memory, quiz et bingo : règles fusionnées, #300, #302, #310 ; leur
+  enregistrement dans `GAMES` et dans le registre des jeux est suivi dans #318).
 - **Jeu multi-étapes : une seule instance.** La session vit dans l'instance
   créée par `createGame` : `start()` et `action()` doivent être appelés sur la
   **même** instance, sinon `action()` lève « unknown or finished session »
@@ -92,22 +93,24 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
   fin).
 - Formes déjà posées (contrat § 5.2) :
   - slots : `interpretation = { symbols, combination, stake }` (#216) ;
-  - roulette : numéro tiré dans `raw` ; la couleur (`details.color` :
-    `red` / `black` / `green`) sera calculée par les règles à partir de la
-    config (décision #191, code à venir) ;
-  - dés : `interpretation = { point, rolls, rawValues, totalBet, payout }`
-    (PR #303).
+  - roulette : numéro tiré dans `raw` ; couleur dans `interpretation.color`
+    (`red` / `black` / `green`, ou `null` si la config n'a pas de listes
+    `red` / `black`), calculée par les règles à partir de la config (#191, #321) ;
+  - dés : `interpretation = { point, rolls, rawValues, dice, totalBet, payout }`
+    (PR #342). Craps classique en pass line (#159) : `rolls` contient un total
+    par lancer (la liste peut dépasser deux lancers), `dice` les paires de
+    faces. 2, 3 ou 12 au premier lancer = perdu : jamais d'égalité.
 - Pour un autre jeu, aligner le contenu avec son responsable (discussion #8).
   Si une donnée manque pour l'affichage, la demander au G2, ne jamais la
   deviner.
-- **Jeux avec `rules.view(...)`** (blackjack, vidéo poker, et à venir poker,
-  memory, quiz, bingo) : l'UI reçoit `{ gameId, phase, view, economy? }`,
+- **Jeux avec `rules.view(...)`** (blackjack, vidéo poker, poker, memory,
+  quiz, bingo) : l'UI reçoit `{ gameId, phase, view, economy? }`,
   **sans** `raw` ni `interpretation` (#168). `view` ne contient que ce qui
   est visible (jamais le paquet, la carte cachée, la main du bot, les
   boules à venir ni la bonne réponse avant le choix du joueur).
 - La **disposition** d'un jeu (segments de la roue, types de pari…) n'est pas
-  dans le `renderPayload` : c'est de la configuration, à lire via
-  `coreService.getGameConfig(id)` quand il sera exposé (#158).
+  dans le `renderPayload` : c'est de la configuration, lue via
+  `coreService.getGameConfig(id)` (exposé par #335, voir § 4).
 
 ### Blackjack (#189) : `renderPayload.view`
 
@@ -127,9 +130,22 @@ Le blackjack fournit `rules.view()` : G3 lit `renderPayload.view`, jamais de
   couvre pas la mise doublée.
 - Blackjack naturel : la manche se termine dès `start(bets)` (`terminal: true`).
 
-### Memory, quiz, bingo : `renderPayload.view` (PR #300, #302, #310)
+### Poker (#334) : `renderPayload.view`
 
-Formes proposées dans les PR (relues par le G2), à confirmer au merge :
+```js
+// pendant la main : jamais les cartes du bot
+{ phase: 'playing', stage, playerHand, communityCards, pot, currentBet, raiseStep,
+  playerChips, botChips, playerContribution, botContribution, availableActions }
+// à la fin : main du bot seulement s'il y a eu abattage
+{ phase: 'result', outcome, winner, playerHand, communityCards, totalBet, aiHand? }
+```
+
+- Un seul bouton « Relancer » : le montant affiché est `raiseStep`.
+- Les décisions du bot (`raw.aiActions`) ne sont pas dans la vue : la
+  demander au G2 si l'animation en a besoin.
+
+### Memory, quiz, bingo : `renderPayload.view` (#300, #302, #310)
+
 
 ```js
 // memory
@@ -151,31 +167,32 @@ les règles lèvent une erreur si elle manque (règle 4, rien en dur).
 
 | Jeu | Forme lue par les règles |
 | --- | --- |
-| `wheel` | `{ bets: { <type>: { match: { <champ>: <valeur> }, multiplier } } }` |
-| `plinko` | `{ paytable: number[] }`, index = numéro de case |
+| `wheel` | `{ paytable: { <type>: { match: { <champ>: <valeur> }, multiplier } }, segments }` : les règles lisent `paytable`, `wheel/draw.js` lit `segments` (#320, #337) |
+| `plinko` | `{ paytable: number[], weights: number[] }`, index = numéro de case ; `weights` est lu par `plinko/draw.js` (#320) |
 | `blackjack` | `{ paytable: { blackjack, win } }`, multiplicateurs mise incluse (ex. `{ blackjack: 2.5, win: 2 }`) ; égalité → 1, perte → 0 (#189) |
 | `video-poker` | « Jacks or Better » 9/6 (#125) : `paytable` par `category` de `evaluatePokerHand()`, mise incluse : 10 → 250, 9 → 50, 8 → 25, 7 → 9, 6 → 6, 5 → 4, 4 → 3, 3 → 2, 2 → 1 seulement pour une paire de valets ou mieux (sinon 0), 1 → 0 |
 | `roulette` | `{ bets: { <type>: { match: number[], multiplier } } }`, `match` = liste des nombres gagnants (#191) |
 | `slots` | `{ symbols: { bands: [{ max, symbol }] }, paytable: { <combinaison>: { multiplier } } }` : `bands` (lu par `slots/draw.js`) couvre tout [0, 1), clé de `paytable` = les 3 symboles accolés (#216) |
 | `scratch` | `{ paytable: { bands: [{ max, symbol, multiplier }] } }`, bandes triées par `max` croissant (#216) |
-| `dice` | 🟠 gain encore dans les règles ; passage en config à faire (#159) |
+| `dice` | `{ paytable: { pass: m } }`, multiplicateur mise incluse (2 = gain 1:1), `m > 1` ; mises de type `pass` uniquement (#159, PR #342) |
 | `baccarat` | 🟠 règles en cours (#220) |
-| `memory` | `{ paytable: { 8: m, …, 16: m } }`, multiplicateur selon le nombre de tours utilisés (PR #300) |
-| `quiz` | `{ paytable: { 1: m, …, 5: m } }`, multiplicateur selon le nombre de bonnes réponses (PR #302) |
-| `bingo` | `{ paytable: { win }, botCount }` : `win > 1`, `botCount` entier ≥ 1 ; joueur et bot sur la même boule → `push` (PR #310) |
-| `poker` | `{ smallBlind, bigBlind, botStack, raiseStep }`, montants fixes en jetons : pas de sélecteur de mise, la mise d'ouverture est la blinde du joueur (contrat v0.8.6, #196) |
+| `memory` | `{ paytable: { 8: m, …, 16: m } }`, multiplicateur selon le nombre de tours utilisés (#300) |
+| `quiz` | `{ paytable: { 1: m, …, 5: m } }`, multiplicateur selon le nombre de bonnes réponses (#302) |
+| `bingo` | `{ paytable: { win }, botCount }` : `win > 1`, `botCount` entier ≥ 1 ; joueur et bot sur la même boule → `push` (#310) |
+| `poker` | `{ smallBlind, bigBlind, botStack, raiseStep }`, montants fixes en jetons : pas de sélecteur de mise, la mise d'ouverture du joueur est la **petite blinde** (#334) |
 
 Forme côté Core / admin, **validée dans #122** (G1, G2, G4) :
 
 - roue : `{ paytable: { <type>: { match, multiplier } }, segments: [{ id,
   label, color, …champs de match, weight }] }`. L'ordre du tableau donne
   l'ordre d'affichage, et `weight` est le poids du tirage (distinct des
-  gains). G2 assemble `{ bets: config.paytable }` pour `rules.js` ;
+  gains). C'est la même forme que celle lue par le jeu, sans adaptateur (#337) ;
 - plinko : `{ paytable: number[], weights: number[] }`, de même longueur.
 
-La source finale sera `getGameConfig` via `coreService` (#158, pas encore
-exposé). En attendant, les configs des jeux branchés dans l'application sont
-provisoires (`src/config/gamesProvisional.config.js`, PR #296 du G5).
+`coreService.getGameConfig(id)` est exposé (#335), mais il renvoie encore
+l'ancienne forme vide `{ probabilities, multipliers }`. Tant que G1 ne stocke
+pas les formes ci-dessus, les configs des jeux branchés dans l'application
+restent provisoires (`src/config/gamesProvisional.config.js`, PR #296 du G5).
 
 ## 5. Brancher un nouveau jeu (G2)
 
@@ -193,15 +210,18 @@ provisoires (`src/config/gamesProvisional.config.js`, PR #296 du G5).
    début de la manche, `null` pendant les actions (pioche au curseur dans la
    session). Modèles : `blackjack/index.js`, `video-poker/draw.js`.
    Exemples livrés : `src/games/roulette/index.js` → `core.tirageEntier(0, 36)`
-   (#191) ; `slots/draw.js` → `core.tirageAvecPoids` (#216) ; la roue passe
-   son propre draw dans le test de montage (`core.tirageAvecPoids`).
+   (#191) ; `slots/draw.js`, `wheel/draw.js` et `plinko/draw.js` →
+   `core.tirageAvecPoids` (#216, #320).
    Memory, quiz, bingo : `core.melanger` une seule fois au `start`, puis
-   `null` (PR #300, #302, #310).
+   `null` (#300, #302, #310).
    **Poker** (bots) : c'est le `draw` qui joue les tours du bot. Il applique
    l'action du joueur avec un moteur pur partagé avec `rules.js`, appelle
    `core.choisirAction(...)` à chaque tour du bot et transmet les décisions
-   dans `raw.aiActions` (liste ordonnée). Les règles restent pures (contrat
-   v0.8.6, § 4.4).
+   dans `raw.aiActions` (liste ordonnée). Les règles restent pures (#334,
+   contrat § 4.4). Modèle : `poker/draw.js` et `poker/engine.js`.
+   **Dés** (craps classique, #159) : le `draw` tire les lancers `[d1, d2]`
+   jusqu'à la résolution, avec une fonction pure partagée avec les règles. Le
+   jeu reste instantané.
 3. **Mise qui augmente** (double, relance) : la session en cours porte
    `totalBet`, et le résultat final `details.totalBet`. L'orchestrateur règle
    ce montant (#166). Une hausse au-delà du solde est refusée : l'action lève
@@ -212,8 +232,8 @@ provisoires (`src/config/gamesProvisional.config.js`, PR #296 du G5).
    session, gameResult })` (§ 3, #168).
 5. Cartes : `{ rank, suit }` et utilitaires de `src/games/cardUtils.js`
    (`blackjackTotal`, `baccaratTotal`, `evaluatePokerHand`, `hasPair`,
-   `RANKS`, `SUITS` ; `bestPokerHand` et `comparePokerHands` arrivent avec
-   le poker, #196).
+   `bestPokerHand` (meilleure main de 5 cartes parmi 5 à 7),
+   `comparePokerHands` (`1 / -1 / 0`), `RANKS`, `SUITS` ; #319).
 6. **Règlement** : rien à faire dans les règles. L'orchestrateur crée un
    `roundId` au `start()` et appelle une seule fois `core.play(gameId, bet,
    gameResult, { roundId })` en fin de manche. Si `play()` échoue, la manche
