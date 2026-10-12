@@ -9,6 +9,8 @@ import Profile from '../pages/Profile/Profile.jsx';
 import Progression from '../pages/Progression/Progression.jsx';
 import GamePage from '../pages/Game/GamePage.jsx';
 import NotFound from '../pages/NotFound/NotFound.jsx';
+import History from '../pages/History/History.jsx';
+import Admin from '../pages/Admin/Admin.jsx';
 import CreateProfile from '../pages/CreateProfile/CreateProfile.jsx';
 
 // Temporary hash navigation supports GitHub Pages without server rewrites.
@@ -22,6 +24,8 @@ const pages = {
   '/statistics': Statistics,
   '/profile': Profile,
   '/progression': Progression,
+  '/history': History,
+  '/admin': Admin,
 };
 
 function App() {
@@ -54,17 +58,13 @@ function App() {
     );
   }
 
-  const Page = pages[path] ?? NotFound;
+  // Display only: the Core refuses any admin action from a non-admin (rule 5).
+  const Page = path === '/admin' && player?.role !== 'admin' ? NotFound : (pages[path] ?? NotFound);
   return (
     <MainLayout player={player} currentPath={path}>
-      {path === '/history' ? (
-        <section aria-labelledby="history-title">
-          <h1 id="history-title">Mon historique</h1>
-          <p>L’historique des parties sera disponible prochainement.</p>
-        </section>
-      ) : (
-        <Page {...(path === '/shop' ? { onPlayerUpdated: refreshPlayer } : {})} />
-      )}
+      <Page
+        {...(path === '/shop' || path === '/profile' ? { onPlayerUpdated: refreshPlayer } : {})}
+      />
     </MainLayout>
   );
 }
