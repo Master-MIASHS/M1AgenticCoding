@@ -1,0 +1,110 @@
+.baccarat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium, 16px);
+  color: var(--color-text, #eeeeee);
+}
+
+.baccarat__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-small, 8px);
+}
+
+.baccarat__choice {
+  padding: var(--spacing-small, 8px) var(--spacing-medium, 16px);
+  font: inherit;
+  color: inherit;
+  background: var(--color-surface, #1e1e2a);
+  border: 2px solid transparent;
+  border-radius: var(--radius-small, 8px);
+  cursor: pointer;
+}
+
+.baccarat__choice--active {
+  border-color: var(--color-primary, #7c5cff);
+}
+
+.baccarat__choice:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.baccarat__choice:focus-visible {
+  outline: 2px solid var(--color-accent, #ffd166);
+  outline-offset: 2px;
+}
+
+.baccarat__table {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-medium, 16px);
+  padding: var(--spacing-medium, 16px);
+  background: #14532d;
+  border-radius: var(--radius-medium, 12px);
+}
+
+.baccarat__hand {
+  padding: var(--spacing-small, 8px);
+  border: 2px solid transparent;
+  border-radius: var(--radius-small, 8px);
+}
+
+.baccarat__hand--winner {
+  border-color: var(--color-accent, #ffd166);
+}
+
+.baccarat__title {
+  margin: 0 0 var(--spacing-small, 8px);
+  font-weight: 700;
+}
+
+.baccarat__total {
+  color: var(--color-accent, #ffd166);
+}
+
+.baccarat__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 80px;
+}
+
+.baccarat__card {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 76px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #111111;
+  background: #ffffff;
+  border-radius: var(--radius-small, 8px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.baccarat__card--red {
+  color: #c62828;
+}
+
+.baccarat__message {
+  margin: 0;
+  font-weight: 600;
+  text-align: center;
+}
+
+.baccarat__error {
+  color: var(--color-danger, #e74c3c);
+}
+
+@media (max-width: 480px) {
+  .baccarat__table {
+    grid-template-columns: 1fr;
+  }
+
+  .baccarat__card {
+    width: 44px;
+    height: 64px;
+    font-size: 1rem;
+  }
+}
