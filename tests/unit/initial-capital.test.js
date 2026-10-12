@@ -49,7 +49,11 @@ describe('capital initial effectif (#253)', () => {
 
   it('conserve une ancienne sauvegarde malgré une autre configuration', () => {
     run(`
-      assert.deepEqual(state.getState(), ${JSON.stringify(legacy)});
+      assert.deepEqual(state.getState(), {
+        ...${JSON.stringify(legacy)},
+        settledRoundIds: [],
+        faillites: 0,
+      });
       assert.equal(writes, 0);
     `, { saved: JSON.stringify(legacy) });
   });

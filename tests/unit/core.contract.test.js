@@ -59,6 +59,8 @@ test('getState returns the documented state shape', () => {
   assert.equal(typeof state.level, 'number');
   assert.ok(Array.isArray(state.unlockedGames));
   assert.ok(Array.isArray(state.history));
+  assert.ok(Array.isArray(state.settledRoundIds));
+  assert.equal(typeof state.faillites, 'number');
   assert.equal(typeof state.role, 'string');
 });
 
