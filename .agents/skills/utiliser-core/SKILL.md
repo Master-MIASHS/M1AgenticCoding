@@ -105,6 +105,8 @@ try {
 - Seul `setGameConfig(gameId, config)` permet une écriture, après contrôle du rôle
   admin dans le Core. Une section fournie remplace cette section ; une section
   omise reste inchangée. Une erreur de validation laisse la configuration intacte.
+  La configuration est enregistrée hors de la partie du joueur (`casino_config_jeux`,
+  #350) : elle survit au rechargement et n’est pas dans `exportSave()`.
 - Ces réglages de jeux sont encore **en mémoire** : ils ne sont ni persistés au
   rechargement ni inclus dans `exportSave()`. Ne pas les confondre avec les
   réglages persistants du capital et des événements bonus.
