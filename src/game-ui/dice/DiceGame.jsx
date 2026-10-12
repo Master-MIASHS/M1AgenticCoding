@@ -6,17 +6,23 @@ import './dice.css';
 // Délai entre deux lancers affichés. La révélation est rythmée par une minuterie, comme la roue
 // et le plinko, pour ne jamais rester bloquée si la page n'est pas dessinée.
 const ROLL_MS = 700;
+// Faces Unicode d'un dé (index = valeur de 1 à 6) : simple traduction visuelle.
+const FACES = [null, '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+const isPair = (pair) =>
+  Array.isArray(pair) && pair.length === 2 && pair.every((v) => Number.isInteger(v) && v >= 1 && v <= 6);
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // status : "playing" (prêt à jouer) | "loading" | "terminal" | "error"
 // start(bets) : bets est toujours un tableau [{ type: 'pass', amount }] (contrat G2 § 2.1)
 // renderResult(gameResult, bet) : gain affiché = bet × gameResult.multiplier
-// Déroulé lu dans gameResult.details = { rolls, point } (forme demandée au G2 dans #159) :
-// l'UI affiche les totaux fournis, elle ne lance rien et ne décide rien.
+// Déroulé lu dans gameResult.details = { point, rolls, dice } (règles finales #342) : dice =
+// faces des deux dés de chaque lancer, rolls = totaux. L'UI affiche ce qui est fourni (deux dés
+// si les faces sont là, sinon le total seul), elle ne lance rien et ne décide rien.
 export default function DiceGame({ balance, start = mockStart, renderResult }) {
   const [status, setStatus] = useState('playing');
   const [rolls, setRolls] = useState([]);
+  const [faces, setFaces] = useState([]);
   const [point, setPoint] = useState(null);
   const [shown, setShown] = useState(0);
   const [gameResult, setGameResult] = useState(null);
@@ -34,6 +40,7 @@ export default function DiceGame({ balance, start = mockStart, renderResult }) {
       const details = res.gameResult?.details ?? {};
       const nextRolls = Array.isArray(details.rolls) ? details.rolls : [];
       setRolls(nextRolls);
+      setFaces(Array.isArray(details.dice) ? details.dice : []);
       setPoint(Number.isInteger(details.point) ? details.point : null);
       setGameResult(res.gameResult ?? null);
       if (nextRolls.length > 1 && !prefersReducedMotion()) {
@@ -72,7 +79,15 @@ export default function DiceGame({ balance, start = mockStart, renderResult }) {
           rolls.slice(0, shown).map((total, index) => (
             <div key={index} className="dice__step">
               <span className="dice__label">{index === 0 ? 'Lancer de sortie' : `Lancer ${index + 1}`}</span>
-              <div className="dice__roll">{total}</div>
+              {isPair(faces[index]) ? (
+                <div className="dice__pair" aria-label={`${faces[index][0]} et ${faces[index][1]}, total ${total}`}>
+                  <span className="dice__face">{FACES[faces[index][0]]}</span>
+                  <span className="dice__face">{FACES[faces[index][1]]}</span>
+                  <span className="dice__sum">{total}</span>
+                </div>
+              ) : (
+                <div className="dice__roll">{total}</div>
+              )}
             </div>
           ))}
         {!loading && rolls.length === 0 && <div className="dice__roll dice__roll--empty">?</div>}
