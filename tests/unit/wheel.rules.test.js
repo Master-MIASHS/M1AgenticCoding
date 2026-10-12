@@ -41,11 +41,11 @@ const PAYTABLE = {
  * to know it, and requiring it would force an identity rule against the Core's
  * `raw`.
  *
- * @param {Record<string, object>} [bets]
+ * @param {Record<string, object>} [paytable]
  * @returns {object}
  */
-function makeConfig(bets = PAYTABLE) {
-  return { bets };
+function makeConfig(paytable = PAYTABLE) {
+  return { paytable };
 }
 
 /**
@@ -253,7 +253,7 @@ describe('wheel resolve - invalid input', () => {
   it('refuses to settle without a paytable even if a layout is supplied', () => {
     assert.throws(
       () => resolve(SEGMENTS[0], { bets: makeBets(), config: { segments: SEGMENTS } }),
-      /config\.bets/
+      /config\.paytable/
     );
   });
 });

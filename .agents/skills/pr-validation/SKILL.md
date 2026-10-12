@@ -26,7 +26,7 @@ Avant de demander une relecture ou d'approuver une PR, assure-toi que tous les p
 
 ### 4. 🌿 Stratégie Git
 - [ ] La branche cible est `main` (et est à jour avec `main`).
-- [ ] Le nom de la branche respecte la convention : `Groupe-<numéro>-<description>` (ex: `Groupe-2-poker-rules`).
+- [ ] Le nom de la branche respecte la convention définie dans `git-governance`.
 - [ ] Le titre et la description de la PR expliquent clairement le besoin et lient l'issue correspondante (`Fixes #<issue>`).
 
 ---

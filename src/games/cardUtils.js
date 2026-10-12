@@ -315,6 +315,94 @@ export function evaluatePokerHand(hand) {
 }
 
 /**
+ * Compares two poker evaluations using the category and tiebreaker ordering
+ * defined by evaluatePokerHand.
+ *
+ * @param {PokerEvaluation} first - first hand evaluation.
+ * @param {PokerEvaluation} second - second hand evaluation.
+ * @returns {number} 1 if the first hand wins, -1 if the second wins, or 0 for a tie.
+ * @throws {TypeError} when either value is not a valid poker evaluation.
+ */
+export function comparePokerHands(first, second) {
+  const tiebreakerCounts = [0, 5, 4, 3, 3, 1, 5, 2, 2, 1, 1];
+  for (const evaluation of [first, second]) {
+    if (
+      typeof evaluation !== 'object' ||
+      evaluation === null ||
+      !Number.isInteger(evaluation.category) ||
+      evaluation.category < 1 ||
+      evaluation.category > 10 ||
+      !Array.isArray(evaluation.tiebreakers) ||
+      evaluation.tiebreakers.length !== tiebreakerCounts[evaluation.category] ||
+      evaluation.tiebreakers.some((rank) => !Number.isInteger(rank) || rank < 2 || rank > 14)
+    ) {
+      throw new TypeError('cardUtils: poker hands must be valid poker evaluations');
+    }
+  }
+  if (
+    (first.category === 10 && first.tiebreakers[0] !== 14) ||
+    (second.category === 10 && second.tiebreakers[0] !== 14)
+  ) {
+    throw new TypeError('cardUtils: a royal flush must have an ace-high tiebreaker');
+  }
+
+  if (first.category !== second.category) {
+    return first.category > second.category ? 1 : -1;
+  }
+
+  const length = Math.max(first.tiebreakers.length, second.tiebreakers.length);
+  for (let i = 0; i < length; i += 1) {
+    const firstRank = first.tiebreakers[i] ?? 0;
+    const secondRank = second.tiebreakers[i] ?? 0;
+    if (firstRank !== secondRank) {
+      return firstRank > secondRank ? 1 : -1;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Evaluates the strongest five-card poker hand available from five to seven
+ * distinct cards.
+ *
+ * @param {Card[]} hand - five to seven cards.
+ * @returns {PokerEvaluation} evaluation of the best five-card combination.
+ * @throws {TypeError} when the hand has an invalid size or invalid/duplicate cards.
+ */
+export function bestPokerHand(hand) {
+  assertValidHand(hand);
+  if (hand.length < 5 || hand.length > 7) {
+    throw new TypeError('cardUtils: best poker hand expects five to seven cards');
+  }
+
+  const seen = new Set();
+  for (const card of hand) {
+    const key = `${card.rank}:${card.suit}`;
+    if (seen.has(key)) {
+      throw new TypeError(`cardUtils: duplicated card ${key}`);
+    }
+    seen.add(key);
+  }
+
+  let best = null;
+  for (let a = 0; a < hand.length - 4; a += 1) {
+    for (let b = a + 1; b < hand.length - 3; b += 1) {
+      for (let c = b + 1; c < hand.length - 2; c += 1) {
+        for (let d = c + 1; d < hand.length - 1; d += 1) {
+          for (let e = d + 1; e < hand.length; e += 1) {
+            const evaluation = evaluatePokerHand([hand[a], hand[b], hand[c], hand[d], hand[e]]);
+            if (best === null || comparePokerHands(evaluation, best) > 0) {
+              best = evaluation;
+            }
+          }
+        }
+      }
+    }
+  }
+  return best;
+}
+
+/**
  * Detects an opening pair eligible for a split (blackjack context).
  *
  * The hand must contain EXACTLY two cards; anything else is a programming

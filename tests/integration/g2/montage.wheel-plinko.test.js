@@ -18,32 +18,35 @@ import assert from 'node:assert/strict';
 import * as coreService from '../../../src/services/coreService.js';
 import { createGame } from '../../../src/games/_template/createGame.js';
 import * as wheelRules from '../../../src/games/wheel/rules.js';
+import { drawWheel } from '../../../src/games/wheel/draw.js';
 import * as plinkoRules from '../../../src/games/plinko/rules.js';
+import { drawPlinko } from '../../../src/games/plinko/draw.js';
 import { makeFixtureDraw } from '../../fixtures/g2/rolls.js';
 
-// Solde du mock d'état G1 (src/core/state.js) au moment de l'écriture.
-const START_BALANCE = coreService.getState().balance;
-
-// Configurations de test : la forme est celle proposée par les règles
-// (§ 6 encore ouvert), les valeurs sont arbitraires et propres au test.
+// Configurations de test : la forme est celle validée par #122/#256
+// (`paytable` + `segments`), les valeurs sont arbitraires et propres au test.
 const WHEEL_CONFIG = {
-  bets: {
+  paytable: {
     red: { match: { color: 'red' }, multiplier: 2 },
     blue: { match: { color: 'blue' }, multiplier: 3 },
   },
 };
 const PLINKO_CONFIG = { paytable: [0, 0.5, 1, 2, 5] };
 
-/** Core de test : vrai mock coreService, roll() remplacé, play() espionné. */
+/**
+ * Core de test : vrai mock coreService, roll() remplacé, play() espionné.
+ * play() est persistant (#131, #218) : chaque appel note le solde juste avant
+ * le règlement (`balanceBefore`), et les tests vérifient le gain par différence.
+ */
 function makeTestCore(draws) {
   const fixture = makeFixtureDraw(draws);
   const playCalls = [];
   const core = {
     ...coreService,
     roll: fixture.roll,
-    play: (gameId, bet, gameResult) => {
-      playCalls.push({ gameId, bet, gameResult });
-      return coreService.play(gameId, bet, gameResult);
+    play: (gameId, bet, gameResult, options) => {
+      playCalls.push({ gameId, bet, gameResult, options, balanceBefore: coreService.getState().balance });
+      return coreService.play(gameId, bet, gameResult, options);
     },
   };
   return { core, rollCalls: fixture.calls, playCalls };
@@ -64,7 +67,7 @@ describe('G2 - montage wheel (#26) : orchestrateur + règles + Core', () => {
     assert.deepEqual(res.renderPayload.raw, segment, 'G3 reçoit le segment tiré pour l\'animation');
     assert.equal(playCalls.length, 1);
     assert.equal(playCalls[0].bet, 10);
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 10);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore + 10);
   });
 
   test('mises multiples (option A, #73) : un seul play(), mise totale et multiplicateur agrégé', () => {
@@ -82,30 +85,37 @@ describe('G2 - montage wheel (#26) : orchestrateur + règles + Core', () => {
     assert.equal(res.gameResult.outcome, 'win');
     assert.ok(Math.abs(res.gameResult.multiplier - 20 / 15) < 1e-12);
     assert.equal(res.gameResult.details.bets.length, 2, 'détail par mise dans details');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 5);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore + 5);
   });
 
-  test('écart 8 (levé) : le VRAI Core tire un segment via draw + tirageAvecPoids (#141, #115)', () => {
-    // Disposition de roue propre au test : le draw définitif de la roue
-    // appartient à @camseveyrat et suivra la forme de config de #122.
-    const segments = [
-      { id: 's1', color: 'red' },
-      { id: 's2', color: 'blue' },
-    ];
+  test('écart 8 (levé) : le VRAI draw tire un segment via tirageAvecPoids (#141, #115, #256)', () => {
+    // Disposition de roue propre au test, forme de config de #122/#256 : le
+    // draw produit le segment, les règles le règlent, le Core encaisse.
+    const WHEEL_DRAW_CONFIG = {
+      ...WHEEL_CONFIG,
+      segments: [
+        { id: 's1', color: 'red', weight: 1 },
+        { id: 's2', color: 'blue', weight: 1 },
+      ],
+    };
     const game = createGame({
       id: 'wheel',
       rules: wheelRules,
-      config: WHEEL_CONFIG,
-      draw: (core) => core.tirageAvecPoids(segments, [1, 1]),
+      config: WHEEL_DRAW_CONFIG,
+      draw: drawWheel,
     });
 
     // Vrai hasard du Core : on vérifie des invariants, jamais un tirage précis.
     for (let i = 0; i < 20; i += 1) {
+      const balanceBefore = coreService.getState().balance;
       const res = game.start([{ type: 'red', amount: 10 }]);
-      assert.ok(segments.includes(res.renderPayload.raw), 'le brut est un des segments');
+      assert.ok(
+        WHEEL_DRAW_CONFIG.segments.includes(res.renderPayload.raw),
+        'le brut est un des segments',
+      );
       const won = res.renderPayload.raw.color === 'red';
       assert.equal(res.gameResult.outcome, won ? 'win' : 'loss');
-      assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + (won ? 10 : -10));
+      assert.equal(res.renderPayload.economy.newBalance, balanceBefore + (won ? 10 : -10));
     }
   });
 });
@@ -126,17 +136,42 @@ describe('G2 - montage plinko (#26) : orchestrateur + règles + Core', () => {
       assert.equal(res.gameResult.outcome, outcome);
       assert.equal(res.gameResult.details.slot, slot);
       assert.equal(playCalls[0].bet, 10);
-      assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + delta);
+      assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore + delta);
     });
   }
 
   test('écart 9 (résolu, #135) : un multiplicateur fractionnaire se règle sans erreur', () => {
     // Mise 1 sur la case 1 (x0,5) : les règles disent `loss` (multiplier < 1),
     // ce que le Core accepte ; 0,5 jeton reversé, arrondi au centième (#135).
-    const { core } = makeTestCore([1]);
+    const { core, playCalls } = makeTestCore([1]);
     const game = createGame({ id: 'plinko', rules: plinkoRules, config: PLINKO_CONFIG, core });
     const res = game.start([{ type: 'slot', amount: 1 }]);
     assert.equal(res.gameResult.outcome, 'loss');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE - 0.5);
+    assert.equal(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore - 0.5);
+  });
+
+  test('le VRAI draw tire un index via tirageAvecPoids (#141, #115, #256)', () => {
+    // Forme de config de #122/#256 : `paytable` (multiplicateurs) et `weights`
+    // parallèles de même longueur. Le draw produit l'index de la case.
+    const PLINKO_DRAW_CONFIG = {
+      paytable: [0, 0.5, 1, 2, 5],
+      weights: [1, 1, 1, 1, 1],
+    };
+    const game = createGame({
+      id: 'plinko',
+      rules: plinkoRules,
+      config: PLINKO_DRAW_CONFIG,
+      draw: drawPlinko,
+    });
+
+    // Vrai hasard du Core : on vérifie des invariants, jamais un tirage précis.
+    for (let i = 0; i < 20; i += 1) {
+      const res = game.start([{ type: 'slot', amount: 1 }]);
+      assert.ok(
+        Number.isInteger(res.renderPayload.raw) && res.renderPayload.raw >= 0,
+        'le brut est l\'index de la case tirée',
+      );
+      assert.ok(res.renderPayload.raw < PLINKO_DRAW_CONFIG.paytable.length);
+    }
   });
 });

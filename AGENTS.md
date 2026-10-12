@@ -203,6 +203,7 @@ Les skills sont dans le dossier `.agents/skills/` . N'ouvre une skill **que** si
 | `test-coverage-report` | Bilan de couverture de tests par groupe avant une release (G5) |
 | `skills-structure-validator` | Valider l'arborescence et le frontmatter des skills lors d'une PR de skill (G5) |
 | `pr-validation` | Valider une PR selon les critères du projet |
+| `pr-validation` | Valider une PR selon les critères du projet |
 <!-- G5 : ajouter une ligne à chaque skill mergée -->
 
 Si une skill nécessaire n'existe pas, ne l'invente pas en cours de tâche : signale le manque dans la PR.

@@ -33,9 +33,9 @@ function makeRecordingCore(drawValues) {
       log.push('roll');
       return { gameId, value, nonce: i };
     },
-    play(gameId, bets, gameResult) {
+    play(gameId, bets, gameResult, options) {
       log.push('play');
-      playCalls.push({ gameId, bets, gameResult });
+      playCalls.push({ gameId, bets, gameResult, options });
       return { newBalance: 0, xpGained: 1, leveledUp: false };
     },
   };
@@ -522,6 +522,107 @@ test('a non-numeric balance is rejected instead of silently disabling the check'
   const game = createGame({ id: 'mock-single', rules: singleStepRules, core });
   assert.throws(() => game.start({ type: 'red', amount: 1 }), /finite number/);
   assert.deepEqual(core.log, [], 'no draw, no settlement');
+});
+
+// --- roundId: one identifier per round, handed to play() (#218) -------------
+
+/** Deterministic roundId factory, so that tests can follow each round. */
+function makeCountingRoundIds() {
+  let n = 0;
+  const factory = () => {
+    n += 1;
+    return `round-${n}`;
+  };
+  return { factory, count: () => n };
+}
+
+test('play() receives the roundId of the round as { roundId }', () => {
+  const core = makeRecordingCore([0.1]);
+  const ids = makeCountingRoundIds();
+  createGame({ id: 'mock-single', rules: singleStepRules, core, makeRoundId: ids.factory }).start({
+    type: 'red',
+    amount: 10,
+  });
+  assert.deepEqual(core.playCalls[0].options, { roundId: 'round-1' });
+});
+
+test('a multi-step round keeps the SAME roundId from start() to the settlement', () => {
+  const core = makeRecordingCore([0.2, 0.3, 0.2, 0.3]);
+  const ids = makeCountingRoundIds();
+  const game = createGame({ id: 'mock-multi', rules: multiStepRules, core, makeRoundId: ids.factory });
+
+  const first = game.start([{ type: 'main', amount: 20 }]);
+  const second = game.start([{ type: 'main', amount: 20 }]);
+  assert.equal(ids.count(), 2, 'one roundId per round, created by start()');
+
+  game.action(second.sessionId, 'draw');
+  game.action(first.sessionId, 'draw');
+  assert.deepEqual(
+    core.playCalls.map((call) => call.options.roundId),
+    ['round-2', 'round-1'],
+    'each round is settled with its own roundId'
+  );
+  assert.equal(ids.count(), 2, 'actions never create a new roundId');
+});
+
+test('if play() fails, the round is kept and a retry is settled with the same roundId', () => {
+  const core = makeRecordingCore([0.2, 0.3, 0.3]);
+  let failures = 1;
+  const failingOnce = {
+    ...core,
+    play(...args) {
+      if (failures > 0) {
+        failures -= 1;
+        throw new Error('persistence failed');
+      }
+      return core.play(...args);
+    },
+  };
+  const ids = makeCountingRoundIds();
+  const game = createGame({
+    id: 'mock-multi',
+    rules: multiStepRules,
+    core: failingOnce,
+    makeRoundId: ids.factory,
+  });
+  const { sessionId } = game.start([{ type: 'main', amount: 20 }]);
+
+  assert.throws(() => game.action(sessionId, 'draw'), /persistence failed/);
+  const end = game.action(sessionId, 'draw');
+
+  assert.equal(end.terminal, true);
+  assert.equal(core.playCalls.length, 1, 'settled once');
+  assert.deepEqual(core.playCalls[0].options, { roundId: 'round-1' });
+  assert.throws(() => game.action(sessionId, 'draw'), /unknown or finished session/);
+});
+
+test('makeRoundId must be a function returning a non-empty string', () => {
+  assert.throws(
+    () => createGame({ id: 'mock-single', rules: singleStepRules, makeRoundId: 'id' }),
+    TypeError
+  );
+  const core = makeRecordingCore([0.1]);
+  const game = createGame({ id: 'mock-single', rules: singleStepRules, core, makeRoundId: () => '' });
+  assert.throws(() => game.start({ type: 'red', amount: 1 }), /non-empty string/);
+  assert.deepEqual(core.log, [], 'no draw, no settlement');
+});
+
+test('the default roundId is unique, prefixed by the game id, and never uses Math.random()', () => {
+  const originalRandom = Math.random;
+  Math.random = () => {
+    throw new Error('Math.random() is forbidden (rule 2)');
+  };
+  try {
+    const core = makeRecordingCore([0.1]);
+    const game = createGame({ id: 'mock-single', rules: singleStepRules, core });
+    game.start({ type: 'red', amount: 1 });
+    game.start({ type: 'red', amount: 1 });
+    const [a, b] = core.playCalls.map((call) => call.options.roundId);
+    assert.match(a, /^mock-single-[0-9a-f-]{32,36}$/);
+    assert.notEqual(a, b);
+  } finally {
+    Math.random = originalRandom;
+  }
 });
 
 test('config stays undefined when not provided (no default value invented)', () => {

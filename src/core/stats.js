@@ -9,6 +9,7 @@
 //  * Conception détaillée : docs/design/statistiques.md
 // ---------------------------------------------------------------------------
 
+import { estAjustementAdmin } from './admin.js';
 import { getState } from './state.js';
 
 /**
@@ -52,7 +53,7 @@ function validerPartie(partie, index) {
  * Calcule les statistiques d'un historique de parties.
  *
  * @param {Array<{ gameId: string, bet: number, payout: number }>} historique -
- *   Entrées d'historique (les autres champs sont ignorés).
+ *   Entrées d'historique (autres champs et ajustements de l'admin ignorés).
  * @returns {{ totalPlays: number, totalWagered: number, totalWon: number,
  *   activePlayers: number,
  *   byGame: Object<string, { plays: number, wagered: number, won: number }>,
@@ -66,13 +67,16 @@ export function calculerStatistiques(historique) {
   if (!Array.isArray(historique)) {
     throw new Error("stats : l'historique doit être un tableau");
   }
-  historique.forEach(validerPartie);
+  // Les ajustements de l'admin (#322) partagent l'historique mais ne sont
+  // pas des parties.
+  const parties = historique.filter((entree) => !estAjustementAdmin(entree));
+  parties.forEach(validerPartie);
   let totalWagered = 0;
   let totalWon = 0;
   // Une Map, et non un objet {} : un gameId venu d'une sauvegarde importée
   // (« __proto__ », « constructor »…) ne doit jamais toucher aux prototypes.
   const parJeu = new Map();
-  for (const partie of historique) {
+  for (const partie of parties) {
     totalWagered += partie.bet;
     totalWon += partie.payout;
     const jeu = parJeu.get(partie.gameId) ?? { plays: 0, wagered: 0, won: 0 };
@@ -92,12 +96,12 @@ export function calculerStatistiques(historique) {
     (a, b) => parJeu.get(b).plays - parJeu.get(a).plays || a.localeCompare(b),
   );
   return {
-    totalPlays: historique.length,
+    totalPlays: parties.length,
     totalWagered: arrondirAuCentime(totalWagered),
     totalWon: arrondirAuCentime(totalWon),
     // Un seul profil aujourd'hui : 1 joueur actif dès qu'une partie existe
     // (avec les profils multiples, n°5 : nombre de profils ayant joué).
-    activePlayers: historique.length > 0 ? 1 : 0,
+    activePlayers: parties.length > 0 ? 1 : 0,
     byGame,
     mostPlayed,
   };

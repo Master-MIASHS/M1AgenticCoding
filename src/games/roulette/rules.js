@@ -20,13 +20,19 @@
 // is NOT modelled here. G1 owns the randomness, G3 owns the animation. This
 // module only settles, betting type by betting type against the `match` list
 // the admin configured.
+//
+// COLOUR (décision #191, actée le 09/10 sur la discussion #8) : `details.color`
+// is DERIVED from the admin config, never hardcoded. A number belongs to a
+// colour when it is in the `match` list of the `red` / `black` bet types the
+// admin configured; 0 is `green`; anything else (an admin layout without
+// red/black lists) stays `null`. G3 reads `renderPayload.interpretation.color`.
 // ---------------------------------------------------------------------------
 
 /**
  * A bet placed on a roulette spin.
  *
  * @typedef {object} Bet
- * @property {string} type - bet type, must be a key of `config.bets`.
+ * @property {string} type - bet type, must be a key of `config.paytable`.
  * @property {number} amount - staked chips, a positive number.
  */
 
@@ -103,12 +109,35 @@ function outcomeFor(multiplier) {
 }
 
 /**
+ * Derives the colour of a drawn number from the admin config.
+ *
+ * Décision #191 : never hardcoded. A number is red when it is in the `match`
+ * list of the configured `red` bet, black for the `black` bet, green for 0.
+ * When the admin layout exposes no red/black lists (or the number is in
+ * neither), the colour is `null`: G3 renders the number without a colour
+ * rather than the rules inventing one (AGENTS.md rule 10).
+ *
+ * @param {number} raw - the drawn number (0..36).
+ * @param {RouletteConfig} config - must provide `paytable`, the paytable.
+ * @returns {'red' | 'black' | 'green' | null}
+ */
+function colorFor(raw, config) {
+  const paytable = config?.paytable ?? {};
+  const red = paytable.red?.match;
+  const black = paytable.black?.match;
+  if (Array.isArray(red) && red.includes(raw)) return 'red';
+  if (Array.isArray(black) && black.includes(raw)) return 'black';
+  if (raw === 0) return 'green';
+  return null;
+}
+
+/**
  * Settles one roulette spin for every placed bet.
  *
  * @param {number} raw - the number drawn by the Core (0..36).
  * @param {object} [options]
  * @param {Bet[]} [options.bets] - always an array, even for a single bet.
- * @param {RouletteConfig} [options.config] - must provide `bets`, the paytable.
+ * @param {RouletteConfig} [options.config] - must provide `paytable`, the paytable.
  * @returns {{ outcome: 'win' | 'loss' | 'push', multiplier: number, details: object }}
  * @throws {Error} when the draw, the bets or the config are unusable.
  */
@@ -132,11 +161,11 @@ export function resolve(raw, { bets, config } = {}) {
   if (typeof config !== 'object' || config === null) {
     throw new Error('roulette: config is required. The paytable is admin data and must never be hardcoded.');
   }
-  if (typeof config.bets !== 'object' || config.bets === null) {
-    throw new Error('roulette: config.bets (the paytable) is required');
+  if (typeof config.paytable !== 'object' || config.paytable === null) {
+    throw new Error('roulette: config.paytable (the paytable) is required');
   }
 
-  const paytable = config.bets;
+  const paytable = config.paytable;
 
   const settledBets = bets.map((bet) => {
     const rule = paytable[bet.type];
@@ -170,6 +199,7 @@ export function resolve(raw, { bets, config } = {}) {
     multiplier,
     details: {
       raw,
+      color: colorFor(raw, config),
       bets: settledBets,
       totalBet,
       payout,

@@ -17,6 +17,9 @@ Props :
 - `category` : catégorie affichée en petit (facultatif).
 - `locked` : le jeu est verrouillé. **Le composant ne décide pas du
   verrouillage** : la page le calcule (niveau du joueur, jeux débloqués).
+- `comingSoon` : le jeu est débloqué mais n'a pas encore d'écran. La carte affiche un
+  bouton désactivé « Bientôt ». Une carte verrouillée reste verrouillée (`locked` est
+  prioritaire) ; `href` et `onSelect` sont ignorés.
 - `unlockLevel` : niveau requis, affiché quand le jeu est verrouillé.
 - `href` : lien vers le jeu, fourni par l'appelant. Le composant ne construit
   aucune URL, le choix de la bibliothèque de routage n'étant pas tranché.
