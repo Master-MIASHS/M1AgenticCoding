@@ -2,9 +2,10 @@
 // Tests d'intégration G2 - montage des VRAIES règles du baccarat (#220)
 // sur l'orchestrateur et le vrai mock du Core (issue #68)
 // ---------------------------------------------------------------------------
-// Chaîne testée : start(bets) -> draw(core) = melanger(buildDeck(1)).slice(0,6)
+// Chaîne testée : start(bets) -> draw(core) = melanger(buildDeck(deckCount)).slice(0,6)
 // -> rules.resolve() -> gameResult -> coreService.play() (vrai mock G1) ->
-// réponse pour G3.
+// réponse pour G3. La taille du sabot vient de config.deckCount (règle 4),
+// 1 paquet par défaut.
 //
 // melanger() est remplacé par un mélange contrôlé (les cartes voulues en tête
 // du paquet, le reste ensuite), pour obtenir des mains connues. Tout le reste
@@ -184,7 +185,7 @@ describe('montage baccarat - mains connues (mélange contrôlé)', () => {
     assert.strictEqual(res.renderPayload.economy.newBalance, playCalls[0].balanceBefore);
   });
 
-  it('G3 reçoit les cartes distribuées, jamais le paquet entier', () => {
+  it('G3 reçoit une view (§ 5.2), jamais le paquet entier ni le draw', () => {
     const dealt = [
       card('3', 'hearts'),
       card('A', 'spades'),
@@ -198,14 +199,64 @@ describe('montage baccarat - mains connues (mélange contrôlé)', () => {
 
     const res = game.start(BET_PLAYER);
 
-    assert.deepStrictEqual(res.renderPayload.raw, dealt);
-    assert.strictEqual(
-      res.renderPayload.raw.length,
-      6,
-      'seules les cartes de la manche sont envoyées'
-    );
-    assert.deepStrictEqual(res.renderPayload.interpretation, res.gameResult.details);
-    assert.ok(!('view' in res.renderPayload));
+    const view = res.renderPayload.view;
+    assert.ok(view, 'la view est exposée pour les jeux de cartes');
+    assert.strictEqual(view.phase, 'result');
+    assert.deepStrictEqual(view.playerHand, [card('3', 'hearts'), card('3', 'diamonds')]);
+    assert.deepStrictEqual(view.bankerHand, [
+      card('A', 'spades'),
+      card('K', 'clubs'),
+      card('2', 'hearts'),
+    ]);
+    assert.strictEqual(view.playerTotal, 6);
+    assert.strictEqual(view.bankerTotal, 2);
+    assert.strictEqual(view.winner, 'player');
+    assert.strictEqual(view.outcome, 'win');
+    assert.ok(!('raw' in res.renderPayload), 'raw jamais exposé à G3');
+    assert.ok(!('interpretation' in res.renderPayload), 'details jamais exposés à G3');
+  });
+
+  it('config.deckCount pilote la taille du sabot (règle 4)', () => {
+    const { core, shuffleCalls } = makeTestCore([
+      card('3', 'hearts'),
+      card('A', 'spades'),
+      card('3', 'diamonds'),
+      card('K', 'clubs'),
+      card('2', 'hearts'),
+      card('7', 'clubs'),
+    ]);
+    const game = createGame({
+      id: 'baccarat',
+      rules: baccaratRules,
+      config: { paytable: CONFIG.paytable, deckCount: 6 },
+      core,
+      draw: drawBaccarat,
+    });
+
+    game.start(BET_PLAYER);
+
+    assert.strictEqual(shuffleCalls[0], 6 * 52, '6 paquets passent au Core');
+  });
+
+  it('rejette un config.deckCount invalide', () => {
+    for (const deckCount of [0, -1, 1.5, '6']) {
+      const { core } = makeTestCore([
+        card('3', 'hearts'),
+        card('A', 'spades'),
+        card('3', 'diamonds'),
+        card('K', 'clubs'),
+        card('2', 'hearts'),
+        card('7', 'clubs'),
+      ]);
+      const game = createGame({
+        id: 'baccarat',
+        rules: baccaratRules,
+        config: { paytable: CONFIG.paytable, deckCount },
+        core,
+        draw: drawBaccarat,
+      });
+      assert.throws(() => game.start(BET_PLAYER), TypeError, `deckCount=${deckCount}`);
+    }
   });
 });
 
@@ -221,10 +272,14 @@ describe('montage baccarat - vrai Core sur 30 manches', () => {
       const { gameResult } = res;
 
       assert.strictEqual(playCalls.length, callsBefore + 1, `manche ${round}: un seul play()`);
-      assert.strictEqual(res.renderPayload.raw.length, 6);
+      assert.ok(res.renderPayload.view, `manche ${round}: view exposée à G3`);
+      assert.strictEqual(res.renderPayload.view.phase, 'result');
       assert.ok(
-        res.renderPayload.raw.every((c) => typeof c.rank === 'string' && typeof c.suit === 'string')
+        res.renderPayload.view.playerHand.every(
+          (c) => typeof c.rank === 'string' && typeof c.suit === 'string'
+        )
       );
+      assert.ok(!('raw' in res.renderPayload), `manche ${round}: raw jamais exposé à G3`);
 
       const { winner } = gameResult.details;
       const expected = winner === 'player' ? 2 : winner === 'tie' ? 1 : 0;

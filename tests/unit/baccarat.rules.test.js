@@ -380,9 +380,70 @@ describe('resolve - edge cases of ticket #220', () => {
   });
 });
 
+describe('view - what G3 may display (contract G2 section 5.2)', () => {
+  const RAW = [card('4', 'hearts'), card('3', 'spades'), card('4', 'diamonds'), card('2', 'clubs')];
+
+  it('describes the settled round from the gameResult only', () => {
+    const result = resolveRound(RAW);
+    const view = rules.view({ phase: 'result', raw: RAW.slice(), session: {}, gameResult: result });
+
+    assert.deepStrictEqual(view, {
+      phase: 'result',
+      playerHand: [card('4', 'hearts'), card('4', 'diamonds')],
+      bankerHand: [card('3', 'spades'), card('2', 'clubs')],
+      playerTotal: 8,
+      bankerTotal: 5,
+      natural: true,
+      winner: 'player',
+      outcome: 'win',
+      bets: [{ type: 'player', amount: 10, won: true, multiplier: 2, payout: 20 }],
+      totalBet: 10,
+      payout: 20,
+    });
+  });
+
+  it('never leaks the raw draw nor the shoe', () => {
+    const view = rules.view({
+      phase: 'result',
+      raw: RAW.slice(),
+      session: {},
+      gameResult: resolveRound(RAW),
+    });
+    assert.deepStrictEqual(Object.keys(view).sort(), [
+      'bankerHand',
+      'bankerTotal',
+      'bets',
+      'natural',
+      'outcome',
+      'payout',
+      'phase',
+      'playerHand',
+      'playerTotal',
+      'totalBet',
+      'winner',
+    ]);
+    assert.ok(!('raw' in view));
+    assert.ok(!('details' in view));
+  });
+
+  it('returns copies so G3 cannot mutate the settled result', () => {
+    const result = resolveRound(RAW);
+    const view = rules.view({ phase: 'result', gameResult: result });
+    view.playerHand[0].rank = 'X';
+    view.bets[0].amount = 999;
+    assert.strictEqual(result.details.playerHand[0].rank, '4');
+    assert.strictEqual(result.details.bets[0].amount, 10);
+  });
+
+  it('rejects a call without a settled gameResult', () => {
+    assert.throws(() => rules.view({ phase: 'result' }), TypeError);
+    assert.throws(() => rules.view({ phase: 'result', gameResult: null }), TypeError);
+  });
+});
+
 describe('module contract', () => {
-  it('exports exactly resolve', () => {
-    assert.deepStrictEqual(Object.keys(rules).sort(), ['resolve']);
+  it('exports exactly resolve and view', () => {
+    assert.deepStrictEqual(Object.keys(rules).sort(), ['resolve', 'view']);
   });
 
   it('has no randomness and no Core import (only cardUtils.js and deck.js)', () => {
