@@ -1,13 +1,13 @@
 // ---------------------------------------------------------------------------
 // Core - Games configuration
 // ---------------------------------------------------------------------------
-// Defines the 10 games and their unlock level, plus (mock) runtime config
+// Defines the 13 games and their unlock level, plus (mock) runtime config
 // management and global stats.
 // ---------------------------------------------------------------------------
 
 /**
- * Canonical list of the 10 games and the player level required to unlock
- * each one.
+ * Canonical list of the 13 games of AGENTS.md and the player level required
+ * to unlock each one (memory, quiz and bingo added in #318).
  */
 export const GAMES = {
   slots: { id: 'slots', name: 'Slots', unlockLevel: 1 },
@@ -19,6 +19,9 @@ export const GAMES = {
   baccarat: { id: 'baccarat', name: 'Baccarat', unlockLevel: 6 },
   plinko: { id: 'plinko', name: 'Plinko', unlockLevel: 7 },
   'video-poker': { id: 'video-poker', name: 'Video Poker', unlockLevel: 8 },
+  memory: { id: 'memory', name: 'Memory', unlockLevel: 8 },
+  quiz: { id: 'quiz', name: 'Quiz', unlockLevel: 9 },
+  bingo: { id: 'bingo', name: 'Bingo', unlockLevel: 10 },
   poker: { id: 'poker', name: 'Poker', unlockLevel: 12 },
 };
 

@@ -33,3 +33,17 @@ Vérifications : suite entière Node, lint et build Vite ; aucune modification U
 Base `7bd792f` : 575 tests, 572 réussis, 0 échec, 3 TODO ; lint 0 erreur et 2 avertissements préexistants ; build réussi (1135 modules).
 
 Cycle rouge/vert : 15 tests échouent sur le module initial, puis les 18 tests ciblés passent. Suite finale : 593 tests, 590 réussis, 0 échec, mêmes 3 TODO ; lint 0 erreur et mêmes 2 avertissements (`rng.js`, `games/dice/rules.js`) ; build réussi (1135 modules). Relecture indépendante : aucun retour critique ou requis. Vérifications exécutées avec le runtime Node fourni, équivalentes aux scripts npm.
+
+## Memory, Quiz et Bingo dans `GAMES` (#318)
+
+Les règles de ces trois jeux sont en PR côté G2 (#300, #302, #310), mais ils n'existaient pas dans le catalogue du Core : aucun niveau de déblocage, et `getGameConfig` refusait leur identifiant.
+
+| `id` (celui de `createGame`) | `name` | `unlockLevel` (AGENTS.md) |
+|---|---|---|
+| `memory` | Memory | 8 |
+| `quiz` | Quiz | 9 |
+| `bingo` | Bingo | 10 |
+
+- Seul le catalogue change (`{ id, name, unlockLevel }`, même forme que les autres jeux). Aucun barème n'est fixé ici (`paytable`, `botCount`) : les valeurs relèvent de l'admin ou du G5 (#318).
+- Ordre : par niveau de déblocage, comme le reste du catalogue (`video-poker` 8, `memory` 8, `quiz` 9, `bingo` 10, `poker` 12).
+- Effets : `getUnlockedGames()` les débloque aux niveaux 8, 9 et 10. `getUnlockLevels()` (#138) et `getGameConfig` les connaissent. Le registre des jeux du G4 reste à compléter de son côté (#318).
