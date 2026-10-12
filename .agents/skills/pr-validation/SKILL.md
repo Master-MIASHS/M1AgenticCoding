@@ -1,3 +1,8 @@
+---
+name: pr-validation
+description: Valider une PR selon les critères du projet
+---
+
 # Skill : Validation des Pull Requests (PR) — Groupe 5
 
 ## Description
