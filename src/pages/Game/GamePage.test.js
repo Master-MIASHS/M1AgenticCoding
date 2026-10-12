@@ -37,7 +37,7 @@ test('GamePage identifies a game from its id and handles unknown ids', async (t)
 
     await t.test('games with a Groupe 3 UI display it, in demo mode unless plugged', () => {
       for (const id of WITH_UI) {
-        const html = render({ gameId: id });
+        const html = render({ gameId: id, unlockedGames: ALL });
         assert.equal(
           html.includes('Mode démonstration'),
           !PLUGGED.includes(id),
@@ -59,7 +59,9 @@ test('GamePage identifies a game from its id and handles unknown ids', async (t)
         assert.ok(!html.includes('Mode démonstration'));
         assert.ok(!html.includes('<button'), `${id} does not mount its UI`);
       }
-      assert.ok(render({ gameId: 'slots', unlockedGames: unlocked }).includes('Mode démonstration'));
+      const slots = render({ gameId: 'slots', unlockedGames: unlocked });
+      assert.ok(!slots.includes('Jeu verrouillé'), 'an unlocked game opens');
+      assert.ok(slots.includes('<button'), 'an unlocked game mounts its UI');
     });
 
     await t.test('with an empty unlocked list every game is locked', () => {

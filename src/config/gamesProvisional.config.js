@@ -55,7 +55,7 @@ const BLACK = NUMBERS.filter((n) => n !== 0 && !RED.includes(n));
 
 const ROULETTE_CONFIG = {
   layout: { red: RED, black: BLACK, green: [0] },
-  bets: {
+  paytable: {
     red: { match: RED, multiplier: 2 },
     black: { match: BLACK, multiplier: 2 },
     even: { match: NUMBERS.filter((n) => n !== 0 && n % 2 === 0), multiplier: 2 },
