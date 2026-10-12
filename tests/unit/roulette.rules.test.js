@@ -51,8 +51,8 @@ const PAYTABLE = {
  * @param {Record<string, object>} [bets]
  * @returns {object}
  */
-function makeConfig(bets = PAYTABLE) {
-  return { bets };
+function makeConfig(paytable = PAYTABLE) {
+  return { paytable };
 }
 
 /**
@@ -176,6 +176,41 @@ describe('roulette resolve - boundaries', () => {
   });
 });
 
+describe('roulette resolve - couleur du numéro tiré (décision #191)', () => {
+  it('expose details.color = red pour un numéro de la liste red de la config', () => {
+    const result = resolve(7, { bets: makeBets('red'), config: makeConfig() });
+
+    assert.equal(result.details.color, 'red');
+  });
+
+  it('expose details.color = black pour un numéro de la liste black de la config', () => {
+    const result = resolve(17, { bets: makeBets('black'), config: makeConfig() });
+
+    assert.equal(result.details.color, 'black');
+  });
+
+  it('expose details.color = green pour le numéro 0', () => {
+    const result = resolve(0, { bets: makeBets('red'), config: makeConfig() });
+
+    assert.equal(result.details.color, 'green');
+  });
+
+  it('la couleur vient de la config, jamais d\'une table en dur', () => {
+    const paytable = { custom: { match: [7], multiplier: 2 } };
+    const result = resolve(7, { bets: makeBets('custom'), config: makeConfig(paytable) });
+
+    // Ni `red` ni `black` dans la config : la couleur est inconnue, pas inventée.
+    assert.equal(result.details.color, null);
+  });
+
+  it('dérive la couleur même quand aucune mise ne cible red/black', () => {
+    const bets = [{ type: 'straight-17', amount: 10 }];
+    const result = resolve(17, { bets, config: makeConfig() });
+
+    assert.equal(result.details.color, 'black', 'la couleur ne dépend pas des mises placées');
+  });
+});
+
 describe('roulette resolve - purity', () => {
   it('never mutates the arguments it receives', () => {
     const config = makeConfig();
@@ -278,7 +313,7 @@ describe('roulette resolve - invalid input', () => {
   it('refuses to settle without a paytable even if unrelated config is supplied', () => {
     assert.throws(
       () => resolve(17, { bets: makeBets(), config: { houseEdge: 0.027 } }),
-      /config\.bets/
+      /config\.paytable/
     );
   });
 });

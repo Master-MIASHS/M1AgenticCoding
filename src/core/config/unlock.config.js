@@ -6,14 +6,17 @@
 // de GAMES ; l'admin peut le régler jeu par jeu.
 //
 //  * Stockage injecté (comme createProgression(store)) : seuls les niveaux
-//    réglés par l'admin sont stockés. L'enregistrement dans casino_state
-//    relève du branchement (n°8).
+//    réglés par l'admin sont stockés.
+//  * Instance partagée (#314) : enregistrée sous la clé localStorage
+//    casino_config_deblocage, hors de casino_state, comme les autres
+//    réglages admin (#262) ; elle ne plante jamais au chargement (#240).
 //  * Hors périmètre : vérification du rôle admin (n°24), calcul des jeux
 //    débloqués d'un joueur (n°15), exposition dans core.js / coreService.js.
-//  * Aucun niveau maximum n'est imposé : question ouverte dans #137.
+//  * Aucun niveau maximum n'est imposé (validé par le G5 dans #138).
 // ---------------------------------------------------------------------------
 
 import { GAMES } from './games.config.js';
+import { createStockageLocal } from './stockage-local.js';
 
 /**
  * Vérifie qu'un identifiant correspond à un jeu de GAMES.
@@ -50,6 +53,19 @@ function validateLevel(level) {
  */
 function readOverrides(store) {
   const overrides = store.read();
+  validateOverrides(overrides);
+  return { ...overrides };
+}
+
+/**
+ * Vérifie un ensemble de niveaux réglés : objet { gameId: niveau }, jeux
+ * connus de GAMES, niveaux entiers supérieurs ou égaux à 1.
+ *
+ * @param {unknown} overrides - Niveaux réglés à vérifier.
+ * @returns {void}
+ * @throws {TypeError|Error|RangeError} Si le contenu est invalide.
+ */
+function validateOverrides(overrides) {
   if (overrides === null || typeof overrides !== 'object' || Array.isArray(overrides)) {
     throw new TypeError('unlock.config : le stockage doit contenir un objet { gameId: niveau }');
   }
@@ -57,11 +73,11 @@ function readOverrides(store) {
     validateGameId(gameId);
     validateLevel(level);
   }
-  return { ...overrides };
 }
 
 /**
- * Crée un stockage en mémoire, en attendant le branchement sur casino_state.
+ * Crée un stockage en mémoire (tests, calculs isolés). L'instance partagée
+ * de l'application utilise createStockageLocal (voir plus bas).
  *
  * @param {Object<string, number>} [initial] - Niveaux déjà réglés.
  * @returns {{ read: function(): object, write: function(object): void }}
@@ -140,4 +156,46 @@ export function createUnlockConfig(store) {
       return level;
     },
   };
+}
+
+// Réglage de l'application, partagé et enregistré (#314) : un réglage admin
+// global, hors de casino_state, conservé après rechargement.
+const unlockConfigDuCore = createUnlockConfig(
+  createStockageLocal('casino_config_deblocage', {}, { valider: validateOverrides })
+);
+
+/**
+ * Renvoie le niveau requis en vigueur pour chaque jeu : celui réglé par
+ * l'admin, sinon le unlockLevel de GAMES.
+ *
+ * @returns {Object<string, number>} Copie indépendante { gameId: niveau }.
+ */
+export function getEffectiveUnlockLevels() {
+  return unlockConfigDuCore.getUnlockLevels();
+}
+
+/**
+ * Renvoie le niveau requis en vigueur pour un jeu.
+ *
+ * @param {string} gameId - Identifiant du jeu.
+ * @returns {number} Niveau requis.
+ * @throws {Error} Si le jeu est inconnu.
+ */
+export function getEffectiveUnlockLevel(gameId) {
+  return unlockConfigDuCore.getUnlockLevel(gameId);
+}
+
+/**
+ * Règle et enregistre le niveau requis pour un jeu (sans vérification de
+ * rôle : la façade la fera). Les jeux déjà acquis par un joueur ne sont pas
+ * concernés (#234).
+ *
+ * @param {string} gameId - Identifiant du jeu.
+ * @param {number} level - Niveau requis, entier supérieur ou égal à 1.
+ * @returns {number} Le niveau enregistré.
+ * @throws {Error|RangeError} Si le jeu est inconnu ou le niveau invalide
+ *   (rien n'est alors enregistré).
+ */
+export function setEffectiveUnlockLevel(gameId, level) {
+  return unlockConfigDuCore.setUnlockLevel(gameId, level);
 }

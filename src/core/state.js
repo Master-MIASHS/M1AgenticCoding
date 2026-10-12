@@ -15,24 +15,49 @@
 //   level: number,
 //   unlockedGames: string[],
 //   history: [],
+//   settledRoundIds: string[],
+//   faillites: number,
 //   role: "player" | "admin"
 // }
 // ---------------------------------------------------------------------------
 
+import { getCapitalDeDepartActuel } from './config/player.config.js';
+
 export const STORAGE_KEY = 'casino_state';
 
-const DEFAULT_STATE = {
-  balance: 1000,
-  bestBalance: 1000,
-  xp: 0,
-  level: 1,
-  unlockedGames: ['slots', 'dice'],
-  history: [],
-  role: 'player',
-};
+// Droit privé accordé seulement par un démarrage sans sauvegarde.
+let canInitializePlayer = false;
+
+/**
+ * Construit l’état provisoire avec le capital effectif, sans écrire.
+ * @returns {object} Nouvel état initial indépendant.
+ */
+function createDefaultState() {
+  const capital = getCapitalDeDepartActuel();
+  return {
+    balance: capital,
+    bestBalance: capital,
+    xp: 0,
+    level: 1,
+    unlockedGames: ['slots', 'dice'],
+    history: [],
+    settledRoundIds: [],
+    faillites: 0,
+    role: 'player',
+  };
+}
 
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeState(state) {
+  if (!isRecord(state)) return state;
+  return {
+    ...state,
+    ...(state.settledRoundIds === undefined ? { settledRoundIds: [] } : {}),
+    ...(state.faillites === undefined ? { faillites: 0 } : {}),
+  };
 }
 
 function validateState(state) {
@@ -48,6 +73,12 @@ function validateState(state) {
     Array.isArray(state.unlockedGames) &&
     state.unlockedGames.every((gameId) => typeof gameId === 'string') &&
     Array.isArray(state.history) &&
+    Array.isArray(state.settledRoundIds) &&
+    state.settledRoundIds.every((roundId) =>
+      typeof roundId === 'string' && roundId.trim() !== '') &&
+    new Set(state.settledRoundIds).size === state.settledRoundIds.length &&
+    Number.isSafeInteger(state.faillites) &&
+    state.faillites >= 0 &&
     (state.role === 'player' || state.role === 'admin');
 
   if (!valid) {
@@ -72,7 +103,7 @@ function startFromDefault(reason, error) {
     `state: ${reason} ; démarrage avec l'état par défaut (casino_state conservé jusqu'au prochain enregistrement).`,
     error
   );
-  return cloneState(DEFAULT_STATE);
+  return createDefaultState();
 }
 
 /**
@@ -90,11 +121,12 @@ function readInitialState() {
     return startFromDefault('stockage local inaccessible', error);
   }
   if (storedState === null || storedState === undefined) {
-    return cloneState(DEFAULT_STATE);
+    canInitializePlayer = true;
+    return createDefaultState();
   }
 
   try {
-    const parsedState = JSON.parse(storedState);
+    const parsedState = normalizeState(JSON.parse(storedState));
     validateState(parsedState);
     return cloneState(parsedState);
   } catch (error) {
@@ -147,6 +179,7 @@ function persistState(nextState) {
   const serializedState = JSON.stringify(nextState);
   globalThis.localStorage?.setItem(STORAGE_KEY, serializedState);
   currentState = nextState;
+  canInitializePlayer = false;
   return result;
 }
 
@@ -196,6 +229,8 @@ export function updateState(updater) {
  *   level: number,
  *   unlockedGames: string[],
  *   history: Array,
+ *   settledRoundIds: string[],
+ *   faillites: number,
  *   role: string
  * }}
  */
@@ -216,8 +251,46 @@ export function restoreState(savedState) {
   assertIdle();
   writing = true;
   try {
-    validateState(savedState);
-    return persistState(cloneState(savedState));
+    const normalizedState = normalizeState(savedState);
+    validateState(normalizedState);
+    return persistState(cloneState(normalizedState));
+  } finally {
+    writing = false;
+  }
+}
+
+/**
+ * Enregistre une première création uniquement sur une session encore vierge.
+ * Toute sauvegarde chargée ou écriture réussie interdit cette initialisation.
+ * Le droit et l’état restent inchangés en cas d’échec de validation/persistance.
+ * Interne G1 : jamais exposé via coreService ; les infos sont validées par player.
+ * @param {object} player - Joueur neuf construit depuis la configuration effective.
+ * @returns {object} Copie indépendante du premier état enregistré.
+ * @throws {Error} Partie existante, joueur invalide ou stockage indisponible.
+ */
+export function initializePlayerState(player) {
+  assertIdle();
+  writing = true;
+  try {
+    if (currentState.pseudo !== undefined) {
+      throw new Error('creerProfil : un profil existe déjà');
+    }
+    if (!canInitializePlayer) {
+      throw new Error('creerProfil : partie existante ou stockage non vérifiable');
+    }
+    if (!isRecord(player)) throw new TypeError('creerProfil : joueur initial attendu');
+    const nextState = cloneState({ ...currentState, ...player });
+    validateState(nextState);
+    validateJSON(nextState);
+    if (typeof nextState.pseudo !== 'string' || nextState.pseudo.trim() === '' ||
+        nextState.balance <= 0 || nextState.bestBalance !== nextState.balance ||
+        nextState.xp !== 0 || nextState.level !== 1 || nextState.role !== 'player' ||
+        nextState.history.length !== 0 ||
+        (nextState.ownedItemIds !== undefined &&
+          (!Array.isArray(nextState.ownedItemIds) || nextState.ownedItemIds.length !== 0))) {
+      throw new Error('creerProfil : joueur initial invalide');
+    }
+    return persistState(nextState);
   } finally {
     writing = false;
   }

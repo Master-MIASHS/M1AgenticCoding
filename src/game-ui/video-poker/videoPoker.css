@@ -1,0 +1,113 @@
+.video-poker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium, 16px);
+  color: var(--color-text, #eeeeee);
+}
+
+.video-poker__hand {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-small, 8px);
+  padding: var(--spacing-medium, 16px);
+  background: #1e3a8a;
+  border-radius: var(--radius-medium, 12px);
+}
+
+.video-poker__card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 92px;
+  padding: 0;
+  font: inherit;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #111111;
+  background: #ffffff;
+  border: 3px solid transparent;
+  border-radius: var(--radius-small, 8px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.video-poker__card:disabled {
+  cursor: default;
+}
+
+.video-poker__card--red {
+  color: #c62828;
+}
+
+.video-poker__card--held {
+  border-color: var(--color-accent, #ffd166);
+  transform: translateY(-6px);
+}
+
+.video-poker__card--back {
+  background: repeating-linear-gradient(45deg, #7c2d12, #7c2d12 6px, #b45309 6px, #b45309 12px);
+}
+
+.video-poker__card:focus-visible {
+  outline: 2px solid var(--color-accent, #ffd166);
+  outline-offset: 2px;
+}
+
+.video-poker__held {
+  position: absolute;
+  bottom: 4px;
+  font-size: 0.6rem;
+  color: #92400e;
+}
+
+.video-poker__message {
+  margin: 0;
+  font-weight: 600;
+  text-align: center;
+}
+
+.video-poker__actions {
+  display: flex;
+  justify-content: center;
+}
+
+.video-poker__draw {
+  min-height: 2.5rem;
+  padding: 0 var(--spacing-large, 24px);
+  font: inherit;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--color-primary, #7c5cff);
+  border: none;
+  border-radius: var(--radius-small, 8px);
+  cursor: pointer;
+}
+
+.video-poker__draw:focus-visible {
+  outline: 2px solid var(--color-accent, #ffd166);
+  outline-offset: 2px;
+}
+
+.video-poker__error {
+  color: var(--color-danger, #e74c3c);
+}
+
+@media (max-width: 480px) {
+  .video-poker__hand {
+    gap: 4px;
+    padding: var(--spacing-small, 8px);
+  }
+
+  .video-poker__card {
+    width: 54px;
+    height: 78px;
+    font-size: 1.1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-poker__card--held {
+    transform: none;
+  }
+}

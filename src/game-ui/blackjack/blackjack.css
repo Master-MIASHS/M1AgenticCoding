@@ -1,0 +1,93 @@
+.blackjack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium, 16px);
+  color: var(--color-text, #eeeeee);
+}
+
+.blackjack__table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-medium, 16px);
+  padding: var(--spacing-medium, 16px);
+  background: #14532d;
+  border-radius: var(--radius-medium, 12px);
+}
+
+.blackjack__hand-title {
+  margin: 0 0 var(--spacing-small, 8px);
+  font-weight: 700;
+}
+
+.blackjack__total {
+  color: var(--color-accent, #ffd166);
+}
+
+.blackjack__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-small, 8px);
+  min-height: 84px;
+}
+
+.blackjack__card {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 80px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111111;
+  background: #ffffff;
+  border-radius: var(--radius-small, 8px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.blackjack__card--red {
+  color: #c62828;
+}
+
+.blackjack__card--back {
+  background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 6px, #2563eb 6px, #2563eb 12px);
+}
+
+.blackjack__message {
+  margin: 0;
+  text-align: center;
+}
+
+.blackjack__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-small, 8px);
+}
+
+.blackjack__action {
+  min-height: 2.5rem;
+  padding: 0 var(--spacing-medium, 16px);
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  background: var(--color-surface, #1e1e2a);
+  border: 2px solid var(--color-primary, #7c5cff);
+  border-radius: var(--radius-small, 8px);
+  cursor: pointer;
+}
+
+.blackjack__action:focus-visible {
+  outline: 2px solid var(--color-accent, #ffd166);
+  outline-offset: 2px;
+}
+
+.blackjack__error {
+  color: var(--color-danger, #e74c3c);
+}
+
+@media (max-width: 480px) {
+  .blackjack__card {
+    width: 44px;
+    height: 64px;
+    font-size: 1rem;
+  }
+}

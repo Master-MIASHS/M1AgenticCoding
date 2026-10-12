@@ -1,12 +1,14 @@
 // ---------------------------------------------------------------------------
 // Core - Progression
 // ---------------------------------------------------------------------------
-// XP / niveaux sur l’état partagé ; autres fonctions encore mockées.
+// XP / niveaux, jeux débloqués et historique sur l’état partagé.
 // ---------------------------------------------------------------------------
 
 import { getState, updateState } from './state.js';
 import { TEMPORARY_LEVEL_THRESHOLDS } from './config/progression.config.js';
 import { createProgressionStore } from './progression.store.js';
+import { GAMES } from './config/games.config.js';
+import { calculateUnlockedGames } from './unlockedGames.js';
 
 /**
  * Vérifie qu'une quantité d'XP est finie et positive ou nulle.
@@ -115,9 +117,23 @@ export function getLevel() {
   return getProgression().getLevel();
 }
 
-/** @returns {string[]} (mock) list of unlocked game ids. */
+/**
+ * Seuils de déblocage par défaut de GAMES ({ gameId: niveau }). Les seuils
+ * réglés par l'admin arriveront avec l'instance partagée de #315.
+ * @returns {Object<string, number>} Nouvel objet.
+ */
+function seuilsDeDeblocage() {
+  return Object.fromEntries(Object.values(GAMES).map((jeu) => [jeu.id, jeu.unlockLevel]));
+}
+
+/**
+ * Jeux débloqués du joueur (#344) : acquis de l'état, plus les jeux dont le
+ * niveau requis est atteint au niveau effectif. Lecture seule : rien n'est
+ * écrit, et un acquis n'est jamais retiré.
+ * @returns {string[]} Identifiants sans doublon (nouvelle liste).
+ */
 export function getUnlockedGames() {
-  return [...getState().unlockedGames];
+  return calculateUnlockedGames(getLevel(), seuilsDeDeblocage(), getState().unlockedGames);
 }
 
 /** @returns {Array} (mock) leaderboard entries. */
@@ -128,7 +144,11 @@ export function getLeaderboard() {
   ];
 }
 
-/** @returns {Array} (mock) game history. */
+/**
+ * Historique du joueur (#344) : parties enregistrées par play() (#131) et
+ * ajustements de l'admin (`type: 'ADMIN_ADJUSTMENT'`, #322), dans l'ordre.
+ * @returns {Array<object>} Copie indépendante de `state.history`.
+ */
 export function getHistory() {
-  return [];
+  return getState().history;
 }

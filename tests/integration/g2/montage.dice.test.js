@@ -1,14 +1,8 @@
 // ---------------------------------------------------------------------------
-// Tests d'intégration G2 - montage des VRAIES règles des dés (#24, #140)
-// sur l'orchestrateur et le vrai mock du Core (issue #68)
+// Tests d'intégration G2 - montage Dice / craps (#159, #218)
 // ---------------------------------------------------------------------------
-// Chaîne testée : start(bets) -> roll() (fixture) -> diceRules.resolve() ->
-// gameResult -> coreService.play() (vrai Core G1, #135) -> réponse pour G3.
-//
-// Les règles fusionnées par #140 lisent encore un float par lancer (brut de
-// roll()) : la fixture rejoue donc des { value } (0 -> total 2, 0.5 -> 7,
-// 0.99 -> 12). Les tests en `todo` documentent l'écart 10 (#159) : ils
-// devront passer, et perdre leur `todo`, une fois les règles alignées.
+// Chaîne testée : start(bets) -> dice draw -> rules.resolve() -> gameResult
+// -> un règlement Core avec roundId -> renderPayload.interpretation pour G3.
 // ---------------------------------------------------------------------------
 
 import { test, describe } from 'node:test';
@@ -17,42 +11,109 @@ import assert from 'node:assert/strict';
 import * as coreService from '../../../src/services/coreService.js';
 import { createGame } from '../../../src/games/_template/createGame.js';
 import { diceRules } from '../../../src/games/dice/rules.js';
-import { makeFixtureRoll } from '../../fixtures/g2/rolls.js';
+import { draw as diceDraw } from '../../../src/games/dice/draw.js';
 
-const START_BALANCE = coreService.getState().balance;
-const TODO_ECART_10 =
-  'écart 10 (#159) : payout / terminal / state au premier niveau au lieu de { outcome, multiplier, details }';
+const CONFIG = { paytable: { pass: 2 } };
 
-function playDice(rollValue) {
-  const fixture = makeFixtureRoll([rollValue]);
-  const core = { ...coreService, roll: fixture.roll };
-  return createGame({ id: 'dice', rules: diceRules, core }).start([{ type: 'pass', amount: 10 }]);
+function makeTestCore(faces) {
+  const queue = faces.flat();
+  const drawCalls = [];
+  const playCalls = [];
+  const core = {
+    ...coreService,
+    tirageEntier(min, max) {
+      drawCalls.push([min, max]);
+      if (queue.length === 0) {
+        throw new Error(`fixture tirageEntier(): no face available for call ${drawCalls.length}`);
+      }
+      return queue.shift();
+    },
+    play(gameId, bet, gameResult, options) {
+      playCalls.push({ gameId, bet, gameResult, options });
+      return coreService.play(gameId, bet, gameResult, options);
+    },
+  };
+  return { core, drawCalls, playCalls, remainingFaces: () => [...queue] };
 }
 
-describe('G2 - montage dés (#24) : orchestrateur + règles + Core', () => {
-  test('premier lancer 2 : perdu, la mise est retenue', () => {
-    const res = playDice(0);
-    assert.equal(res.terminal, true);
-    assert.equal(res.gameResult.outcome, 'loss');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE - 10);
+function playDice(faces) {
+  const { core, drawCalls, playCalls, remainingFaces } = makeTestCore(faces);
+  const balanceBefore = coreService.getState().balance;
+  const game = createGame({
+    id: 'dice',
+    rules: diceRules,
+    config: CONFIG,
+    core,
+    draw: diceDraw,
+  });
+  const result = game.start([{ type: 'pass', amount: 10 }]);
+  return { result, balanceBefore, drawCalls, playCalls, remainingFaces };
+}
+
+describe('G2 - montage Dice (#159) : orchestrateur + tirage + règles + Core', () => {
+  test('come-out 2 perd la mise et règle une seule fois', () => {
+    const { result, balanceBefore, drawCalls, playCalls } = playDice([[1, 1]]);
+    assert.equal(result.terminal, true);
+    assert.equal(result.gameResult.outcome, 'loss');
+    assert.equal(result.gameResult.multiplier, 0);
+    assert.equal(result.renderPayload.economy.newBalance, balanceBefore - 10);
+    assert.deepEqual(drawCalls, [[1, 6], [1, 6]]);
+    assert.equal(playCalls.length, 1);
+    assert.equal(playCalls[0].bet, 10);
+    assert.match(playCalls[0].options.roundId, /^dice-/);
   });
 
-  test('premier lancer 7 : gagné 1:1, la partie se règle sans erreur', () => {
-    const res = playDice(0.5);
-    assert.equal(res.gameResult.outcome, 'win');
-    assert.equal(res.gameResult.multiplier, 2, 'mise incluse (§ 2.2)');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE + 10);
+  test('come-out 7 gagne le multiplicateur configuré, mise incluse', () => {
+    const { result, balanceBefore, playCalls } = playDice([[3, 4]]);
+    assert.equal(result.gameResult.outcome, 'win');
+    assert.equal(result.gameResult.multiplier, 2);
+    assert.equal(result.renderPayload.economy.newBalance, balanceBefore + 10);
+    assert.equal(playCalls.length, 1);
+    assert.match(playCalls[0].options.roundId, /^dice-/);
   });
 
-  test('premier lancer 12 : égalité, la mise est rendue', () => {
-    const res = playDice(0.99);
-    assert.equal(res.gameResult.outcome, 'push');
-    assert.equal(res.gameResult.multiplier, 1, 'mise incluse (§ 2.2)');
-    assert.equal(res.renderPayload.economy.newBalance, START_BALANCE);
+  test('come-out 12 est une défaite, sans égalité ni retour de mise', () => {
+    const { result, balanceBefore } = playDice([[6, 6]]);
+    assert.equal(result.gameResult.outcome, 'loss');
+    assert.equal(result.gameResult.multiplier, 0);
+    assert.equal(result.renderPayload.economy.newBalance, balanceBefore - 10);
   });
 
-  test('gameResult au format du contrat : { outcome, multiplier, details }', { todo: TODO_ECART_10 }, () => {
-    const { gameResult } = playDice(0);
-    assert.deepEqual(Object.keys(gameResult).sort(), ['details', 'multiplier', 'outcome']);
+  test('le point gagne après plusieurs relances avec un seul start et un seul play', () => {
+    const { result, drawCalls, playCalls, remainingFaces } = playDice([
+      [2, 3],
+      [3, 3],
+      [1, 4],
+      [1, 4],
+    ]);
+
+    assert.equal(result.terminal, true);
+    assert.deepEqual(result.gameResult, {
+      outcome: 'win',
+      multiplier: 2,
+      details: {
+        point: 5,
+        rolls: [5, 6, 5],
+        rawValues: [[2, 3], [3, 3], [1, 4]],
+        dice: [[2, 3], [3, 3], [1, 4]],
+        totalBet: 10,
+        payout: 20,
+      },
+    });
+    assert.deepEqual(result.renderPayload.interpretation.rolls, [5, 6, 5]);
+    assert.equal(result.renderPayload.interpretation.point, 5);
+    assert.deepEqual(result.renderPayload.interpretation.dice, [[2, 3], [3, 3], [1, 4]]);
+    assert.deepEqual(drawCalls, Array.from({ length: 6 }, () => [1, 6]));
+    assert.equal(playCalls.length, 1);
+    assert.equal(playCalls[0].bet, 10);
+    assert.match(playCalls[0].options.roundId, /^dice-/);
+    assert.deepEqual(remainingFaces(), [1, 4]);
+  });
+
+  test('gameResult conserve l’enveloppe de la PR #303', () => {
+    const { result } = playDice([[1, 1]]);
+    assert.deepEqual(Object.keys(result.gameResult).sort(), ['details', 'multiplier', 'outcome']);
+    assert.equal(result.renderPayload.interpretation.totalBet, 10);
+    assert.equal(result.renderPayload.interpretation.payout, 0);
   });
 });

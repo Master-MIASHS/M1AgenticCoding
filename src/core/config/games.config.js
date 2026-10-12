@@ -1,13 +1,13 @@
 // ---------------------------------------------------------------------------
 // Core - Games configuration
 // ---------------------------------------------------------------------------
-// Defines the 10 games and their unlock level, plus (mock) runtime config
+// Defines the 13 games and their unlock level, plus (mock) runtime config
 // management and global stats.
 // ---------------------------------------------------------------------------
 
 /**
- * Canonical list of the 10 games and the player level required to unlock
- * each one.
+ * Canonical list of the 13 games of AGENTS.md and the player level required
+ * to unlock each one (memory, quiz and bingo added in #318).
  */
 export const GAMES = {
   slots: { id: 'slots', name: 'Slots', unlockLevel: 1 },
@@ -19,14 +19,18 @@ export const GAMES = {
   baccarat: { id: 'baccarat', name: 'Baccarat', unlockLevel: 6 },
   plinko: { id: 'plinko', name: 'Plinko', unlockLevel: 7 },
   'video-poker': { id: 'video-poker', name: 'Video Poker', unlockLevel: 8 },
+  memory: { id: 'memory', name: 'Memory', unlockLevel: 8 },
+  quiz: { id: 'quiz', name: 'Quiz', unlockLevel: 9 },
+  bingo: { id: 'bingo', name: 'Bingo', unlockLevel: 10 },
   poker: { id: 'poker', name: 'Poker', unlockLevel: 12 },
 };
 
 for (const game of Object.values(GAMES)) Object.freeze(game);
 Object.freeze(GAMES);
 
-// In-memory (mock) store of per-game runtime config.
-const gameConfigs = new Map();
+// Configuration réglée par l'admin : enregistrée hors de la partie du joueur
+// sous casino_config_jeux (#350), voir configsEnregistrees plus bas.
+import { createStockageLocal } from './stockage-local.js';
 
 /**
  * Vérifie que le jeu appartient au catalogue, sans accepter ses propriétés héritées.
@@ -84,7 +88,32 @@ function copyNumericTable(table) {
 }
 
 /**
- * Met à jour la configuration en mémoire après validation complète.
+ * Valide la configuration enregistrée : { gameId: { probabilities?, multipliers? } }
+ * pour des jeux du catalogue uniquement.
+ * @param {unknown} valeur - Valeur lue dans le stockage.
+ * @returns {void}
+ * @throws {Error|TypeError|RangeError} Si un jeu, une section ou un nombre est invalide.
+ */
+function validerConfigsEnregistrees(valeur) {
+  for (const [gameId, config] of readEntries(valeur)) {
+    validateGameId(gameId);
+    for (const [section, table] of readEntries(config)) {
+      if (section !== 'probabilities' && section !== 'multipliers') {
+        throw new TypeError(`games.config : champ non autorisé : ${section}`);
+      }
+      copyNumericTable(table);
+    }
+  }
+}
+
+// Même modèle que le capital et les événements bonus (#262) : une valeur
+// illisible ou invalide donne une configuration vide avec un avertissement.
+const configsEnregistrees = createStockageLocal('casino_config_jeux', {}, {
+  valider: validerConfigsEnregistrees,
+});
+
+/**
+ * Met à jour et enregistre la configuration après validation complète.
  * Une section fournie remplace la précédente ; une section omise est conservée.
  *
  * @param {string} gameId - Identifiant connu du catalogue.
@@ -102,7 +131,9 @@ export function setGameConfig(gameId, config = {}) {
     }
     candidate[section] = copyNumericTable(table);
   }
-  gameConfigs.set(gameId, candidate);
+  const toutes = configsEnregistrees.read();
+  toutes[gameId] = candidate;
+  configsEnregistrees.write(toutes);
   return { ok: true, gameId };
 }
 
@@ -114,7 +145,8 @@ export function setGameConfig(gameId, config = {}) {
  */
 export function getGameConfig(gameId) {
   validateGameId(gameId);
-  const config = gameConfigs.get(gameId);
+  const toutes = configsEnregistrees.read();
+  const config = Object.hasOwn(toutes, gameId) ? toutes[gameId] : undefined;
   return {
     probabilities: { ...config?.probabilities },
     multipliers: { ...config?.multipliers },

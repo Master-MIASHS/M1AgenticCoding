@@ -4,18 +4,36 @@
 // (rendering, actions) belongs to Groupe 3 (`src/game-ui/`) and is plugged in
 // later: nothing here knows any game rule.
 
-import { getBalance } from '../../services/coreService.js';
+import { useMemo, useState } from 'react';
+import { getBalance, getUnlockedGames } from '../../services/coreService.js';
 import { getGameMeta } from '../../config/gameRegistry.js';
+import { createGameStart } from './gameRuntime.js';
 import SlotsGame from '../../game-ui/slots/SlotsGame.jsx';
 import RouletteGame from '../../game-ui/roulette/RouletteGame.jsx';
 import WheelGame from '../../game-ui/wheel/WheelGame.jsx';
+import PlinkoGame from '../../game-ui/plinko/PlinkoGame.jsx';
+import DiceGame from '../../game-ui/dice/DiceGame.jsx';
+import ScratchGame from '../../game-ui/scratch/ScratchGame.jsx';
+import BlackjackGame from '../../game-ui/blackjack/BlackjackGame.jsx';
+import VideoPokerGame from '../../game-ui/video-poker/VideoPokerGame.jsx';
+import MemoryGame from '../../game-ui/memory/MemoryGame.jsx';
+import QuizGame from '../../game-ui/quiz/QuizGame.jsx';
+import BingoGame from '../../game-ui/bingo/BingoGame.jsx';
 import './game.css';
 
 // Games whose UI (Groupe 3) exists. Any other game keeps the waiting message.
-const GAME_UIS = {
+export const GAME_UIS = {
   slots: SlotsGame,
   roulette: RouletteGame,
   wheel: WheelGame,
+  plinko: PlinkoGame,
+  dice: DiceGame,
+  scratch: ScratchGame,
+  blackjack: BlackjackGame,
+  'video-poker': VideoPokerGame,
+  memory: MemoryGame,
+  quiz: QuizGame,
+  bingo: BingoGame,
 };
 
 const OUTCOME_LABELS = { win: 'Gagné', loss: 'Perdu', push: 'Égalité' };
@@ -26,6 +44,18 @@ function readBalance() {
     return typeof balance === 'number' && Number.isFinite(balance) ? balance : 0;
   } catch {
     return 0;
+  }
+}
+
+// The lock lives here too (not only in the lobby): a locked game must not open
+// from its URL. The unlocked list comes from the Core; if it cannot be read, the
+// game stays locked.
+function readUnlockedGames() {
+  try {
+    const ids = getUnlockedGames();
+    return Array.isArray(ids) ? ids : [];
+  } catch {
+    return [];
   }
 }
 
@@ -43,12 +73,29 @@ function renderResult(gameResult) {
   );
 }
 
-function GamePage({ gameId }) {
+function GamePage({ gameId, unlockedGames }) {
   const game = typeof gameId === 'string' ? getGameMeta(gameId) : undefined;
-  const GameUI = game ? GAME_UIS[game.id] : undefined;
+  const [balance, setBalance] = useState(readBalance);
+  // Real round (Core draw -> G2 rules -> Core settlement) when the game is
+  // plugged in gameRuntime.js; otherwise the G3 UI keeps its own mock.
+  const realStart = useMemo(() => (game ? createGameStart(game.id) : undefined), [game]);
+  const start = useMemo(
+    () =>
+      realStart &&
+      (async (bets) => {
+        try {
+          return await realStart(bets);
+        } finally {
+          setBalance(readBalance());
+        }
+      }),
+    [realStart]
+  );
+  const locked = game && Array.isArray(unlockedGames) ? !unlockedGames.includes(game.id) : false;
+  const GameUI = game && !locked ? GAME_UIS[game.id] : undefined;
 
   return (
-    <main className="page-game">
+    <div className="page-game">
       <a className="game__back" href="#/">
         ← Retour au lobby
       </a>
@@ -56,12 +103,23 @@ function GamePage({ gameId }) {
         <>
           <h1 className="game__title">{game.name}</h1>
           <p className="game__category">{game.category}</p>
-          {GameUI ? (
+          {locked ? (
+            <p className="game__text game__locked" role="status">
+              Jeu verrouillé
+              {typeof game.unlockLevel === 'number' && ` : niveau ${game.unlockLevel} requis`}.
+            </p>
+          ) : GameUI ? (
             <>
-              <p className="game__demo">
-                Mode démonstration : les résultats sont simulés et le solde n&apos;est pas modifié.
-              </p>
-              <GameUI balance={readBalance()} renderResult={renderResult} />
+              {start ? null : (
+                <p className="game__demo">
+                  Mode démonstration : les résultats sont simulés et le solde n&apos;est pas modifié.
+                </p>
+              )}
+              <GameUI
+                balance={balance}
+                renderResult={renderResult}
+                {...(start ? { start } : {})}
+              />
             </>
           ) : (
             <p className="game__text">Ce jeu sera bientôt jouable.</p>
@@ -75,7 +133,7 @@ function GamePage({ gameId }) {
           </p>
         </>
       )}
-    </main>
+    </div>
   );
 }
 

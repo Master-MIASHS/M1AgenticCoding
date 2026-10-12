@@ -3,7 +3,18 @@ import './Statistics.css';
 
 function Statistics() {
   const { balance, bestBalance } = getState();
-  const { totalPlays, totalWagered, totalWon, activePlayers } = getGlobalStats();
+
+  let stats = null;
+  let statsError = false;
+
+  try {
+    stats = getGlobalStats();
+  } catch (error) {
+    console.error('Impossible de récupérer les statistiques :', error);
+    statsError = true;
+  }
+
+  const { totalPlays, totalWagered, totalWon, activePlayers } = stats ?? {};
 
   return (
     <div className="page-statistics">
@@ -31,24 +42,29 @@ function Statistics() {
         aria-labelledby="statistics-global-title"
       >
         <h2 id="statistics-global-title">Statistiques globales du casino</h2>
-        <dl className="page-statistics__values">
-          <div className="page-statistics__card">
-            <dt>Nombre total de parties</dt>
-            <dd>{totalPlays}</dd>
-          </div>
-          <div className="page-statistics__card">
-            <dt>Total des mises</dt>
-            <dd>{totalWagered}</dd>
-          </div>
-          <div className="page-statistics__card">
-            <dt>Total des gains</dt>
-            <dd>{totalWon}</dd>
-          </div>
-          <div className="page-statistics__card">
-            <dt>Joueurs actifs</dt>
-            <dd>{activePlayers}</dd>
-          </div>
-        </dl>
+
+        {statsError ? (
+          <p role="alert">Statistiques indisponibles pour le moment.</p>
+        ) : (
+          <dl className="page-statistics__values">
+            <div className="page-statistics__card">
+              <dt>Nombre total de parties</dt>
+              <dd>{totalPlays}</dd>
+            </div>
+            <div className="page-statistics__card">
+              <dt>Total des mises</dt>
+              <dd>{totalWagered}</dd>
+            </div>
+            <div className="page-statistics__card">
+              <dt>Total des gains</dt>
+              <dd>{totalWon}</dd>
+            </div>
+            <div className="page-statistics__card">
+              <dt>Joueurs actifs</dt>
+              <dd>{activePlayers}</dd>
+            </div>
+          </dl>
+        )}
       </section>
     </div>
   );
