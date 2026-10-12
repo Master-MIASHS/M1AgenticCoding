@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import MainLayout from '../layouts/MainLayout.jsx';
 import { getState } from '../services/coreService.js';
 import Lobby from '../pages/Lobby/Lobby.jsx';
@@ -36,7 +36,7 @@ function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  const refreshPlayer = () => setPlayerVersion((version) => version + 1);
+  const refreshPlayer = useCallback(() => setPlayerVersion((version) => version + 1), []);
   const player = getState();
   // First launch: no pseudo in the Core state yet, so ask for one. Skipping only
   // lasts for the session (the Core refuses a profile on a state already played).
@@ -46,7 +46,10 @@ function App() {
   if (path.startsWith(GAME_PREFIX)) {
     return (
       <MainLayout player={player} currentPath={path}>
-        <GamePage gameId={path.slice(GAME_PREFIX.length).split('/')[0]} />
+        <GamePage
+          gameId={path.slice(GAME_PREFIX.length).split('/')[0]}
+          onPlayerUpdated={refreshPlayer}
+        />
       </MainLayout>
     );
   }

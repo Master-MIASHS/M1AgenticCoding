@@ -7,7 +7,7 @@
 import { useMemo, useState } from 'react';
 import { getBalance, getUnlockedGames } from '../../services/coreService.js';
 import { getGameMeta } from '../../config/gameRegistry.js';
-import { createGameStart } from './gameRuntime.js';
+import { createGameRuntime } from './gameRuntime.js';
 import SlotsGame from '../../game-ui/slots/SlotsGame.jsx';
 import RouletteGame from '../../game-ui/roulette/RouletteGame.jsx';
 import WheelGame from '../../game-ui/wheel/WheelGame.jsx';
@@ -19,6 +19,8 @@ import VideoPokerGame from '../../game-ui/video-poker/VideoPokerGame.jsx';
 import MemoryGame from '../../game-ui/memory/MemoryGame.jsx';
 import QuizGame from '../../game-ui/quiz/QuizGame.jsx';
 import BingoGame from '../../game-ui/bingo/BingoGame.jsx';
+import BaccaratGame from '../../game-ui/baccarat/BaccaratGame.jsx';
+import PokerGame from '../../game-ui/poker/PokerGame.jsx';
 import './game.css';
 
 // Games whose UI (Groupe 3) exists. Any other game keeps the waiting message.
@@ -34,6 +36,8 @@ export const GAME_UIS = {
   memory: MemoryGame,
   quiz: QuizGame,
   bingo: BingoGame,
+  baccarat: BaccaratGame,
+  poker: PokerGame,
 };
 
 const OUTCOME_LABELS = { win: 'Gagné', loss: 'Perdu', push: 'Égalité' };
@@ -73,28 +77,36 @@ function renderResult(gameResult) {
   );
 }
 
-function GamePage({ gameId, unlockedGames = readUnlockedGames() }) {
+// Props that a UI needs from the game config (never recomputed in the UI).
+function configProps(gameId, config) {
+  if (gameId === 'wheel') {
+    return { segments: config.segments, betTypes: Object.keys(config.paytable) };
+  }
+  if (gameId === 'plinko') return { paytable: config.paytable };
+  if (gameId === 'poker') return { blind: config.smallBlind };
+  return {};
+}
+
+function GamePage({ gameId, unlockedGames = readUnlockedGames(), onPlayerUpdated }) {
   const game = typeof gameId === 'string' ? getGameMeta(gameId) : undefined;
   const [balance, setBalance] = useState(readBalance);
-  // Real round (Core draw -> G2 rules -> Core settlement) when the game is
-  // plugged in gameRuntime.js; otherwise the G3 UI keeps its own mock.
-  const realStart = useMemo(() => (game ? createGameStart(game.id) : undefined), [game]);
-  const start = useMemo(
+  // ONE runtime per game page: start() and action() share the same instance.
+  // `onPlayerUpdated` must be stable (App memoizes it), otherwise the runtime,
+  // and so the session of a multi-step round, would be recreated.
+  const runtime = useMemo(
     () =>
-      realStart &&
-      (async (bets) => {
-        try {
-          return await realStart(bets);
-        } finally {
-          setBalance(readBalance());
-        }
-      }),
-    [realStart]
+      game
+        ? createGameRuntime(game.id, undefined, () => {
+            setBalance(readBalance());
+            if (typeof onPlayerUpdated === 'function') onPlayerUpdated();
+          })
+        : undefined,
+    [game, onPlayerUpdated]
   );
   // An unusable list keeps every game locked (never the other way round).
   const unlocked = Array.isArray(unlockedGames) ? unlockedGames : [];
   const locked = game ? !unlocked.includes(game.id) : false;
-  const GameUI = game && !locked ? GAME_UIS[game.id] : undefined;
+  const GameUI = game && !locked && runtime ? GAME_UIS[game.id] : undefined;
 
   return (
     <div className="page-game">
@@ -111,20 +123,15 @@ function GamePage({ gameId, unlockedGames = readUnlockedGames() }) {
               {typeof game.unlockLevel === 'number' && ` : niveau ${game.unlockLevel} requis`}.
             </p>
           ) : GameUI ? (
-            <>
-              {start ? null : (
-                <p className="game__demo">
-                  Mode démonstration : les résultats sont simulés et le solde n&apos;est pas modifié.
-                </p>
-              )}
-              <GameUI
-                balance={balance}
-                renderResult={renderResult}
-                {...(start ? { start } : {})}
-              />
-            </>
+            <GameUI
+              balance={balance}
+              renderResult={renderResult}
+              start={runtime.start}
+              {...(runtime.action ? { action: runtime.action } : {})}
+              {...configProps(game.id, runtime.config)}
+            />
           ) : (
-            <p className="game__text">Ce jeu sera bientôt jouable.</p>
+            <p className="game__text">Ce jeu est indisponible pour le moment.</p>
           )}
         </>
       ) : (
