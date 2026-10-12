@@ -53,16 +53,18 @@ const NUMBERS = Array.from({ length: 37 }, (_, n) => n);
 const RED = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
 const BLACK = NUMBERS.filter((n) => n !== 0 && !RED.includes(n));
 
-const ROULETTE_CONFIG = {
-  layout: { red: RED, black: BLACK, green: [0] },
-  bets: {
-    red: { match: RED, multiplier: 2 },
-    black: { match: BLACK, multiplier: 2 },
-    even: { match: NUMBERS.filter((n) => n !== 0 && n % 2 === 0), multiplier: 2 },
-    odd: { match: NUMBERS.filter((n) => n % 2 === 1), multiplier: 2 },
-  },
+const ROULETTE_BETS = {
+  red: { match: RED, multiplier: 2 },
+  black: { match: BLACK, multiplier: 2 },
+  even: { match: NUMBERS.filter((n) => n !== 0 && n % 2 === 0), multiplier: 2 },
+  odd: { match: NUMBERS.filter((n) => n % 2 === 1), multiplier: 2 },
 };
 
+const ROULETTE_CONFIG = {
+  layout: { red: RED, black: BLACK, green: [0] },
+  paytable: ROULETTE_BETS,
+  bets: ROULETTE_BETS,
+};
 export const PROVISIONAL_GAME_CONFIGS = Object.freeze({
   slots: buildSlotsConfig(),
   roulette: ROULETTE_CONFIG,

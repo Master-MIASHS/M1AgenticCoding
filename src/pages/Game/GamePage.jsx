@@ -61,7 +61,7 @@ function renderResult(gameResult) {
   );
 }
 
-function GamePage({ gameId, unlockedGames = readUnlockedGames() }) {
+function GamePage({ gameId, unlockedGames }) {
   const game = typeof gameId === 'string' ? getGameMeta(gameId) : undefined;
   const [balance, setBalance] = useState(readBalance);
   // Real round (Core draw -> G2 rules -> Core settlement) when the game is
@@ -79,7 +79,7 @@ function GamePage({ gameId, unlockedGames = readUnlockedGames() }) {
       }),
     [realStart]
   );
-  const locked = game ? !unlockedGames.includes(game.id) : false;
+  const locked = game && Array.isArray(unlockedGames) ? !unlockedGames.includes(game.id) : false;
   const GameUI = game && !locked ? GAME_UIS[game.id] : undefined;
 
   return (
