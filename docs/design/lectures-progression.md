@@ -10,14 +10,14 @@ Remplacer les deux dernières lectures factices de `src/core/progression.js` (#2
 ## Non-objectifs
 
 - Écrire dans l'état : ce sont des **lectures**. `play()` (#287) et l'ajustement admin (#324) remplissent `history`.
-- Seuils réglés par l'admin : instance partagée de #315 (Ania). Ici, les seuils par défaut de `GAMES`.
+- Régler les seuils de déblocage : instance partagée de #315 (Ania), exposition publique dans #388. Ici, ils sont seulement **lus** (#396).
 - Refuser un jeu verrouillé dans `play()` (#292, point 4) : traité à part.
 
 ## Conception
 
 | Fonction | Calcul |
 |---|---|
-| `getUnlockedGames()` | `calculateUnlockedGames(getLevel(), seuils de GAMES, state.unlockedGames)` (#263) |
+| `getUnlockedGames()` | `calculateUnlockedGames(getLevel(), getEffectiveUnlockLevels(), state.unlockedGames)` (#263, seuils effectifs depuis #396) |
 | `getHistory()` | `structuredClone(state.history)` |
 
 - **Niveau effectif** : `getLevel()`, qui conserve les acquis (le niveau ne baisse jamais).
@@ -31,8 +31,10 @@ Remplacer les deux dernières lectures factices de `src/core/progression.js` (#2
 |---|---|
 | Calcul à la lecture, sans écriture | Une lecture ne doit jamais écrire ; `play()` reste la seule écriture d'une partie |
 | Réutiliser `calculateUnlockedGames` (#263) | Le calcul existe et est testé ; pas de double logique |
-| Seuils de `GAMES` en attendant #315 | Valeurs de configuration (règle 4), remplacées par les seuils effectifs quand l'instance partagée sera exposée |
+| Seuils effectifs (`getEffectiveUnlockLevels()`, #396) | Valeurs de configuration (règle 4) : niveaux réglés par l'admin (#315), sinon ceux de `GAMES` |
 
 ## Tests
 
 `tests/unit/lectures-progression.test.js` (via `coreService`, vrai état) : jeux de départ au niveau 1, jeux débloqués aux niveaux 3, 8 et 12, acquis conservés, aucune écriture ; historique vide, ordre conservé, copie indépendante.
+
+`tests/unit/progression-seuils-effectifs.test.js` (#396) : seuil abaissé ou relevé par l'admin, acquis jamais retirés, aucune écriture.

@@ -212,6 +212,7 @@ getHistory();       // [{ roundId, gameId, bet, outcome, payout, netGain, played
 ```
 
 - `getUnlockedGames()` (#344) : jeux acquis plus jeux dont le niveau requis est atteint.
+  Le niveau requis est celui en vigueur : réglé par l’admin, sinon celui de `GAMES` (#396).
   Ne jamais comparer soi-même `level` et `unlockLevel` dans l’UI : afficher cette liste.
   Un acquis n’est jamais retiré (joueur ruiné compris).
 - `getHistory()` : entrées dans l’ordre d’enregistrement, copie indépendante. Les parties
