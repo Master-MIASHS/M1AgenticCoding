@@ -66,10 +66,10 @@ export {
   addXP,
   getLevel,
   getUnlockedGames,
-  getLeaderboard,
   getHistory,
 } from './progression.js';
 export { getGlobalStats } from './stats.js';
+export { getLeaderboard } from './leaderboard.js';
 export { exportSave, importSave } from './storage.js';
 // Lecture publique : copie indépendante, identifiant inconnu refusé (#158).
 export { getGameConfig } from './config/games.config.js';
