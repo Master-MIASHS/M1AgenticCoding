@@ -27,6 +27,7 @@ entre jetons et argent.
 
 ### Jeux et état d'avancement (au 12/10/2026)
 
+
 | Jeu | Type | Déblocage | Règles (G2) | Interface (G3) | Statut sur le site |
 | --- | --- | --- | --- | --- | --- |
 | **Machine à sous** | Hasard | Départ | Validées | Validée | **Jouable** (connectée au Core réel via #296) |
