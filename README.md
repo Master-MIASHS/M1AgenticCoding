@@ -281,7 +281,7 @@ Le Groupe 3 est responsable de l'interface **à l'intérieur d'une partie** : l'
 | Pseudo Github | Liste Pseudos utilisés  | Nom, prénom | Rôle(s) |
 | :--- | :--- | :--- | :--- |
 | Zozote | Enzo Nguyen | Nguyen Enzo | UI, composants communs, review |
-| Bahar487 | Bahar487, Bahar, Ali Bahar Ali | ALI BAHAR, Ali | Responsable du groupe 3 (rendu visuel), composants communs et jeux (BetPanel, slots, roulette) |
+| Bahar487 | Bahar487, Bahar, Ali Bahar Ali | ALI BAHAR, Ali | Responsable du groupe 3 (rendu visuel) : UI de 11 jeux dans `src/game-ui/` : machine à sous (#92, alignée sur les règles G2 #282), roulette (#98, contrat G2 #192, numéro et couleur réels #332), roue de la fortune (#193), plinko (#279), dés (#286), cartes à gratter (#358), blackjack (#360), vidéo poker (#362), memory (#380), quiz (#383) et bingo (#385) ; composant commun `BetPanel` (#72, thème sombre #357) ; skills `game-ui` (#25) et `jeux-ui-g3` pour les autres groupes (#235, #283) ; périmètre du G3 dans le README ; coordination du G3 et des interfaces avec le G2 (contrat `start` / `action` / `gameResult`, actions du vidéo poker, memory, quiz, bingo, couleur de la roulette, déroulé des dés), le G4 (montage dans la page de jeu, config de la roue et du plinko) et le G5 (tickets, relectures) |
 
 ### Groupe 4 — Architecture de l'application et composants annexes / Navigation
 
