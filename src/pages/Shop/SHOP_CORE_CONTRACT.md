@@ -1,24 +1,18 @@
-# Proposition de contrat Core — Boutique
+# Contrat Core intégré — Boutique
 
-> **Statut : non validé.** Aucune des opérations ci-dessous n'est actuellement
-> exposée par le Core ou par `coreService`. Ce document sert uniquement de
-> point de coordination avec le Groupe 1 ; les achats restent indisponibles
-> jusqu'à validation puis implémentation du contrat.
+> **Statut : implémenté sur `main`.** La page G4 consomme les opérations
+> publiques de `coreService`; elle n'importe aucun module interne du Core.
 
-L'écran Boutique utilise temporairement `src/mocks/shop.mock.js` pour son catalogue et ses états de présentation. Il n'implémente aucune règle économique et n'écrit pas dans `localStorage`.
-
-Proposition à discuter avec le Groupe 1 : exposer les opérations suivantes
-depuis `src/core/core.js`, puis les ré-exporter sans logique dans
-`src/services/coreService.js` :
+## API consommée
 
 ```js
-getShopCatalog()
+getShopCatalog();
 // -> Array<{ id, name, description, category, price, visual?, available }>
 
-getShopInventory()
+getShopInventory();
 // -> { ownedItemIds: string[] }
 
-purchaseShopItem(itemId)
+purchaseShopItem(itemId);
 // -> {
 //      status: 'purchased' | 'already-owned' | 'unavailable' |
 //              'insufficient-funds' | 'rejected',
@@ -28,11 +22,25 @@ purchaseShopItem(itemId)
 //    }
 ```
 
-`purchaseShopItem` est l'unique responsable de la validation de disponibilité, de possession, du solde et de toute mutation économique. La page devra alors :
+Ces appels sont synchrones dans l'implémentation actuelle. `purchaseShopItem`
+est seul responsable de la disponibilité, de la possession, du solde et de la
+mutation atomique. L'UI transmet l'identifiant, affiche le résultat et ne
+calcule jamais de débit.
 
-1. charger le catalogue et l'inventaire via la façade ;
-2. calculer uniquement l'état visuel à partir de ces réponses ;
-3. envoyer l'identifiant de l'article au Core ;
-4. afficher le résultat retourné, puis recharger le solde et l'inventaire.
+## Intégration G4
 
-Le format asynchrone (`Promise`) est accepté et recommandé si le Core évolue, mais les trois opérations doivent conserver ces données et ces responsabilités.
+1. charger catalogue, inventaire et solde via la façade ;
+2. afficher `available`, la présence dans `ownedItemIds` et les données reçues ;
+3. envoyer l'identifiant de l'article au Core lors d'un achat ;
+4. utiliser le solde retourné et relire l'inventaire ;
+5. afficher une erreur si l'appel lève, sans annoncer de succès.
+
+Seul `purchased` modifie l'état Core. Les refus ne modifient pas le solde. Le
+meilleur solde, l'XP et le niveau ne sont pas modifiés par un achat.
+
+## Limite documentaire externe
+
+`docs/contracts/core-api.md` indique encore que le catalogue est vide, alors
+que `src/core/config/shop.config.js` et les tests Core exposent quatre articles.
+Cette incohérence relève de G1/G5 ; elle est signalée ici sans modifier leur
+contrat.

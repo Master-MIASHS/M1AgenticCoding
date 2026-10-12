@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getBalance } from '../../services/coreService.js';
-import shopMock from '../../mocks/shop.mock.js';
+import {
+  getBalance,
+  getShopCatalog,
+  getShopInventory,
+  purchaseShopItem,
+} from '../../services/coreService.js';
 import './Shop.css';
 
 const STATUS_LABELS = {
@@ -15,63 +19,154 @@ const STATUS_CLASSES = {
   unavailable: 'shop-item__status--unavailable',
 };
 
+const PURCHASE_STATUSES = new Set([
+  'purchased',
+  'already-owned',
+  'unavailable',
+  'insufficient-funds',
+  'rejected',
+]);
+
+const PURCHASE_FALLBACK_MESSAGES = {
+  purchased: 'Achat effectué.',
+  'already-owned': 'Vous possédez déjà cet article.',
+  unavailable: "Cet article n'est pas disponible à l'achat.",
+  'insufficient-funds': 'Solde insuffisant pour acheter cet article.',
+  rejected: "Cet article n'existe pas dans la boutique.",
+};
+
+const coreShopService = {
+  getBalance,
+  getShopCatalog,
+  getShopInventory,
+  purchaseShopItem,
+};
+
 function formatCredits(amount) {
   return Number.isFinite(amount) ? new Intl.NumberFormat('fr-FR').format(amount) : '—';
 }
 
-function getItemStatus(item) {
-  return STATUS_LABELS[item.availability] ? item.availability : 'unavailable';
+function readInventory(inventory) {
+  if (
+    inventory === null ||
+    typeof inventory !== 'object' ||
+    !Array.isArray(inventory.ownedItemIds) ||
+    !inventory.ownedItemIds.every((itemId) => typeof itemId === 'string')
+  ) {
+    throw new Error('Inventaire de boutique invalide.');
+  }
+
+  return inventory.ownedItemIds;
 }
 
-// Optional sources make the loading, empty and error states independently
-// renderable in component tests. Production uses the mock and Core facade.
-function Shop({ shopData = shopMock, balanceReader = getBalance }) {
+export function getItemStatus(item, ownedItemIds) {
+  if (!item?.available) return 'unavailable';
+  return ownedItemIds.includes(item.id) ? 'owned' : 'available';
+}
+
+export function isPurchaseDisabled(status, purchasingItemId) {
+  return status !== 'available' || purchasingItemId !== null;
+}
+
+export function readShopSnapshot(shopService) {
+  const catalogue = shopService.getShopCatalog();
+  const ownedItemIds = readInventory(shopService.getShopInventory());
+  const balance = shopService.getBalance();
+
+  if (!Array.isArray(catalogue) || !Number.isFinite(balance)) {
+    throw new Error('Données de boutique invalides.');
+  }
+
+  return { catalogue, ownedItemIds, balance };
+}
+
+export function getPurchaseFeedback(result) {
+  return typeof result.message === 'string'
+    ? result.message
+    : PURCHASE_FALLBACK_MESSAGES[result.status];
+}
+
+export function shouldRefreshPlayerSnapshot(result) {
+  return result.status === 'purchased';
+}
+
+export async function requestPurchase(shopService, itemId) {
+  const result = await shopService.purchaseShopItem(itemId);
+
+  if (
+    result === null ||
+    typeof result !== 'object' ||
+    !PURCHASE_STATUSES.has(result.status) ||
+    result.itemId !== itemId ||
+    !Number.isFinite(result.balance)
+  ) {
+    throw new Error("Réponse d'achat de la boutique invalide.");
+  }
+
+  return {
+    result,
+    ownedItemIds: readInventory(shopService.getShopInventory()),
+  };
+}
+
+// `shopService` is injectable only for component tests and explicit previews.
+// Production uses the Core public facade above.
+function Shop({ shopService = coreShopService, onPlayerUpdated }) {
   const [catalogue, setCatalogue] = useState(null);
+  const [ownedItemIds, setOwnedItemIds] = useState([]);
   const [balance, setBalance] = useState(null);
   const [error, setError] = useState('');
-  const [feedback, setFeedback] = useState(
-    'Les achats seront disponibles lorsque le contrat Boutique du Core sera raccordé.'
-  );
+  const [feedback, setFeedback] = useState('Les achats utilisent des jetons fictifs.');
+  const [purchasingItemId, setPurchasingItemId] = useState(null);
 
   const loadShop = useCallback(() => {
     setCatalogue(null);
+    setOwnedItemIds([]);
     setBalance(null);
     setError('');
 
     try {
-      const items = shopData?.items;
-      const currentBalance = balanceReader();
-
-      if (!Array.isArray(items) || !Number.isFinite(currentBalance)) {
-        throw new Error('Données de boutique invalides.');
-      }
-
-      setCatalogue(items);
-      setBalance(currentBalance);
+      const snapshot = readShopSnapshot(shopService);
+      setCatalogue(snapshot.catalogue);
+      setOwnedItemIds(snapshot.ownedItemIds);
+      setBalance(snapshot.balance);
     } catch {
       setError('Impossible de charger la boutique. Réessayez dans un instant.');
     }
-  }, [balanceReader, shopData]);
+  }, [shopService]);
 
   useEffect(() => {
-    // The mock is synchronous today, but the timeout keeps the same
-    // asynchronous lifecycle as the future Core catalogue contract.
     const timerId = window.setTimeout(loadShop, 0);
-
     return () => window.clearTimeout(timerId);
   }, [loadShop]);
 
-  function explainUnavailablePurchase(item) {
-    setFeedback(
-      `L’achat de « ${item.name} » n’est pas encore disponible : le contrat d’achat du Core manque.`
-    );
+  async function handlePurchase(item) {
+    if (purchasingItemId !== null) return;
+
+    setPurchasingItemId(item.id);
+    try {
+      const { result, ownedItemIds: refreshedInventory } = await requestPurchase(
+        shopService,
+        item.id
+      );
+      setBalance(result.balance);
+      setOwnedItemIds(refreshedInventory);
+      setFeedback(getPurchaseFeedback(result));
+      if (shouldRefreshPlayerSnapshot(result)) onPlayerUpdated?.();
+    } catch {
+      setError("L'achat n'a pas pu être enregistré. Réessayez dans un instant.");
+    } finally {
+      setPurchasingItemId(null);
+    }
   }
+
+  const isLoading = !error && catalogue === null;
 
   return (
     <section
       className="page-shop"
       aria-labelledby="shop-title"
-      aria-busy={!error && catalogue === null}
+      aria-busy={isLoading || purchasingItemId !== null}
     >
       <header className="shop-hero">
         <div>
@@ -98,7 +193,7 @@ function Shop({ shopData = shopMock, balanceReader = getBalance }) {
         </div>
       </header>
 
-      <p id="shop-purchase-pending" className="shop-feedback" role="status" aria-live="polite">
+      <p id="shop-feedback" className="shop-feedback" role="status" aria-live="polite">
         {feedback}
       </p>
 
@@ -111,7 +206,7 @@ function Shop({ shopData = shopMock, balanceReader = getBalance }) {
         </div>
       ) : null}
 
-      {!error && catalogue === null ? (
+      {isLoading ? (
         <div className="shop-state" role="status" aria-live="polite">
           Chargement du catalogue…
         </div>
@@ -126,8 +221,9 @@ function Shop({ shopData = shopMock, balanceReader = getBalance }) {
       {!error && catalogue?.length ? (
         <div className="shop-grid" aria-label="Catalogue de la boutique">
           {catalogue.map((item) => {
-            const status = getItemStatus(item);
-            const isPurchasable = status === 'available';
+            const status = getItemStatus(item, ownedItemIds);
+            const isPurchasingThisItem = purchasingItemId === item.id;
+            const disabled = isPurchaseDisabled(status, purchasingItemId);
 
             return (
               <article className="shop-item" key={item.id}>
@@ -145,20 +241,21 @@ function Shop({ shopData = shopMock, balanceReader = getBalance }) {
                   <p className="shop-item__description">{item.description}</p>
                   <div className="shop-item__footer">
                     <span className="shop-item__price">{formatCredits(item.price)} jetons</span>
-                    {isPurchasable ? (
-                      <button
-                        type="button"
-                        className="shop-button"
-                        aria-describedby="shop-purchase-pending"
-                        onClick={() => explainUnavailablePurchase(item)}
-                      >
-                        Achat indisponible
-                      </button>
-                    ) : (
-                      <button type="button" className="shop-button" disabled>
-                        {status === 'owned' ? 'Possédé' : 'Indisponible'}
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className="shop-button"
+                      disabled={disabled}
+                      aria-describedby="shop-feedback"
+                      onClick={() => handlePurchase(item)}
+                    >
+                      {isPurchasingThisItem
+                        ? 'Achat en cours…'
+                        : status === 'owned'
+                          ? 'Possédé'
+                          : status === 'unavailable'
+                            ? 'Indisponible'
+                            : 'Acheter'}
+                    </button>
                   </div>
                 </div>
               </article>
