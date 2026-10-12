@@ -114,7 +114,14 @@ function runout(state) {
   return resolveShowdown(next);
 }
 
-function advanceStreet(state) {
+/**
+ * Deals the next street and sets the bot to speak first. Also used by draw()
+ * so that the bot's opening turn is played in the same action() (#413).
+ *
+ * @param {object} state a state whose betting round is complete.
+ * @returns {object} the next active state, or a terminal result (showdown).
+ */
+export function advanceStreet(state) {
   if (state.stage === 'river') {
     return resolveShowdown(state);
   }
@@ -310,18 +317,34 @@ export function step(state, action, raw) {
     return terminalResult(next, next.winner, { folded: 'player' });
   }
 
-  while (next.toAct === 'ai' && !next.roundComplete && !isOver(next)) {
-    replayBot();
+  const replayBots = () => {
+    while (next.toAct === 'ai' && !next.roundComplete && !isOver(next)) {
+      replayBot();
+    }
+  };
+  const assertAllReplayed = () => {
+    if (aiIndex !== raw.aiActions.length) {
+      throw new TypeError('poker: raw.aiActions contains an unused bot decision');
+    }
+  };
+
+  replayBots();
+  // A completed round opens the next street; the bot's opening turn is
+  // replayed here too, so that the session always waits for the player (#413).
+  for (;;) {
+    if (isOver(next)) {
+      assertAllReplayed();
+      return terminalResult(next, next.winner, { folded: 'ai' });
+    }
+    if (!next.roundComplete) break;
+    next = completeBettingRound(next);
+    if ('outcome' in next) {
+      assertAllReplayed();
+      return next;
+    }
+    replayBots();
   }
-  if (aiIndex !== raw.aiActions.length) {
-    throw new TypeError('poker: raw.aiActions contains an unused bot decision');
-  }
-  if (isOver(next)) {
-    return terminalResult(next, next.winner, { folded: 'ai' });
-  }
-  if (next.roundComplete) {
-    return completeBettingRound(next);
-  }
+  assertAllReplayed();
 
   next.needsDraw = true;
   next.availableActions = effectiveActions(next, next.toAct);

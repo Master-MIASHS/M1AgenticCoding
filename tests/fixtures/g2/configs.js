@@ -81,5 +81,9 @@ export const GAME_FIXTURES = Object.freeze({
     config: { paytable: { 1: 1.2, 2: 1.5, 3: 2, 4: 3, 5: 5 } },
     bets: [{ type: 'main', amount: 10 }],
   },
+  baccarat: {
+    config: { paytable: { player: 2, banker: 1.95, tie: 9 }, deckCount: 8 },
+    bets: [{ type: 'player', amount: 10 }],
+  },
   bingo: { config: { paytable: { win: 4 }, botCount: 3 }, bets: [{ type: 'card', amount: 10 }] },
 });

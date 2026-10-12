@@ -96,7 +96,7 @@ describe('resolve - dealing and totals', () => {
     const third = card('2', 'hearts');
     const result = resolveRound([
       card('3', 'hearts'),
-      card('A', 'spades'),
+      card('10', 'spades'),
       card('3', 'diamonds'),
       card('K', 'clubs'),
       third,
@@ -114,7 +114,7 @@ describe('resolve - dealing and totals', () => {
     const result = resolveRound(
       [
         card('3', 'hearts'),
-        card('A', 'spades'),
+        card('10', 'spades'),
         card('3', 'diamonds'),
         card('K', 'clubs'),
         card('9', 'hearts'),
@@ -468,6 +468,7 @@ describe('module contract', () => {
  */
 function baccaratValue(card) {
   const numeric = Number(card.rank);
-  if (card.rank === 'A' || Number.isNaN(numeric) || numeric === 10) return 0;
+  if (card.rank === 'A') return 1;
+  if (Number.isNaN(numeric) || numeric === 10) return 0;
   return numeric % 10;
 }

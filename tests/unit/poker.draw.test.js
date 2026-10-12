@@ -58,15 +58,17 @@ test('returns immutable bot decisions for replay after a player action', () => {
 
   const raw = draw(core, { session, action: 'call' });
 
-  assert.deepEqual(raw.aiActions, [{ type: 'check' }]);
-  assert.equal(decisions.length, 1);
+  // The bot's preflop check, then its opening check on the flop (#413).
+  assert.deepEqual(raw.aiActions, [{ type: 'check' }, { type: 'check' }]);
+  assert.equal(decisions.length, 2);
   assert.ok(decisions[0].aiHandStrength >= 0 && decisions[0].aiHandStrength <= 1);
   assert.equal('playerHand' in decisions[0], false);
   assert.deepEqual(session, snapshot);
 });
 
 test('orders bot decisions before and after the player action on later streets', () => {
-  const queue = [{ type: 'check' }, { type: 'check' }, { type: 'call' }];
+  // preflop check, flop opening check, call of the raise, turn opening check
+  const queue = [{ type: 'check' }, { type: 'check' }, { type: 'call' }, { type: 'check' }];
   const core = {
     melanger(cards) {
       return cards;
@@ -83,11 +85,13 @@ test('orders bot decisions before and after the player action on later streets',
   );
 
   assert.equal(afterPreflop.stage, 'flop');
+  assert.equal(afterPreflop.toAct, 'player');
   const raw = draw(core, { session: afterPreflop, action: 'raise' });
-  assert.deepEqual(raw.aiActions, [{ type: 'check' }, { type: 'call' }]);
+  assert.deepEqual(raw.aiActions, [{ type: 'call' }, { type: 'check' }]);
 
   const next = step(afterPreflop, 'raise', raw);
   assert.equal(next.stage, 'turn');
+  assert.equal(next.toAct, 'player');
   assert.equal(next.totalBet, 4);
   assert.equal(next.aiTotalBet, 4);
   assert.deepEqual(queue, []);

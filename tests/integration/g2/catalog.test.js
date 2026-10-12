@@ -49,9 +49,9 @@ function playOneRound(game, gameId, bets) {
 }
 
 describe('G2 - catalogue des jeux (contrat § 5.4)', () => {
-  test('le catalogue couvre les 12 jeux dont les règles sont sur main', () => {
+  test('le catalogue couvre les 13 jeux dont les règles sont sur main', () => {
     assert.deepEqual([...CATALOG_GAME_IDS].sort(), [
-      'bingo', 'blackjack', 'dice', 'memory', 'plinko', 'poker',
+      'baccarat', 'bingo', 'blackjack', 'dice', 'memory', 'plinko', 'poker',
       'quiz', 'roulette', 'scratch', 'slots', 'video-poker', 'wheel',
     ]);
   });
@@ -76,8 +76,8 @@ describe('G2 - catalogue des jeux (contrat § 5.4)', () => {
   });
 
   test('un jeu absent du catalogue est refusé, sans valeur inventée', () => {
-    assert.equal(getGameDefinition('baccarat'), undefined);
-    assert.throws(() => createGameFromCatalog('baccarat', {}), RangeError);
+    assert.equal(getGameDefinition('inconnu'), undefined);
+    assert.throws(() => createGameFromCatalog('inconnu', {}), RangeError);
   });
 
   test('sans config, les règles refusent de jouer (règle 4)', () => {
@@ -120,20 +120,17 @@ describe('G2 - catalogue des jeux (contrat § 5.4)', () => {
     });
   }
 
-  test(
-    'poker : au début d’une nouvelle rue, les actions proposées sont celles du JOUEUR',
-    { todo: 'écart 13 (#413) : advanceStreet() met toAct = ai et propose au joueur les actions du bot' },
-    () => {
-      // Le joueur suit jusqu'au tapis ou à l'abattage ; à chaque étape, l'action
-      // proposée doit être acceptée par action() (aucune erreur).
-      for (let round = 0; round < 30; round += 1) {
-        const game = createGameFromCatalog('poker', { config: GAME_FIXTURES.poker.config });
-        let response = game.start(GAME_FIXTURES.poker.bets);
-        while (!response.terminal) {
-          const choice = ['check', 'call'].find((a) => response.availableActions.includes(a)) ?? 'fold';
-          response = game.action(response.sessionId, choice);
-        }
+  test('poker : au début d’une nouvelle rue, les actions proposées sont celles du JOUEUR (#413)', () => {
+    // Le joueur suit jusqu'au tapis ou à l'abattage ; à chaque étape, l'action
+    // proposée doit être acceptée par action() (aucune erreur) et la session
+    // en cours attend toujours le joueur.
+    for (let round = 0; round < 60; round += 1) {
+      const game = createGameFromCatalog('poker', { config: GAME_FIXTURES.poker.config });
+      let response = game.start(GAME_FIXTURES.poker.bets);
+      while (!response.terminal) {
+        const choice = ['check', 'call'].find((a) => response.availableActions.includes(a)) ?? 'fold';
+        response = game.action(response.sessionId, choice);
       }
     }
-  );
+  });
 });

@@ -1,4 +1,5 @@
 import { buildDeck, createShoe, draw as drawCards, remaining } from '../deck.js';
+import { advanceStreet } from './rules.js';
 import { applyBot, applyPlayer, botPayload, isOver } from './engine.js';
 
 /**
@@ -77,6 +78,13 @@ export function draw(core, context = {}) {
   state = applyPlayer(state, context.action);
   if (!isOver(state)) {
     state = playBots(core, state, aiActions);
+    // Round complete: open the next street and play the bot's opening turn in
+    // this same action(), so the session always waits for the player (#413).
+    while (state.roundComplete && !isOver(state)) {
+      state = advanceStreet(state);
+      if ('outcome' in state) break; // showdown: terminal result, nothing left to draw
+      state = playBots(core, state, aiActions);
+    }
   }
 
   return { aiActions };

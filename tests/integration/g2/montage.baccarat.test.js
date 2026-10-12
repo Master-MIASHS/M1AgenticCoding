@@ -116,7 +116,7 @@ describe('montage baccarat - mains connues (mélange contrôlé)', () => {
   it('joueur gagne : un seul mélange, un seul play(), solde réglé', () => {
     const { core, shuffleCalls, playCalls } = makeTestCore([
       card('3', 'hearts'),
-      card('A', 'spades'),
+      card('10', 'spades'),
       card('3', 'diamonds'),
       card('K', 'clubs'),
       card('2', 'hearts'),
@@ -146,7 +146,7 @@ describe('montage baccarat - mains connues (mélange contrôlé)', () => {
   it('banquier gagne : la commission de 5% vient de la config', () => {
     const { core, playCalls } = makeTestCore([
       card('3', 'hearts'),
-      card('A', 'spades'),
+      card('10', 'spades'),
       card('3', 'diamonds'),
       card('K', 'clubs'),
       card('9', 'hearts'),
@@ -188,7 +188,7 @@ describe('montage baccarat - mains connues (mélange contrôlé)', () => {
   it('G3 reçoit une view (§ 5.2), jamais le paquet entier ni le draw', () => {
     const dealt = [
       card('3', 'hearts'),
-      card('A', 'spades'),
+      card('10', 'spades'),
       card('3', 'diamonds'),
       card('K', 'clubs'),
       card('2', 'hearts'),
@@ -204,7 +204,7 @@ describe('montage baccarat - mains connues (mélange contrôlé)', () => {
     assert.strictEqual(view.phase, 'result');
     assert.deepStrictEqual(view.playerHand, [card('3', 'hearts'), card('3', 'diamonds')]);
     assert.deepStrictEqual(view.bankerHand, [
-      card('A', 'spades'),
+      card('10', 'spades'),
       card('K', 'clubs'),
       card('2', 'hearts'),
     ]);
@@ -219,7 +219,7 @@ describe('montage baccarat - mains connues (mélange contrôlé)', () => {
   it('config.deckCount pilote la taille du sabot (règle 4)', () => {
     const { core, shuffleCalls } = makeTestCore([
       card('3', 'hearts'),
-      card('A', 'spades'),
+      card('10', 'spades'),
       card('3', 'diamonds'),
       card('K', 'clubs'),
       card('2', 'hearts'),
@@ -242,7 +242,7 @@ describe('montage baccarat - mains connues (mélange contrôlé)', () => {
     for (const deckCount of [0, -1, 1.5, '6']) {
       const { core } = makeTestCore([
         card('3', 'hearts'),
-        card('A', 'spades'),
+        card('10', 'spades'),
         card('3', 'diamonds'),
         card('K', 'clubs'),
         card('2', 'hearts'),

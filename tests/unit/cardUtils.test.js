@@ -128,8 +128,13 @@ describe('isBlackjack', () => {
 });
 
 describe('baccaratTotal', () => {
-  it('counts A, 10, J, Q and K as 0', () => {
-    for (const rank of ['A', '10', 'J', 'Q', 'K']) {
+  it('counts the Ace as 1 (#420)', () => {
+    assert.strictEqual(cardUtils.baccaratTotal([card('A', 'hearts')]), 1);
+    assert.strictEqual(cardUtils.baccaratTotal([card('A', 'hearts'), card('8', 'spades')]), 9);
+  });
+
+  it('counts 10, J, Q and K as 0', () => {
+    for (const rank of ['10', 'J', 'Q', 'K']) {
       assert.strictEqual(cardUtils.baccaratTotal([card(rank, 'hearts')]), 0, `rank ${rank}`);
     }
   });

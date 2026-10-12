@@ -29,6 +29,8 @@ import * as rouletteRules from './roulette/rules.js';
 import { draw as drawRoulette } from './roulette/index.js';
 import * as wheelRules from './wheel/rules.js';
 import { drawWheel } from './wheel/draw.js';
+import * as baccaratRules from './baccarat/rules.js';
+import { draw as drawBaccarat } from './baccarat/index.js';
 import * as plinkoRules from './plinko/rules.js';
 import { drawPlinko } from './plinko/draw.js';
 import * as blackjackRules from './blackjack/rules.js';
@@ -63,6 +65,7 @@ export const GAME_CATALOG = Object.freeze({
   scratch: Object.freeze({ kind: INSTANT, rules: scratchRules }),
   wheel: Object.freeze({ kind: INSTANT, rules: wheelRules, draw: drawWheel }),
   roulette: Object.freeze({ kind: INSTANT, rules: rouletteRules, draw: drawRoulette }),
+  baccarat: Object.freeze({ kind: INSTANT, rules: baccaratRules, draw: drawBaccarat }),
   plinko: Object.freeze({ kind: INSTANT, rules: plinkoRules, draw: drawPlinko }),
   blackjack: Object.freeze({ kind: MULTI_STEP, rules: blackjackRules, draw: drawBlackjack }),
   'video-poker': Object.freeze({ kind: MULTI_STEP, rules: videoPokerRules, draw: drawVideoPoker }),

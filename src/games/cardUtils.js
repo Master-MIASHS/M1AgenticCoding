@@ -187,7 +187,7 @@ export function isBlackjack(hand) {
 /**
  * Computes the total of a baccarat hand.
  *
- * Values: 2-9 at face value, A/10/J/Q/K as 0. Only the units digit of the
+ * Values: A counts 1, 2-9 at face value, 10/J/Q/K as 0. Only the units digit of the
  * raw sum counts (5+4 = 9, 6+7 = 3, 9+9 = 8): 9 is the highest total, 0 the
  * lowest.
  *
@@ -206,7 +206,9 @@ export function baccaratTotal(hand) {
 
   let total = 0;
   for (const card of hand) {
-    if (card.rank !== 'A' && !TEN_VALUE_RANKS.has(card.rank)) {
+    if (card.rank === 'A') {
+      total += 1;
+    } else if (!TEN_VALUE_RANKS.has(card.rank)) {
       total += Number(card.rank);
     }
   }
