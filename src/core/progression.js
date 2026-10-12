@@ -7,7 +7,7 @@
 import { getState, updateState } from './state.js';
 import { TEMPORARY_LEVEL_THRESHOLDS } from './config/progression.config.js';
 import { createProgressionStore } from './progression.store.js';
-import { GAMES } from './config/games.config.js';
+import { getEffectiveUnlockLevels } from './config/unlock.config.js';
 import { calculateUnlockedGames } from './unlockedGames.js';
 
 /**
@@ -118,22 +118,14 @@ export function getLevel() {
 }
 
 /**
- * Seuils de déblocage par défaut de GAMES ({ gameId: niveau }). Les seuils
- * réglés par l'admin arriveront avec l'instance partagée de #315.
- * @returns {Object<string, number>} Nouvel objet.
- */
-function seuilsDeDeblocage() {
-  return Object.fromEntries(Object.values(GAMES).map((jeu) => [jeu.id, jeu.unlockLevel]));
-}
-
-/**
  * Jeux débloqués du joueur (#344) : acquis de l'état, plus les jeux dont le
- * niveau requis est atteint au niveau effectif. Lecture seule : rien n'est
- * écrit, et un acquis n'est jamais retiré.
+ * niveau requis est atteint au niveau effectif. Les niveaux requis sont ceux
+ * en vigueur (réglés par l'admin, sinon ceux de GAMES : #315, #396). Lecture
+ * seule : rien n'est écrit, et un acquis n'est jamais retiré.
  * @returns {string[]} Identifiants sans doublon (nouvelle liste).
  */
 export function getUnlockedGames() {
-  return calculateUnlockedGames(getLevel(), seuilsDeDeblocage(), getState().unlockedGames);
+  return calculateUnlockedGames(getLevel(), getEffectiveUnlockLevels(), getState().unlockedGames);
 }
 
 /** @returns {Array} (mock) leaderboard entries. */
