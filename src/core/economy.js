@@ -225,32 +225,43 @@ export function createDailyBonus({ store, config = DAILY_BONUS_CONFIG, now = Dat
   };
 }
 
-let lastDailyBonusClaimAt = null;
+/**
+ * Lit la date de la derniere reclamation enregistree dans l'etat (#348).
+ * Une sauvegarde sans ce champ, ou avec une valeur invalide, vaut « jamais
+ * reclame » (null).
+ * @param {object} state - Etat du joueur.
+ * @returns {number|null} Date en millisecondes, ou null.
+ */
+function readLastClaimAt(state) {
+  const value = state.lastDailyBonusClaimAt;
+  return Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
 
+// La date de reclamation est enregistree dans casino_state, dans la meme
+// ecriture que le solde : le delai survit au rechargement de la page (#348).
 const coreDailyBonusStore = {
   read() {
-    const { balance, bestBalance } = getState();
-    return { balance, bestBalance, lastClaimAt: lastDailyBonusClaimAt };
+    const state = getState();
+    return { balance: state.balance, bestBalance: state.bestBalance, lastClaimAt: readLastClaimAt(state) };
   },
   update(updater) {
-    let nextBonusState;
     const updatedState = updateState((current) => {
-      nextBonusState = updater({
+      const nextBonusState = updater({
         balance: current.balance,
         bestBalance: current.bestBalance,
-        lastClaimAt: lastDailyBonusClaimAt,
+        lastClaimAt: readLastClaimAt(current),
       });
       return {
         ...current,
         balance: nextBonusState.balance,
         bestBalance: nextBonusState.bestBalance,
+        lastDailyBonusClaimAt: nextBonusState.lastClaimAt,
       };
     });
-    lastDailyBonusClaimAt = nextBonusState.lastClaimAt;
     return {
       balance: updatedState.balance,
       bestBalance: updatedState.bestBalance,
-      lastClaimAt: lastDailyBonusClaimAt,
+      lastClaimAt: readLastClaimAt(updatedState),
     };
   },
 };
