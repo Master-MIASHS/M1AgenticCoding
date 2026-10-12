@@ -39,8 +39,8 @@ function dealOrder(details) {
 }
 
 // Jeu instantané (contrat G2 § 1) : start([{ type: 'player' | 'banker' | 'tie', amount }]).
-// Mains, totaux et gagnant lus uniquement dans gameResult.details (jamais renderPayload.raw,
-// qui contiendrait le paquet mélangé, #168). L'UI ne tire aucune carte et ne décide rien.
+// Mains, totaux et gagnant lus dans gameResult.details (les mêmes données que la view() des
+// règles #391 ; jamais le paquet, #168). L'UI ne tire aucune carte et ne décide rien.
 // status : "playing" (prêt à jouer) | "loading" | "terminal" | "error"
 // renderResult(gameResult, bet) : gain affiché = bet × gameResult.multiplier
 export default function BaccaratGame({ balance, start = mockStart, renderResult }) {

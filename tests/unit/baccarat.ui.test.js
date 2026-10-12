@@ -3,7 +3,8 @@
 // ---------------------------------------------------------------------------
 // Groupe 3. The mock stands in for the G2 orchestrator of an instant game:
 // start([{ type: 'player' | 'banker' | 'tie', amount }]) returns the settled
-// round, with the hands in gameResult.details like the G2 rules (PR #391).
+// round, with the hands in gameResult.details and renderPayload.view like the
+// G2 rules (#391): the shuffled deck is never sent.
 // ---------------------------------------------------------------------------
 
 import { describe, it } from 'node:test';
@@ -21,6 +22,8 @@ describe('baccarat mock - start(bets)', () => {
     assert.deepEqual(res.availableActions, []);
     assert.equal(res.terminal, true);
     assert.equal(res.renderPayload.raw, undefined);
+    assert.deepEqual(res.renderPayload.view.playerHand, res.gameResult.details.playerHand);
+    assert.equal(res.renderPayload.view.winner, res.gameResult.details.winner);
     const { details } = res.gameResult;
     assert.ok(details.playerHand.length >= 2 && details.playerHand.length <= 3);
     assert.ok(details.bankerHand.length >= 2 && details.bankerHand.length <= 3);

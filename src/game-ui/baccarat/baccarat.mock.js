@@ -2,9 +2,10 @@
 // Jeu instantané : start(bets) renvoie directement le résultat. Déterministe : mains et
 // résultats fixes par manche, pas une règle de jeu.
 //
-// Même forme que les règles G2 (PR #391) : details = { playerHand, bankerHand, playerTotal,
-// bankerTotal, natural, winner, thirdCards, bets, totalBet, payout }. L'UI ne lit que
-// details (jamais renderPayload.raw, qui contiendrait le paquet mélangé).
+// Même forme que les règles G2 (#391, mergée) : details = { playerHand, bankerHand,
+// playerTotal, bankerTotal, natural, winner, thirdCards, bets, totalBet, payout }, et
+// renderPayload.view construite par rules.view() à partir de details (le paquet mélangé n'est
+// jamais envoyé, #168). L'UI lit gameResult.details.
 
 const card = (rank, suit) => Object.freeze({ rank, suit });
 
@@ -64,7 +65,23 @@ export function mockStart(bets) {
       () =>
         resolve({
           sessionId: `baccarat-mock-${calls}`,
-          renderPayload: { gameId: 'baccarat', phase: 'result', interpretation: details },
+          renderPayload: {
+            gameId: 'baccarat',
+            phase: 'result',
+            view: {
+              phase: 'result',
+              playerHand: [...details.playerHand],
+              bankerHand: [...details.bankerHand],
+              playerTotal: details.playerTotal,
+              bankerTotal: details.bankerTotal,
+              natural: details.natural,
+              winner: details.winner,
+              outcome: outcomeOf(multiplier),
+              bets: details.bets.map((b) => ({ ...b })),
+              totalBet: details.totalBet,
+              payout: details.payout,
+            },
+          },
           availableActions: [],
           terminal: true,
           gameResult: { outcome: outcomeOf(multiplier), multiplier, details },
