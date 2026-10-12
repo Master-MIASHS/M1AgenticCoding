@@ -29,7 +29,6 @@ import {
   getLeaderboard,
   getHistory,
   setGameConfig,
-  updatePlayerBalance,
   getGlobalStats,
   exportSave,
   importSave,
@@ -54,7 +53,6 @@ export {
   getLeaderboard,
   getHistory,
   setGameConfig,
-  updatePlayerBalance,
   getGlobalStats,
 
   exportSave,
