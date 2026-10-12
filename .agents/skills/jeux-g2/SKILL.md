@@ -97,7 +97,7 @@ step = game.action(step.sessionId, 'stand');            // terminal: true
     (`red` / `black` / `green`, ou `null` si la config n'a pas de listes
     `red` / `black`), calculée par les règles à partir de la config (#191, #321) ;
   - dés : `interpretation = { point, rolls, rawValues, dice, totalBet, payout }`
-    (PR #342). Craps classique en pass line (#159) : `rolls` contient un total
+    (#342). Craps classique en pass line (#159) : `rolls` contient un total
     par lancer (la liste peut dépasser deux lancers), `dice` les paires de
     faces. 2, 3 ou 12 au premier lancer = perdu : jamais d'égalité.
 - Pour un autre jeu, aligner le contenu avec son responsable (discussion #8).
@@ -171,11 +171,11 @@ les règles lèvent une erreur si elle manque (règle 4, rien en dur).
 | `plinko` | `{ paytable: number[], weights: number[] }`, index = numéro de case ; `weights` est lu par `plinko/draw.js` (#320) |
 | `blackjack` | `{ paytable: { blackjack, win } }`, multiplicateurs mise incluse (ex. `{ blackjack: 2.5, win: 2 }`) ; égalité → 1, perte → 0 (#189) |
 | `video-poker` | « Jacks or Better » 9/6 (#125) : `paytable` par `category` de `evaluatePokerHand()`, mise incluse : 10 → 250, 9 → 50, 8 → 25, 7 → 9, 6 → 6, 5 → 4, 4 → 3, 3 → 2, 2 → 1 seulement pour une paire de valets ou mieux (sinon 0), 1 → 0 |
-| `roulette` | `{ bets: { <type>: { match: number[], multiplier } } }`, `match` = liste des nombres gagnants (#191) |
+| `roulette` | `{ paytable: { <type>: { match: number[], multiplier } } }`, `match` = liste des nombres gagnants ; la couleur est déduite de `paytable.red` / `paytable.black` (#191, #366) |
 | `slots` | `{ symbols: { bands: [{ max, symbol }] }, paytable: { <combinaison>: { multiplier } } }` : `bands` (lu par `slots/draw.js`) couvre tout [0, 1), clé de `paytable` = les 3 symboles accolés (#216) |
 | `scratch` | `{ paytable: { bands: [{ max, symbol, multiplier }] } }`, bandes triées par `max` croissant (#216) |
-| `dice` | `{ paytable: { pass: m } }`, multiplicateur mise incluse (2 = gain 1:1), `m > 1` ; mises de type `pass` uniquement (#159, PR #342) |
-| `baccarat` | 🟠 règles en cours (#220) |
+| `dice` | `{ paytable: { pass: m } }`, multiplicateur mise incluse (2 = gain 1:1), `m > 1` ; mises de type `pass` uniquement (#159, #342) |
+| `baccarat` | `{ paytable: { player, banker, tie } }`, multiplicateurs mise incluse (commission du banquier = valeur admin) ; égalité → `player` / `banker` rendus, `tie` payé (PR #391, #220) |
 | `memory` | `{ paytable: { 8: m, …, 16: m } }`, multiplicateur selon le nombre de tours utilisés (#300) |
 | `quiz` | `{ paytable: { 1: m, …, 5: m } }`, multiplicateur selon le nombre de bonnes réponses (#302) |
 | `bingo` | `{ paytable: { win }, botCount }` : `win > 1`, `botCount` entier ≥ 1 ; joueur et bot sur la même boule → `push` (#310) |
@@ -240,7 +240,7 @@ restent provisoires (`src/config/gamesProvisional.config.js`, PR #296 du G5).
    reste ouverte avec le même `roundId` (#218, PR #311).
 7. Tests unitaires des règles + un test de montage dans
    `tests/integration/g2/` (modèles : `montage.wheel-plinko.test.js`,
-   `montage.blackjack.test.js` ; fixtures `tests/fixtures/g2/rolls.js`).
+   `montage.blackjack.test.js`, `montage.memory.test.js` pour un jeu multi-étapes ; fixtures `tests/fixtures/g2/rolls.js`).
    `play()` est persistant (#287) : vérifier le solde **par différence**
    (solde lu juste avant la partie), jamais avec un solde de départ lu une
    seule fois.
