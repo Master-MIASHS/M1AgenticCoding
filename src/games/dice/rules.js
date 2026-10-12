@@ -1,212 +1,134 @@
 // ---------------------------------------------------------------------------
-// Games - Dice (Craps) rules (Groupe 2)
+// Games - Dice (Craps) rules (Groupe 2, issue #159)
 // ---------------------------------------------------------------------------
-// Pure rules of the dice game: a craps "pass line" round driven by the
-// come / point / done state machine.
+// Pure pass-line craps rules. Randomness is supplied as raw dice-face pairs;
+// craps.js owns the shared, deterministic round transitions.
 //
-//   come  : the come-out roll. 7 or 11 wins, 2 or 3 loses, 12 is a push
-//           (stake returned). Any other total (4, 5, 6, 8, 9, 10) becomes
-//           the point and the machine moves to the point phase.
-//   point : each following roll is compared with the point and with 7.
-//           7 or the point wins, any other total loses.
-//   done  : terminal state, always reached by resolve().
+// resolve(raw, { bets, config }) -> { outcome, multiplier, details }
 //
-// Contract (single-step rules, see /src/games/_template/ on the
-// feat/groupe2-orchestrateur-generique branch):
-//
-//   resolve(raw, { bets, config }) -> gameResult
-//
-// `raw` carries the raw RNG results of the round: one { value, nonce } per
-// dice roll, in roll order (first entry = come-out roll). A craps round is
-// at most two rolls: the come-out roll, and (only if it establishes a
-// point) the single roll that settles the point phase. A single raw object
-// is accepted for rounds that settle on the come-out roll.
-//
-// `bets` is the normalized array of { type, amount } produced by the
-// orchestrator; the paytable is applied to the sum of the amounts.
-//
-// Purity / absolute rules:
-//   * no Math.random(): randomness enters only through the raw results
-//   * no import of coreService or of any Core module: no roll / play /
-//     balance / XP logic lives in this file
-//   * a raw value in [0, 1) maps to a two-d6 dice total (2..12) using the
-//     true distribution (36 equiprobable combinations), see DICE_TOTALS
-//
-// gameResult (always terminal):
-//   {
-//     terminal: true,
-//     state: 'done',
-//     outcome: 'win' | 'loss' | 'push',
-//     multiplier: number,  // TOTAL return multiplier, stake included
-//                          // (2 for a 1:1 win, 1 for a push, 0 for a loss)
-//     payout: number,      // tokens returned to the player, stake included
-//     totalBet: number,
-//     point: number | null,// point established during the round (if any)
-//     rolls: number[],     // dice totals in roll order
-//     rawValues: number[], // raw value of each roll (audit / display)
-//   }
+// `details` keeps the G3 and Core fields from the gameResult contract and
+// includes both the real dice faces and their totals for display/audit.
 // ---------------------------------------------------------------------------
+
+import { advanceCrapsRound } from './craps.js';
 
 export const COME = 'come';
 export const POINT = 'point';
 export const DONE = 'done';
 
-/**
- * True two-d6 distribution: for each dice total, the cumulative number of
- * combinations (out of 36) used to map a raw value in [0, 1) to a total.
- * A total s owns the interval [cum(s-1)/36, cum(s)/36).
- */
-export const DICE_TOTALS = Object.freeze([
-  { total: 2, cumulative: 1 },
-  { total: 3, cumulative: 3 },
-  { total: 4, cumulative: 6 },
-  { total: 5, cumulative: 10 },
-  { total: 6, cumulative: 15 },
-  { total: 7, cumulative: 21 },
-  { total: 8, cumulative: 26 },
-  { total: 9, cumulative: 30 },
-  { total: 10, cumulative: 33 },
-  { total: 11, cumulative: 35 },
-  { total: 12, cumulative: 36 },
-]);
-
-/** Pass-line paytable: wins pay 1:1, 12 on the come-out is a push. */
 export const PAYTABLE = Object.freeze({
   natural: Object.freeze([7, 11]),
-  craps: Object.freeze([2, 3]),
-  push: Object.freeze([12]),
+  craps: Object.freeze([2, 3, 12]),
   pointValues: Object.freeze([4, 5, 6, 8, 9, 10]),
-  winMultiplier: 1,
 });
 
-/**
- * Maps a raw RNG value in [0, 1) to a two-d6 dice total (2..12) using the
- * true distribution (36 equiprobable combinations).
- *
- * @param {number} value - raw value in [0, 1).
- * @returns {number} dice total between 2 and 12.
- * @throws {TypeError} if value is not a finite number in [0, 1).
- */
-export function diceTotalFromRawValue(value) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value >= 1) {
-    throw new TypeError(`dice: raw value must be a finite number in [0, 1), got ${value}`);
+function validateConfig(config) {
+  const multiplier = config?.paytable?.pass;
+  if (typeof multiplier !== 'number' || !Number.isFinite(multiplier) || multiplier <= 1) {
+    throw new TypeError(
+      'dice: config.paytable.pass must be a finite number greater than 1'
+    );
   }
-  for (const { total, cumulative } of DICE_TOTALS) {
-    if (value < cumulative / 36) {
-      return total;
-    }
-  }
-  return 12;
+  return multiplier;
 }
 
-/**
- * Sums the normalized bets into a single total bet.
- *
- * @param {Array<{ type: string, amount: number }>} bets
- * @returns {number}
- */
-function totalBet(bets) {
-  return bets.reduce((sum, bet) => sum + bet.amount, 0);
+function validateBets(bets) {
+  if (!Array.isArray(bets) || bets.length === 0) {
+    throw new TypeError('dice: bets must be a non-empty array of pass bets');
+  }
+  return bets.reduce((sum, bet) => {
+    if (
+      bet === null ||
+      typeof bet !== 'object' ||
+      bet.type !== 'pass' ||
+      typeof bet.amount !== 'number' ||
+      !Number.isFinite(bet.amount) ||
+      bet.amount <= 0
+    ) {
+      throw new TypeError('dice: each bet must have type "pass" and a positive finite amount');
+    }
+    return sum + bet.amount;
+  }, 0);
 }
 
-/**
- * Resolves one full craps round (come -> point -> done) from the raw RNG
- * results and the bets. Pure function: no randomness, no Core, no side
- * effect; the same inputs always produce the same gameResult.
- *
- * @param {object | object[]} raw - one raw result { value, nonce } per dice
- *   roll, in roll order (first = come-out roll); a single object is accepted
- *   for rounds that settle on the come-out roll.
- * @param {{ bets: Array<{ type: string, amount: number }>, config: object }} options
- *   the normalized bets and config, as produced by the orchestrator; config is
- *   accepted but unused by the dice rules.
- * @returns {{
- *   terminal: boolean,
- *   state: string,
- *   outcome: 'win' | 'loss' | 'push',
- *   multiplier: number,
- *   payout: number,
- *   totalBet: number,
- *   point: number | null,
- *   rolls: number[],
- *   rawValues: number[]
- * }} the terminal gameResult.
- * @throws {TypeError} if raw is empty or a raw value is malformed.
- * @throws {RangeError} if the provided rolls do not reach a terminal state,
- *   or if extra rolls follow the terminal roll.
- */
-export function resolve(raw, { bets, config }) {
-  const raws = Array.isArray(raw) ? raw : [raw];
-  if (raws.length === 0) {
-    throw new TypeError('dice: at least one raw result is required');
+function validateRolls(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new TypeError('dice: raw must be a non-empty list of dice-face pairs');
   }
 
-  const rolls = raws.map((entry) => {
-    if (entry === null || typeof entry !== 'object' || typeof entry.value !== 'number') {
-      throw new TypeError('dice: each raw result must be an object with a numeric `value`');
+  return raw.map((dice, index) => {
+    if (!Array.isArray(dice) || dice.length !== 2) {
+      throw new TypeError(`dice: roll ${index + 1} must contain exactly two faces`);
     }
-    return diceTotalFromRawValue(entry.value);
+    for (const face of dice) {
+      if (!Number.isInteger(face)) {
+        throw new TypeError(`dice: faces in roll ${index + 1} must be integers`);
+      }
+      if (face < 1 || face > 6) {
+        throw new RangeError(`dice: faces in roll ${index + 1} must be between 1 and 6`);
+      }
+    }
+    return [...dice];
   });
+}
 
-  const bet = totalBet(bets);
-  let state = COME;
+/**
+ * Resolves a complete pass-line craps round from its raw dice faces.
+ *
+ * @param {Array<[number, number]>} raw - dice faces in roll order.
+ * @param {{ bets: Array<{ type: string, amount: number }>, config: object }} options
+ *   normalized bets and the required paytable configuration.
+ * @returns {{ outcome: 'win' | 'loss', multiplier: number, details: object }}
+ * @throws {TypeError} for malformed rolls, bets, options, or configuration.
+ * @throws {RangeError} for faces outside [1, 6], incomplete rounds, or extra
+ *   rolls after the round has resolved.
+ */
+export function resolve(raw, options = {}) {
+  if (options === null || typeof options !== 'object') {
+    throw new TypeError('dice: options must contain bets and config');
+  }
+
+  const { bets, config } = options;
+  const multiplier = validateConfig(config);
+  const bet = validateBets(bets);
+  const dice = validateRolls(raw);
+  const rolls = dice.map(([first, second]) => first + second);
+
   let point = null;
   let outcome = null;
-
-  for (let i = 0; i < rolls.length; i += 1) {
-    const total = rolls[i];
-    if (state === COME) {
-      if (PAYTABLE.natural.includes(total)) {
-        state = DONE;
-        outcome = 'win';
-      } else if (PAYTABLE.craps.includes(total)) {
-        state = DONE;
-        outcome = 'loss';
-      } else if (PAYTABLE.push.includes(total)) {
-        state = DONE;
-        outcome = 'push';
-      } else {
-        state = POINT;
-        point = total;
-      }
-    } else {
-      outcome = total === 7 || total === point ? 'win' : 'loss';
-      state = DONE;
-    }
-    if (state === DONE) {
-      if (i < rolls.length - 1) {
-        throw new RangeError('dice: surplus raw results after the terminal roll');
+  for (let index = 0; index < rolls.length; index += 1) {
+    const next = advanceCrapsRound(point, rolls[index]);
+    point = next.point;
+    if (next.outcome !== null) {
+      outcome = next.outcome;
+      if (index < rolls.length - 1) {
+        throw new RangeError('dice: surplus rolls after the terminal roll');
       }
       break;
     }
   }
 
-  if (state !== DONE) {
-    throw new RangeError('dice: not enough raw results to reach a terminal state');
+  if (outcome === null) {
+    throw new RangeError('dice: not enough rolls to reach a terminal outcome');
   }
 
-  // Contract G2 2.2 (#68, #159): the multiplier INCLUDES the stake so that the
-  // Core can settle it (#135): 1:1 win -> 2, push -> 1, loss -> 0.
-  const multiplier =
-    outcome === 'win' ? 1 + PAYTABLE.winMultiplier : outcome === 'push' ? 1 : 0;
-  const payout =
-    outcome === 'win' ? bet * (1 + PAYTABLE.winMultiplier) : outcome === 'push' ? bet : 0;
-
+  const resultMultiplier = outcome === 'win' ? multiplier : 0;
+  const payout = bet * resultMultiplier;
   return {
-    terminal: true,
-    state: DONE,
     outcome,
-    multiplier,
-    payout,
-    totalBet: bet,
-    point,
-    rolls,
-    rawValues: raws.map((entry) => entry.value),
+    multiplier: resultMultiplier,
+    details: {
+      point,
+      rolls,
+      rawValues: dice,
+      dice,
+      totalBet: bet,
+      payout,
+    },
   };
 }
 
 /**
- * Rules object following the G2 template contract, ready to be plugged into
- * createGame({ id: 'dice', rules: diceRules }).
+ * Rules object following the G2 template contract.
  */
 export const diceRules = Object.freeze({ resolve });
