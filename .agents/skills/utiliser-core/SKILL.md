@@ -69,8 +69,10 @@ Après `addXP()`, `importSave()` ou `creerProfil()`, relire `getState()` : les r
 de ces mutations ne sont pas des snapshots enrichis. Utiliser `exportSave()` pour
 sauvegarder, sans sérialiser le snapshot public à sa place.
 
-La lecture peut échouer si l’initialisation du stockage échoue dans la version
-utilisée : vérifier le comportement courant et le traitement d’erreur prévu.
+La lecture ne dépend pas de la réussite du stockage : au démarrage, un
+`casino_state` illisible ou non conforme, ou un `localStorage` inaccessible, donne
+l’état par défaut avec un avertissement dans la console (#240). Inutile de prévoir
+un traitement d’erreur côté UI pour ce cas.
 
 ### Lire la configuration et le catalogue : getGameConfig() / GAMES
 

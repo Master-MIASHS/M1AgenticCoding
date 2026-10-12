@@ -156,9 +156,17 @@ des résultats **bruts** : elles ne déterminent jamais si le joueur gagne ou pe
 Clé principale : `casino_state`. Le schéma complet est documenté dans
 `src/core/state.js`.
 
-`importSave()` valide la version, la forme des données et le hash avant de
-restaurer l'état en mémoire et dans `casino_state`. Une sauvegarde invalide ou
-une erreur d'écriture laisse l'état en mémoire inchangé. Le hash FNV-1a est le
+**Démarrage** : si `casino_state` est illisible ou non conforme, ou si
+`localStorage` est inaccessible, l'application ne plante pas : avertissement dans
+la console, état par défaut, et `casino_state` conservé jusqu'au prochain
+enregistrement réussi (#240).
+
+**Sauvegarde** : `exportSave()` exporte l'état du joueur avec un hash
+d'intégrité. `importSave()` valide la version, la forme et la cohérence des
+données (`bestBalance ≥ balance`) ainsi que le hash avant de restaurer l'état en
+mémoire et dans `casino_state`. Un import accepté remplace toute la partie, même
+avec une XP, un niveau ou un meilleur solde inférieurs (#258) ; une sauvegarde
+invalide ou une erreur d'écriture laisse l'état inchangé. Le hash FNV-1a est le
 standard retenu pour le contrôle d'intégrité non cryptographique : il détecte
 une sauvegarde abîmée, pas la triche.
 
