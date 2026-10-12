@@ -107,14 +107,20 @@ function GlobalSettingsSection() {
 }
 
 function BonusEventsSection() {
-  const [events, setEvents] = useState([]);
-  const [newEvent, setNewEvent] = useState({
+  const [events, setEvents] = useState(() => {
+    try {
+      return coreService.getEvenementsBonus();
+    } catch {
+      return [];
+    }
+  });
+  const [newEvent, setNewEvent] = useState(() => ({
     id: '',
     cible: 'gains',
     multiplicateur: 2,
-    debut: 0,
-    fin: 0,
-  });
+    debut: Date.now(),
+    fin: Date.now() + 86400000,
+  }));
   const [feedback, setFeedback] = useState(null);
 
   const loadEvents = useCallback(() => {
@@ -124,16 +130,6 @@ function BonusEventsSection() {
       setFeedback({ type: 'error', message: err.message });
     }
   }, []);
-
-  useEffect(() => {
-    loadEvents();
-    const now = Date.now();
-    setNewEvent(prev => ({
-      ...prev,
-      debut: now,
-      fin: now + 86400000,
-    }));
-  }, [loadEvents]);
 
   const handleLaunch = (e) => {
     e.preventDefault();
@@ -241,7 +237,14 @@ function BonusEventsSection() {
 }
 
 function ModerationSection() {
-  const [players, setPlayers] = useState([]);
+  const [players, setPlayers] = useState(() => {
+    try {
+      // Note: coreService.getPlayers() is not yet implemented by G1. 
+      return [];
+    } catch {
+      return [];
+    }
+  });
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [balanceUpdate, setBalanceUpdate] = useState('');
   const [roleUpdate, setRoleUpdate] = useState('');
@@ -255,10 +258,6 @@ function ModerationSection() {
       setFeedback({ type: 'error', message: 'Erreur chargement joueurs' });
     }
   }, []);
-
-  useEffect(() => {
-    loadPlayers();
-  }, [loadPlayers]);
 
   const handleBalanceUpdate = (e) => {
     e.preventDefault();
