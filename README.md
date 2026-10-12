@@ -268,7 +268,7 @@ Le Groupe 2 décide **ce qui se passe** dans une partie : les règles de chaque 
 | :--- | :--- | :--- | :--- |
 | Donia-alfonsi | Donia-alfonsi, Donia Alfonsi | Alfonsi, Donia | moteur de cartes partagé `cardUtils.js` (#23, #67, #120), constructeur de paquet `deck.js` (#102, #169), Blackjack et son tirage (#189, #203) · tests associés, dont le montage blackjack (#299, #301) |
 | Zelyx21 | Clem, Zelyx21, Clémentine Beaulieu | Beaulieu, Clémentine | a créé le socle commun du G2, l'orchestrateur createGame (#22, #91), a coordonné le groupe avec les autres groupes, a codé les règles du vidéo poker, du Memory, du Quiz et du Bingo (#125, #274, #275, #276) |
-| raphoulefoufou | raphoulefoufou | Capristo,Raphaël | création jeu de dés,test sur ces derniers · poker contre les bots (#196) |
+| raphoulefoufou | Raphael Capristo | Capristo,Raphaël | création jeu de dés,test sur ces derniers · poker contre les bots (#196) |
 | camilhamdach5-byte | camilhamdach5-byte, Camil-Hamdach | Hamdach,Camil | Création de la logique des jeux Slots, Scratch et Baccarat (#31, #216, #220) |
 | camseveyrat | camseveyrat - Camille | Seveyrat, Camille | règles et jeux : wheel + plinko + roulette (#191, #233) |
 | fcassius | fcassius, Cassius FELIHO | FELIHO, Cassius | référent intégration / documentation du G2 : contrats G2 ↔ G1 / G3 / G4 (#68), orchestrateur `createGame`, cohérence des formats, mocks et fixtures, tests d'intégration, skill `jeux-g2` |
