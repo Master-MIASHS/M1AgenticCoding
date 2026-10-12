@@ -33,6 +33,14 @@
 // total stake, exactly like the roulette: one settlement per round (the Core
 // derives the outcome from the multiplier, src/core/economy.js).
 //
+// VIEW (card game, contract G2 section 5.2, confirmed on #220):
+//  * the game exposes rules.view(...): G3 only receives what was actually
+//    played (hands, totals, winner, settled bets), never the raw draw nor the
+//    shoe;
+//  * the shoe size (6 to 8 decks in a real casino) is an admin value read from
+//    config.deckCount by the game draw (src/games/baccarat/index.js); the
+//    rules never build nor count decks.
+//
 // ABSOLUTE RULES honored by this module:
 //  * only imports: cardUtils.js and deck.js. No Core, no coreService, no
 //    React, and no randomness at all.
@@ -288,5 +296,44 @@ export function resolve(raw, { bets, config } = {}) {
       totalBet,
       payout,
     },
+  };
+}
+
+/**
+ * What G3 may display once the round is settled.
+ *
+ * Baccarat is a card game (contract G2 section 5.2, confirmed on #220): the
+ * game exposes a view so `renderPayload` carries ONLY what was actually played
+ * (hands, totals, winner, settled bets), never the raw draw nor the shoe.
+ *
+ * @param {{ phase?: string, gameResult?: object }} [context] - the render
+ *   context handed by the orchestrator on the terminal phase; `raw` and
+ *   `session` are intentionally ignored (the view derives from the settled
+ *   gameResult only).
+ * @returns {{ phase: string, playerHand: object[], bankerHand: object[],
+ *   playerTotal: number, bankerTotal: number, natural: boolean, winner: string,
+ *   outcome: string, bets: object[], totalBet: number, payout: number }}
+ * @throws {TypeError} when there is no settled gameResult to describe (never
+ *   happens in practice: the view is only requested on the terminal phase).
+ * @example
+ * rules.view({ phase, raw, session, gameResult });
+ */
+export function view({ phase = 'result', gameResult } = {}) {
+  if (!gameResult || typeof gameResult !== 'object' || !gameResult.details) {
+    throw new TypeError('baccarat: view() needs the settled gameResult of the round');
+  }
+  const { details } = gameResult;
+  return {
+    phase,
+    playerHand: details.playerHand.map((c) => ({ ...c })),
+    bankerHand: details.bankerHand.map((c) => ({ ...c })),
+    playerTotal: details.playerTotal,
+    bankerTotal: details.bankerTotal,
+    natural: details.natural,
+    winner: details.winner,
+    outcome: gameResult.outcome,
+    bets: details.bets.map((bet) => ({ ...bet })),
+    totalBet: details.totalBet,
+    payout: details.payout,
   };
 }
