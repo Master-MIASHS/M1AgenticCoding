@@ -125,7 +125,7 @@ function BonusEventsSection() {
     }
   }, []);
 
-  useState(() => {
+  useEffect(() => {
     loadEvents();
     const now = Date.now();
     setNewEvent(prev => ({
@@ -250,18 +250,13 @@ function ModerationSection() {
   const loadPlayers = useCallback(() => {
     try {
       // Note: coreService.getPlayers() is not yet implemented by G1. 
-      // We simulate a list of players for the UI.
-      setPlayers([
-        { id: 'u1', pseudo: 'PlayerOne', balance: 1200, role: 'player', status: 'active' },
-        { id: 'u2', pseudo: 'GamblerX', balance: 50, role: 'player', status: 'banned' },
-        { id: 'u3', pseudo: 'AdminBoss', balance: 10000, role: 'admin', status: 'active' },
-      ]);
+      setPlayers([]);
     } catch (err) {
       setFeedback({ type: 'error', message: 'Erreur chargement joueurs' });
     }
   }, []);
 
-  useState(() => {
+  useEffect(() => {
     loadPlayers();
   }, [loadPlayers]);
 
