@@ -26,14 +26,14 @@
  * A bet placed on a Wheel of Fortune round.
  *
  * @typedef {object} Bet
- * @property {string} type - bet type, must be a key of `config.bets`.
+ * @property {string} type - bet type, must be a key of `config.paytable`.
  * @property {number} amount - staked chips, a positive number.
  */
 
 /**
  * One segment of the wheel.
  *
- * Any field is allowed: the wheel layout is admin data. `config.bets[type].match`
+ * Any field is allowed: the wheel layout is admin data. `config.paytable[type].match`
  * names the fields it cares about.
  *
  * @typedef {object} WheelSegment
@@ -68,7 +68,7 @@
  * and may change once G1 exposes `getGameConfig` through `coreService`.
  *
  * @typedef {object} WheelConfig
- * @property {Record<string, WheelBetRule>} bets - paytable, keyed by bet type.
+ * @property {Record<string, WheelBetRule>} paytable - paytable, keyed by bet type.
  */
 export const WHEEL_BET_TYPE_MATCH = 'match';
 
@@ -139,7 +139,7 @@ function outcomeFor(multiplier) {
  * @param {WheelSegment} raw - the segment drawn by the Core.
  * @param {object} [options]
  * @param {Bet[]} [options.bets] - always an array, even for a single bet.
- * @param {WheelConfig} [options.config] - must provide `bets`, the paytable.
+ * @param {WheelConfig} [options.config] - must provide `paytable`.
  * @returns {{ outcome: 'win' | 'loss' | 'push', multiplier: number, details: object }}
  * @throws {Error} when the draw, the bets or the config are unusable.
  */
@@ -161,11 +161,11 @@ export function resolve(raw, { bets, config } = {}) {
   if (typeof config !== 'object' || config === null) {
     throw new Error('wheel: config is required. The paytable is admin data and must never be hardcoded.');
   }
-  if (typeof config.bets !== 'object' || config.bets === null) {
-    throw new Error('wheel: config.bets (the paytable) is required');
+  if (typeof config.paytable !== 'object' || config.paytable === null) {
+    throw new Error('wheel: config.paytable (the paytable) is required');
   }
 
-  const paytable = config.bets;
+  const paytable = config.paytable;
 
   const settledBets = bets.map((bet) => {
     const rule = paytable[bet.type];

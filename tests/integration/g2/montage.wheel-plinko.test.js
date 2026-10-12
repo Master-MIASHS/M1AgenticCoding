@@ -23,10 +23,10 @@ import * as plinkoRules from '../../../src/games/plinko/rules.js';
 import { drawPlinko } from '../../../src/games/plinko/draw.js';
 import { makeFixtureDraw } from '../../fixtures/g2/rolls.js';
 
-// Configurations de test : la forme est celle proposée par les règles
-// (§ 6 encore ouvert), les valeurs sont arbitraires et propres au test.
+// Configurations de test : la forme est celle validée par #122/#256
+// (`paytable` + `segments`), les valeurs sont arbitraires et propres au test.
 const WHEEL_CONFIG = {
-  bets: {
+  paytable: {
     red: { match: { color: 'red' }, multiplier: 2 },
     blue: { match: { color: 'blue' }, multiplier: 3 },
   },
