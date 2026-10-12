@@ -51,8 +51,8 @@ const PAYTABLE = {
  * @param {Record<string, object>} [bets]
  * @returns {object}
  */
-function makeConfig(bets = PAYTABLE) {
-  return { bets };
+function makeConfig(paytable = PAYTABLE) {
+  return { paytable };
 }
 
 /**
@@ -313,7 +313,7 @@ describe('roulette resolve - invalid input', () => {
   it('refuses to settle without a paytable even if unrelated config is supplied', () => {
     assert.throws(
       () => resolve(17, { bets: makeBets(), config: { houseEdge: 0.027 } }),
-      /config\.bets/
+      /config\.paytable/
     );
   });
 });
