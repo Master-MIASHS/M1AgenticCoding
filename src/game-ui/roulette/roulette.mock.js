@@ -1,8 +1,9 @@
 // Mock de la roulette au format de l'orchestrateur G2 (skill jeux-g2 § 1 et § 2).
 // Déterministe : l'UI ne tire jamais de résultat et ne le calcule pas. Le résultat
 // de chaque type de pari est une donnée fixe du tour, pas une règle de jeu.
-// renderPayload { number, color } : forme proposée dans #8, en attente de validation
-// par la responsable des règles roulette (contrat § 5.2).
+// Même forme que les vraies règles (src/games/roulette/rules.js, #233, #321) : le numéro
+// tiré arrive dans renderPayload.raw, sa couleur dans details.color, que l'orchestrateur
+// recopie dans renderPayload.interpretation (décision de la responsable roulette, #8).
 
 // multiplier inclut la mise (contrat § 2.2).
 const WIN = { outcome: 'win', multiplier: 2 };
@@ -27,16 +28,16 @@ export function mockStart(bets) {
     return Promise.reject(new Error(`roulette mock : pari inconnu '${type}'`));
   }
   calls += 1;
+  const details = { raw: round.number, color: round.color };
   return new Promise((resolve) => {
     setTimeout(
       () =>
         resolve({
           sessionId: `roulette-mock-${calls}`,
-          renderPayload: { gameId: 'roulette', phase: 'result', number: round.number, color: round.color },
+          renderPayload: { gameId: 'roulette', phase: 'result', raw: round.number, interpretation: details },
           availableActions: [],
           terminal: true,
-          // details : contenu propre à la roulette pas encore fixé par G2 (§ 4.3, #73).
-          gameResult: { ...result, details: {} },
+          gameResult: { ...result, details },
         }),
       600
     );
