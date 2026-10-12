@@ -16,6 +16,7 @@ import { RANKS, SUITS } from '../../../src/games/cardUtils.js';
 import { drawVideoPoker } from '../../../src/games/video-poker/draw.js';
 import { videoPokerRules } from '../../../src/games/video-poker/rules.js';
 
+import '../../helpers/unlock-all-games.js';
 const PAYTABLE = {
   10: 250,
   9: 50,

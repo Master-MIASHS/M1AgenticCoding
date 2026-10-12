@@ -95,30 +95,33 @@ test('replays bot actions in order and advances the board after a completed stre
   const snapshot = structuredClone(state);
   const raw = pokerDraw(core, { session: state, action: 'call' });
 
-  assert.deepEqual(raw.aiActions, [{ type: 'check' }]);
+  // The bot's preflop check, then its opening check on the flop (#413).
+  assert.deepEqual(raw.aiActions, [{ type: 'check' }, { type: 'check' }]);
   const next = step(state, 'call', raw);
 
   assert.deepEqual(state, snapshot);
   assert.equal(next.stage, 'flop');
   assert.equal(next.communityCards.length, 3);
-  assert.equal(next.toAct, 'ai');
+  assert.equal(next.toAct, 'player');
+  assert.deepEqual(next.availableActions, ['fold', 'check', 'raise']);
   assert.equal(next.totalBet, 2);
   assert.equal(next.aiTotalBet, 2);
   assert.equal(next.needsDraw, true);
 });
 
-test('replays bot-first actions before the player action on later streets', () => {
+test('plays the bot opening turn of the next street in the same action (#413)', () => {
   const core = makeCore();
   const state = createStartingState(core);
   const preflop = step(state, 'call', pokerDraw(core, { session: state, action: 'call' }));
 
+  assert.equal(preflop.toAct, 'player');
   const raw = pokerDraw(core, { session: preflop, action: 'check' });
   assert.deepEqual(raw.aiActions, [{ type: 'check' }]);
   const next = step(preflop, 'check', raw);
 
   assert.equal(next.stage, 'turn');
   assert.equal(next.communityCards.length, 4);
-  assert.equal(next.toAct, 'ai');
+  assert.equal(next.toAct, 'player');
 });
 
 test('returns the terminal game-result shape after a player fold', () => {

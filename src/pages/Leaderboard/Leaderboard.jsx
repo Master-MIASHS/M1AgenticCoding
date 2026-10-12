@@ -48,6 +48,11 @@ function getPseudo(entry) {
   return typeof entry?.pseudo === 'string' && entry.pseudo ? entry.pseudo : FALLBACK_PSEUDO;
 }
 
+function formatBadges(badges) {
+  if (!Array.isArray(badges) || badges.length === 0) return '—';
+  return badges.map((badge) => badge?.nom ?? badge?.id).filter(Boolean).join(', ') || '—';
+}
+
 function LeaderboardRow({ entry, rank, isCurrent }) {
   const classes = ['leaderboard__row'];
   if (rank <= PODIUM_SIZE) {
@@ -67,7 +72,8 @@ function LeaderboardRow({ entry, rank, isCurrent }) {
         {isCurrent && <span className="leaderboard__you"> (vous)</span>}
       </td>
       <td className="leaderboard__level">{formatNumber(entry?.level)}</td>
-      <td className="leaderboard__balance">{formatNumber(entry?.balance)}</td>
+      <td className="leaderboard__balance">{formatNumber(entry?.bestBalance)}</td>
+      <td className="leaderboard__badges">{formatBadges(entry?.badges)}</td>
     </tr>
   );
 }
@@ -108,7 +114,8 @@ function Leaderboard() {
               <th scope="col">Rang</th>
               <th scope="col">Joueur</th>
               <th scope="col">Niveau</th>
-              <th scope="col">Solde</th>
+              <th scope="col">Meilleur solde</th>
+              <th scope="col">Badges</th>
             </tr>
           </thead>
           <tbody>

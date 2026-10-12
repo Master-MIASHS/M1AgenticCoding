@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import MainLayout from '../layouts/MainLayout.jsx';
 import { getState } from '../services/coreService.js';
 import Lobby from '../pages/Lobby/Lobby.jsx';
@@ -9,6 +9,8 @@ import Profile from '../pages/Profile/Profile.jsx';
 import Progression from '../pages/Progression/Progression.jsx';
 import GamePage from '../pages/Game/GamePage.jsx';
 import NotFound from '../pages/NotFound/NotFound.jsx';
+import History from '../pages/History/History.jsx';
+import Admin from '../pages/Admin/Admin.jsx';
 import CreateProfile from '../pages/CreateProfile/CreateProfile.jsx';
 
 // Temporary hash navigation supports GitHub Pages without server rewrites.
@@ -22,6 +24,8 @@ const pages = {
   '/statistics': Statistics,
   '/profile': Profile,
   '/progression': Progression,
+  '/history': History,
+  '/admin': Admin,
 };
 
 function App() {
@@ -36,7 +40,7 @@ function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  const refreshPlayer = () => setPlayerVersion((version) => version + 1);
+  const refreshPlayer = useCallback(() => setPlayerVersion((version) => version + 1), []);
   const player = getState();
   // First launch: no pseudo in the Core state yet, so ask for one. Skipping only
   // lasts for the session (the Core refuses a profile on a state already played).
@@ -46,22 +50,21 @@ function App() {
   if (path.startsWith(GAME_PREFIX)) {
     return (
       <MainLayout player={player} currentPath={path}>
-        <GamePage gameId={path.slice(GAME_PREFIX.length).split('/')[0]} />
+        <GamePage
+          gameId={path.slice(GAME_PREFIX.length).split('/')[0]}
+          onPlayerUpdated={refreshPlayer}
+        />
       </MainLayout>
     );
   }
 
-  const Page = pages[path] ?? NotFound;
+  // Display only: the Core refuses any admin action from a non-admin (rule 5).
+  const Page = path === '/admin' && player?.role !== 'admin' ? NotFound : (pages[path] ?? NotFound);
   return (
     <MainLayout player={player} currentPath={path}>
-      {path === '/history' ? (
-        <section aria-labelledby="history-title">
-          <h1 id="history-title">Mon historique</h1>
-          <p>L’historique des parties sera disponible prochainement.</p>
-        </section>
-      ) : (
-        <Page {...(path === '/shop' ? { onPlayerUpdated: refreshPlayer } : {})} />
-      )}
+      <Page
+        {...(path === '/shop' || path === '/profile' ? { onPlayerUpdated: refreshPlayer } : {})}
+      />
     </MainLayout>
   );
 }

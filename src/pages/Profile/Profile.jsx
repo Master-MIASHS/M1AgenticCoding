@@ -4,14 +4,22 @@
 // handled defensively and stat cards are data-driven.
 
 import { useCallback, useState } from 'react';
-import { getState } from '../../services/coreService.js';
+import { exportSave, getHistory, getState, getUnlockedGames, importSave } from '../../services/coreService.js';
 import './profile.css';
 
 const FALLBACK_PSEUDO = 'Joueur Fantôme';
 
 function loadProfile() {
   try {
-    return { data: getState(), error: null };
+    return {
+      data: {
+        ...getState(),
+        // Authoritative reads: unlocked games from the Core, real history.
+        unlockedGames: getUnlockedGames(),
+        history: getHistory(),
+      },
+      error: null,
+    };
   } catch (err) {
     return {
       data: null,
@@ -145,6 +153,76 @@ function UnlockedGames({ games }) {
   );
 }
 
+// Admin adjustments are not games played.
+const isGame = (entry) => entry?.type !== 'ADMIN_ADJUSTMENT';
+
+function SavePanel({ onImported }) {
+  const [message, setMessage] = useState(null);
+  const [text, setText] = useState('');
+
+  const handleExport = () => {
+    try {
+      const content = exportSave();
+      const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'casino-fantome-sauvegarde.json';
+      link.click();
+      URL.revokeObjectURL(url);
+      setText(content);
+      setMessage({ ok: true, text: 'Sauvegarde exportée. Elle est aussi affichée ci-dessous.' });
+    } catch (err) {
+      setMessage({ ok: false, text: `Export impossible : ${err instanceof Error ? err.message : 'erreur inconnue'}` });
+    }
+  };
+
+  const handleImport = () => {
+    if (!window.confirm('Importer une sauvegarde valide remplace TOUTE votre partie actuelle. Continuer ?')) {
+      return;
+    }
+    try {
+      importSave(text);
+      setMessage({ ok: true, text: 'Sauvegarde importée : votre partie a été remplacée.' });
+      onImported();
+    } catch (err) {
+      setMessage({
+        ok: false,
+        text: `Fichier refusé, votre partie en cours est intacte : ${err instanceof Error ? err.message : 'sauvegarde invalide'}`,
+      });
+    }
+  };
+
+  const handleFile = async (event) => {
+    const file = event.target.files?.[0];
+    if (file) setText(await file.text());
+  };
+
+  return (
+    <div className="profile__save">
+      <p>
+        Exporter télécharge votre partie. Importer une sauvegarde valide remplace toute la partie
+        en cours ; un fichier refusé ne modifie rien.
+      </p>
+      <button type="button" onClick={handleExport}>Exporter ma partie</button>
+      <label>
+        Fichier de sauvegarde <input type="file" accept="application/json,.json" onChange={handleFile} />
+      </label>
+      <textarea
+        aria-label="Contenu de la sauvegarde"
+        rows={4}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+      />
+      <button type="button" onClick={handleImport} disabled={text.trim() === ''}>
+        Importer ma partie
+      </button>
+      {message && (
+        <p role={message.ok ? 'status' : 'alert'}>{message.text}</p>
+      )}
+    </div>
+  );
+}
+
 function HistoryList({ history }) {
   if (history.length === 0) {
     return <p className="profile__empty">Aucune partie jouée pour l&apos;instant.</p>;
@@ -156,8 +234,8 @@ function HistoryList({ history }) {
         return (
           <li key={index} className="profile__history-item">
             <span className="profile__history-game">{game ?? '—'}</span>
-            {typeof entry?.result === 'string' && (
-              <span className="profile__history-result">{entry.result}</span>
+            {typeof entry?.outcome === 'string' && (
+              <span className="profile__history-result">{entry.outcome}</span>
             )}
           </li>
         );
@@ -166,7 +244,7 @@ function HistoryList({ history }) {
   );
 }
 
-function Profile() {
+function Profile({ onPlayerUpdated }) {
   const { data, error, retry } = useProfileData();
 
   if (error) {
@@ -196,7 +274,7 @@ function Profile() {
 
   const birthDate = formatDate(data.birthDate);
   const unlockedGames = Array.isArray(data.unlockedGames) ? data.unlockedGames : [];
-  const history = Array.isArray(data.history) ? data.history : [];
+  const history = (Array.isArray(data.history) ? data.history : []).filter(isGame);
 
   return (
     <div className="page-profile">
@@ -247,6 +325,15 @@ function Profile() {
             <StatCard label="Jeux déverrouillés" value={formatNumber(unlockedGames.length)} />
             <StatCard label="Parties jouées" value={formatNumber(history.length)} />
           </div>
+        </ProfileSection>
+
+        <ProfileSection title="Sauvegarde">
+          <SavePanel
+            onImported={() => {
+              retry();
+              if (typeof onPlayerUpdated === 'function') onPlayerUpdated();
+            }}
+          />
         </ProfileSection>
 
         <ProfileSection title="Historique des parties">

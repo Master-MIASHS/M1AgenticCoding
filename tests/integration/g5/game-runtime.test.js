@@ -14,6 +14,7 @@ import * as coreService from '../../../src/services/coreService.js';
 import { createGameStart, PLAYABLE_GAMES } from '../../../src/pages/Game/gameRuntime.js';
 import { PROVISIONAL_GAME_CONFIGS } from '../../../src/config/gamesProvisional.config.js';
 
+import '../../helpers/unlock-all-games.js';
 /** Vrai Core, play() espionné. */
 function spyCore() {
   const playCalls = [];
@@ -31,9 +32,9 @@ const OUTCOMES = ['win', 'loss', 'push'];
 
 describe('G5 - gameRuntime : jeux branchés sur le Core', () => {
   test('seuls les jeux ayant règles, tirage et UI sont branchés', () => {
-    assert.deepEqual([...PLAYABLE_GAMES].sort(), ['roulette', 'slots']);
-    for (const id of ['wheel', 'plinko', 'dice', 'inconnu', '__proto__']) {
-      assert.equal(createGameStart(id), undefined, `${id} reste en démonstration`);
+    assert.equal(PLAYABLE_GAMES.length, 13);
+    for (const id of ['inconnu', '__proto__']) {
+      assert.equal(createGameStart(id), undefined, `${id} n'est pas branché`);
     }
   });
 
@@ -62,11 +63,10 @@ describe('G5 - gameRuntime : jeux branchés sur le Core', () => {
 
     for (let i = 0; i < 30; i += 1) {
       const res = await start([{ type: 'red', amount: 5 }]);
-      const n = res.renderPayload.number;
+      const n = res.renderPayload.raw;
       assert.ok(Number.isInteger(n) && n >= 0 && n <= 36);
-      assert.equal(res.renderPayload.raw, n);
       const expectedColor = layout.red.includes(n) ? 'red' : n === 0 ? 'green' : 'black';
-      assert.equal(res.renderPayload.color, expectedColor);
+      assert.equal(res.renderPayload.interpretation.color, expectedColor);
       assert.equal(res.gameResult.outcome, expectedColor === 'red' ? 'win' : 'loss');
     }
     assert.equal(playCalls.length, 30);

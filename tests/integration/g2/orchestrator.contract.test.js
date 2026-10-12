@@ -28,6 +28,7 @@ import * as coreService from '../../../src/services/coreService.js';
 import { createGame } from '../../../src/games/_template/createGame.js';
 import { makeFixtureRoll, ROLLS } from '../../fixtures/g2/rolls.js';
 
+import '../../helpers/unlock-all-games.js';
 const OUTCOMES = ['win', 'loss', 'push'];
 
 /**

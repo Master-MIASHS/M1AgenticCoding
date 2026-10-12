@@ -21,6 +21,7 @@ import { createGame } from '../../../src/games/_template/createGame.js';
 import { drawMemory } from '../../../src/games/memory/draw.js';
 import { memoryRules } from '../../../src/games/memory/rules.js';
 
+import '../../helpers/unlock-all-games.js';
 const SYMBOLS = [
   'chip',
   'card',

@@ -1,74 +1,82 @@
 // ---------------------------------------------------------------------------
 // Game runtime: plugs the real games into the game page (Groupe 5, integration)
 // ---------------------------------------------------------------------------
-// For each game that has rules + draw (G2) AND a UI (G3), builds the `start`
-// function the G3 UI expects: createGame(...).start, i.e. Core draw -> G2
-// rules -> coreService.play(). The page passes it to the UI instead of the
-// UI's mock. A game absent from GAME_RUNTIMES keeps its demo mode.
+// For each game of the G2 catalogue, builds ONE createGame instance that
+// provides the `start` (and, for multi-step games, `action`) functions the G3
+// UI expects: Core draw -> G2 rules -> coreService.play(). The session of a
+// multi-step round lives in the instance, so start() and action() must come
+// from the same one (contrat G2 § 5.4).
 //
 // Nothing here decides a result: the outcome comes from the G2 rules, the
-// randomness from the Core. `adapt` only reshapes the answer for the UI.
+// randomness from the Core. The game config is provisional (see
+// gamesProvisional.config.js) until the Core serves it through getGameConfig.
 // ---------------------------------------------------------------------------
 
-import { createGame } from '../../games/_template/createGame.js';
-import * as slotsRules from '../../games/slots/rules.js';
-import { draw as drawSlots } from '../../games/slots/draw.js';
-import * as rouletteRules from '../../games/roulette/rules.js';
-import { draw as drawRoulette } from '../../games/roulette/index.js';
+import { CATALOG_GAME_IDS, MULTI_STEP, createGameFromCatalog, getGameDefinition } from '../../games/catalog.js';
 import { PROVISIONAL_GAME_CONFIGS } from '../../config/gamesProvisional.config.js';
 
 /**
- * Display color of a roulette number, read from the configured layout.
+ * Provisional configuration of a game, or undefined when none is provided.
  *
- * @param {number} number
- * @param {{ red: number[], black: number[] }} layout
- * @returns {'red' | 'black' | 'green'}
+ * @param {string} gameId
+ * @returns {object | undefined}
  */
-function rouletteColor(number, layout) {
-  if (layout.red.includes(number)) return 'red';
-  if (layout.black.includes(number)) return 'black';
-  return 'green';
+export function getRuntimeConfig(gameId) {
+  return Object.hasOwn(PROVISIONAL_GAME_CONFIGS, gameId) ? PROVISIONAL_GAME_CONFIGS[gameId] : undefined;
 }
 
-const GAME_RUNTIMES = {
-  slots: {
-    rules: slotsRules,
-    draw: drawSlots,
-    config: PROVISIONAL_GAME_CONFIGS.slots,
-  },
-  roulette: {
-    rules: rouletteRules,
-    draw: drawRoulette,
-    config: PROVISIONAL_GAME_CONFIGS.roulette,
-    // The G3 roulette UI reads renderPayload.number / .color (#8).
-    adapt: (response, config) => ({
-      ...response,
-      renderPayload: {
-        ...response.renderPayload,
-        number: response.renderPayload.raw,
-        color: rouletteColor(response.renderPayload.raw, config.layout),
-      },
-    }),
-  },
-};
-
 /**
- * Returns the `start(bets)` function to hand to a game's UI, or undefined
- * when the game is not playable yet (the page then keeps the demo mode).
+ * Builds the runtime of a game: one instance, `start` and (multi-step games
+ * only) `action`, both asynchronous as the UIs expect.
  *
  * @param {string} gameId
  * @param {object} [core] - injectable for tests; defaults to coreService.
- * @returns {((bets: Array<{ type: string, amount: number }>) => Promise<object>) | undefined}
+ * @param {() => void} [onRoundSettled] - called after each start/action, even
+ *   on error, so the page can refresh balance and navigation.
+ * @returns {{ start: Function, action?: Function, config: object } | undefined}
+ *   undefined when the game has no rules or no config (shown as unavailable).
+ */
+export function createGameRuntime(gameId, core, onRoundSettled) {
+  const definition = getGameDefinition(gameId);
+  const config = getRuntimeConfig(gameId);
+  if (definition === undefined || config === undefined) return undefined;
+
+  const game = createGameFromCatalog(gameId, { config, ...(core ? { core } : {}) });
+  const notify = () => {
+    if (typeof onRoundSettled === 'function') onRoundSettled();
+  };
+  const start = async (bets) => {
+    try {
+      return game.start(bets);
+    } finally {
+      notify();
+    }
+  };
+  if (definition.kind !== MULTI_STEP) return { start, config };
+  const action = async (sessionId, playerAction) => {
+    try {
+      return game.action(sessionId, playerAction);
+    } finally {
+      notify();
+    }
+  };
+  return { start, action, config };
+}
+
+/**
+ * Returns the `start(bets)` function of a game, or undefined when the game
+ * is not playable (kept for single-step callers; multi-step games should use
+ * createGameRuntime so that start and action share their instance).
+ *
+ * @param {string} gameId
+ * @param {object} [core]
+ * @returns {Function | undefined}
  */
 export function createGameStart(gameId, core) {
-  if (!Object.hasOwn(GAME_RUNTIMES, gameId)) return undefined;
-  const { rules, draw, config, adapt } = GAME_RUNTIMES[gameId];
-  const game = createGame({ id: gameId, rules, draw, config, ...(core ? { core } : {}) });
-  return async (bets) => {
-    const response = game.start(bets);
-    return adapt ? adapt(response, config) : response;
-  };
+  return createGameRuntime(gameId, core)?.start;
 }
 
 /** Ids of the games actually plugged into the Core. */
-export const PLAYABLE_GAMES = Object.freeze(Object.keys(GAME_RUNTIMES));
+export const PLAYABLE_GAMES = Object.freeze(
+  CATALOG_GAME_IDS.filter((id) => getRuntimeConfig(id) !== undefined)
+);

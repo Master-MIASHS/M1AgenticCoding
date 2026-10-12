@@ -24,6 +24,8 @@
         'memory',
         'quiz',
         'bingo',
+        'baccarat',
+        'poker',
       ];
       const ALL = GAME_REGISTRY.map((g) => g.id);
 
@@ -36,25 +38,19 @@
         }
       });
 
-      await t.test('unlocked games without a UI keep the waiting message', () => {
-        for (const { id } of GAME_REGISTRY.filter((g) => !WITH_UI.includes(g.id))) {
+      await t.test('every registered game has a UI, none is left "coming soon"', () => {
+        assert.deepEqual([...WITH_UI].sort(), [...ALL].sort());
+        for (const id of ALL) {
           const html = render({ gameId: id, unlockedGames: ALL });
-          assert.ok(html.includes('bientôt jouable'), `${id} is not playable yet`);
-          assert.ok(!html.includes('Mode démonstration'));
+          assert.ok(!html.includes('bientôt jouable'), `${id} is available`);
+          assert.ok(!html.includes('indisponible'), `${id} is plugged into the Core`);
         }
       });
 
-      // Games plugged into the Core (gameRuntime.js) are played for real.
-      const PLUGGED = ['slots', 'roulette'];
-
-      await t.test('games with a Groupe 3 UI display it, in demo mode unless plugged', () => {
+      await t.test('games with a Groupe 3 UI display it, plugged into the Core (no demo mode)', () => {
         for (const id of WITH_UI) {
           const html = render({ gameId: id, unlockedGames: ALL });
-          assert.equal(
-            html.includes('Mode démonstration'),
-            !PLUGGED.includes(id),
-            `${id}: demo banner only when the game is not plugged into the Core`
-          );
+          assert.ok(!html.includes('Mode démonstration'), `${id}: no demo banner`);
           assert.ok(!html.includes('bientôt jouable'));
           assert.ok(!html.includes('Jeu verrouillé'));
           assert.ok(html.includes('<button'), `${id} renders its controls`);
@@ -71,7 +67,7 @@
           assert.ok(!html.includes('Mode démonstration'));
           assert.ok(!html.includes('<button'), `${id} does not mount its UI`);
         }
-        assert.ok(render({ gameId: 'dice', unlockedGames: unlocked }).includes('Mode démonstration'));
+        assert.ok(!render({ gameId: 'dice', unlockedGames: unlocked }).includes('Jeu verrouillé'));
       });
 
       await t.test('without an explicit list the lock follows the Core (level 1 at start)', () => {
