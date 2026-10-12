@@ -5,7 +5,7 @@
 // later: nothing here knows any game rule.
 
 import { useMemo, useState } from 'react';
-import { getBalance } from '../../services/coreService.js';
+import { getBalance, getUnlockedGames } from '../../services/coreService.js';
 import { getGameMeta } from '../../config/gameRegistry.js';
 import { createGameStart } from './gameRuntime.js';
 import SlotsGame from '../../game-ui/slots/SlotsGame.jsx';
@@ -61,9 +61,8 @@ function renderResult(gameResult) {
   );
 }
 
-function GamePage({ gameId, unlockedGames = readUnlockedGames() }) {
+function GamePage({ gameId, unlockedGames }) {
   const game = typeof gameId === 'string' ? getGameMeta(gameId) : undefined;
-  const GameUI = game ? GAME_UIS[game.id] : undefined;
   const [balance, setBalance] = useState(readBalance);
   // Real round (Core draw -> G2 rules -> Core settlement) when the game is
   // plugged in gameRuntime.js; otherwise the G3 UI keeps its own mock.
@@ -80,7 +79,7 @@ function GamePage({ gameId, unlockedGames = readUnlockedGames() }) {
       }),
     [realStart]
   );
-  const locked = game ? !unlockedGames.includes(game.id) : false;
+  const locked = game && Array.isArray(unlockedGames) ? !unlockedGames.includes(game.id) : false;
   const GameUI = game && !locked ? GAME_UIS[game.id] : undefined;
 
   return (

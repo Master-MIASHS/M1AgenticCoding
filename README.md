@@ -25,23 +25,23 @@ entre jetons et argent.
 - Le capital de départ (1000 par défaut), les seuils de déblocage, les
   probabilités de gain et les gains d'XP sont **configurables**, jamais codés en dur.
 
-### Jeux prévus
+### Jeux et état d'avancement (au 12/10/2026)
 
-| Jeu | Type | Débloqué (par défaut) |
-| --- | --- | --- |
-| Machine à sous | Hasard | Départ |
-| Dés / Craps | Hasard | Départ |
-| Cartes à gratter | Hasard | Niveau 2 |
-| Blackjack | Cartes | Niveau 3 |
-| Roue de la fortune | Hasard | Niveau 4 |
-| Roulette | Hasard | Niveau 5 |
-| Baccarat | Hasard | Niveau 6 |
-| Plinko | Hasard | Niveau 7 |
-| Vidéo poker | Cartes | Niveau 8 |
-| Memory casino | Adresse | Niveau 8 |
-| Quiz « risque ton argent » | Adresse | Niveau 9 |
-| Bingo (contre bots) | Hasard | Niveau 10 |
-| Poker contre l'IA (bots) | Cartes | Niveau 12 |
+| Jeu | Type | Déblocage | Règles (G2) | Interface (G3) | Statut sur le site |
+| --- | --- | --- | --- | --- | --- |
+| **Machine à sous** | Hasard | Départ | Validées | Validée | **Jouable** (connectée au Core réel via #296) |
+| **Roulette** | Hasard | Niveau 5 | Validées | Validée | **Jouable** (connectée au Core réel via #296) |
+| **Roue de la fortune** | Hasard | Niveau 4 | Validées | Validée | **Mode Démo** (UI montée, attente injection config Core #377) |
+| **Plinko** | Hasard | Niveau 7 | Validées | Validée | **Mode Démo** (UI montée, attente injection config Core #377) |
+| **Dés (Craps)** | Hasard | Départ | Validées (#342) | Validée | **Mode Démo** (UI montée, calage config en cours) |
+| **Cartes à gratter** | Hasard | Niveau 2 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Blackjack** | Cartes | Niveau 3 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Vidéo poker** | Cartes | Niveau 8 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Memory casino** | Adresse | Niveau 8 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Quiz « risque ton argent »** | Adresse | Niveau 9 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Bingo (contre bots)** | Hasard | Niveau 10 | Validées | Validée | UI terminée (#386, en attente de montage) |
+| **Poker contre l'IA** | Cartes | Niveau 12 | En cours | En cours (#375) | Non monté |
+| **Baccarat** | Hasard | Niveau 6 | Non démarré | Non démarré | Non monté |
 
 ### Rôles (cumulatifs)
 
