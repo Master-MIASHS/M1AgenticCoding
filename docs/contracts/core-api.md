@@ -318,6 +318,7 @@ getGlobalStats() // → { totalPlays: 0, totalWagered: 0, totalWon: 0, activePla
 | Capital effectif pour un nouveau joueur | L'état initial et `creerProfil` utilisent le capital réglé par l'admin | #253 |
 | `updatePlayerBalance(amount)` | Admin : ajoute (positif) ou retire (négatif) des jetons au profil courant ; solde jamais sous 0, `bestBalance` monte sans baisser, entrée `{ type: 'ADMIN_ADJUSTMENT', amount, balanceBefore, balanceAfter, adjustedAt }` dans l'historique | #322, #255 |
 | `activerRoleAdminDev()` | Passe le profil courant en `admin`, uniquement avec `npm run dev` (refusé dans le site compilé) | #322, #255 |
+| `setPlayerStatus(status)` | Modérateur ou admin : `'banned'` désactive le compte courant (`isBanned` dans l'état), `'active'` le réactive ; un compte désactivé ne peut plus jouer (`play`), acheter (`purchaseShopItem`) ni réclamer le bonus (`claimDailyBonus`) | #352, #354 |
 
 ## 11. Faire évoluer ce contrat
 
