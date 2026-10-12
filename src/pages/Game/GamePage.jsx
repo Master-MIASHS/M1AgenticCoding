@@ -73,7 +73,7 @@ function renderResult(gameResult) {
   );
 }
 
-function GamePage({ gameId, unlockedGames }) {
+function GamePage({ gameId, unlockedGames = readUnlockedGames() }) {
   const game = typeof gameId === 'string' ? getGameMeta(gameId) : undefined;
   const [balance, setBalance] = useState(readBalance);
   // Real round (Core draw -> G2 rules -> Core settlement) when the game is
@@ -91,7 +91,9 @@ function GamePage({ gameId, unlockedGames }) {
       }),
     [realStart]
   );
-  const locked = game && Array.isArray(unlockedGames) ? !unlockedGames.includes(game.id) : false;
+  // An unusable list keeps every game locked (never the other way round).
+  const unlocked = Array.isArray(unlockedGames) ? unlockedGames : [];
+  const locked = game ? !unlocked.includes(game.id) : false;
   const GameUI = game && !locked ? GAME_UIS[game.id] : undefined;
 
   return (

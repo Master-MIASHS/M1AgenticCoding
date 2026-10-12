@@ -49,7 +49,7 @@
 
       await t.test('games with a Groupe 3 UI display it, in demo mode unless plugged', () => {
         for (const id of WITH_UI) {
-          const html = render({ gameId: id });
+          const html = render({ gameId: id, unlockedGames: ALL });
           assert.equal(
             html.includes('Mode démonstration'),
             !PLUGGED.includes(id),
@@ -72,6 +72,21 @@
           assert.ok(!html.includes('<button'), `${id} does not mount its UI`);
         }
         assert.ok(render({ gameId: 'dice', unlockedGames: unlocked }).includes('Mode démonstration'));
+      });
+
+      await t.test('without an explicit list the lock follows the Core (level 1 at start)', () => {
+        // Guards against the lock disappearing when the default is lost.
+        const locked = render({ gameId: 'roulette' });
+        assert.ok(locked.includes('Jeu verrouillé'), 'roulette (level 5) is locked at level 1');
+        assert.ok(!locked.includes('<button'), 'a locked game does not mount its UI');
+        const open = render({ gameId: 'slots' });
+        assert.ok(!open.includes('Jeu verrouillé'), 'slots (level 1) opens');
+      });
+
+      await t.test('an unusable unlocked list locks the game', () => {
+        for (const unlockedGames of [null, 'slots', 42, {}]) {
+          assert.ok(render({ gameId: 'slots', unlockedGames }).includes('Jeu verrouillé'));
+        }
       });
 
       await t.test('with an empty unlocked list every game is locked', () => {
