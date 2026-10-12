@@ -1,3 +1,8 @@
+---
+name: pr-validation
+description: "Valider une PR selon les critères du projet Casino Fantôme : CI, périmètre du groupe, règles absolues, contrats et tests. À utiliser par le relecteur avant d'approuver une PR."
+---
+
 # Skill : Validation des Pull Requests (PR) — Groupe 5
 
 ## Description

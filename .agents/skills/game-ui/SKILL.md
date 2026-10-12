@@ -1,4 +1,4 @@
-﻿---
+---
 name: game-ui
 description: Règles à suivre pour développer l'interface des jeux du casino dans /src/game-ui/. À utiliser pour toute tâche d'affichage, d'animation ou d'interaction liée à un jeu (slots, dés, blackjack, roulette, poker, etc.).
 ---
