@@ -30,7 +30,7 @@ Il a construit l'orchestrateur : `start/action` (#136), tirage injectable (#141)
 
 ### Beaulieu Clémentine (`Zelyx21`)
 
-Elle a livré quatre jeux complets avec critères d'acceptation et tests : vidéo poker (#204), Memory (#300), Quiz (#302) et Bingo (#310). Elle avait aussi écrit l'orchestrateur initial (#91), largement réécrit ensuite par fcassius. Ses jeux sont bien cadrés, mais livrés tard et non branchés dans l'application. L'issue #11 (mock du coreService) reste ouverte. Son rôle de coordination indiqué au README est peu visible dans les traces. Elle a fait 16 commentaires d'issues et 15 interventions de discussion. Sa PR #81 n'a pas été fusionnée.
+Elle a livré quatre jeux complets avec critères d'acceptation et tests : vidéo poker (#204), Memory (#300), Quiz (#302) et Bingo (#310). Elle avait aussi écrit l'orchestrateur initial (#91), largement réécrit ensuite par fcassius. Ses jeux sont bien cadrés, mais livrés tard et non branchés dans l'application. L'issue #11 (mock du coreService) reste ouverte. Son rôle de coordination indiqué au README est peu visible dans les traces. Elle a fait 16 commentaires d'issues et 15 interventions de discussion. Sa PR #81 n'a pas été fusionnée. Elle a 6 PR fusionnées, 7 issues et 10 commits sur `main`.
 
 ### Seveyrat Camille (`camseveyrat`)
 
@@ -62,7 +62,7 @@ Ses traces visibles sur GitHub sont très limitées : 2 commits README et aucune
 
 ### Marchal Florient (`FlorientMarchal`)
 
-Il porte l'essentiel de la livraison de G4. Il a réalisé le profil (#101), le classement (#100, #148) et les composants communs. Il a aussi livré la page de jeu (#175, #397), le lobby (#165) et le verrou de page (#416). Il a fait 24 PR fusionnées, 22 issues et 37 interventions de discussion. Il coordonne G4 avec un bon suivi de process. Le classement n'affiche qu'un seul joueur et les composants communs ne sont jamais montés. Il a écrit des skills hors périmètre (#152) et créé des micro-tickets. Son lobby est en doublon avec celui de Lona.
+Il porte l'essentiel de la livraison de G4. Il a réalisé le profil (#101), le classement (#100, #148) et les composants communs. Il a livré la création du profil : l'écran de saisie du pseudo (#277, #278), puis la date de naissance avec la règle des 18 ans appliquée par le Core (#364, #365). Il a aussi livré le lobby (#164, #165, #297, #298) avec ses jeux « Bientôt » et le registre des jeux en français. Sur la page de jeu, il a monté 11 interfaces de jeu du groupe 3 (#174/#175, #197/#198, #294/#295, #356/#363, #386/#397). Il a rétabli le verrouillage des jeux par l'URL après une régression (#407, #416). Quatre de ses composants communs sont montés dans le Lobby : GameCard (13 cartes) et PlayerHeader, qui assemble LevelBadge, BalanceDisplay et XPBar. XPBar est aussi monté dans la page Progression ; seule la Sidebar n'est utilisée nulle part. Il a fait 24 PR fusionnées, 23 issues et 37 interventions de discussion, et coordonne G4 avec un bon suivi de process. Le classement n'affiche qu'un seul joueur. Il a écrit des skills hors périmètre (#152) et créé des micro-tickets. Le lobby n'existe qu'une fois : Lona a seulement mentionné une version locale, jamais publiée.
 
 ### Rayid Ahamada Rachid (`rayidahamada`)
 
@@ -78,7 +78,7 @@ Elle a posé le squelette d'architecture et livré l'écran Progression (#46, #1
 
 ### ADELL Lona (`LonaAdell`)
 
-Elle n'a qu'un commit README et aucune PR ni issue. Le ticket Lobby G4-04 lui était associé. Le lobby a été livré par Florient, ce qui crée un doublon. Elle a une seule intervention de discussion. Les traces sont insuffisantes et la confiance est faible. Son évaluation est jugée non concluante. Plusieurs axes sont notés « indéterminé ».
+Elle n'a qu'un commit README et aucune PR ni issue. Le ticket Lobby G4-04 lui était associé. Le lobby a été livré par Florient ; elle a indiqué dans la discussion #12 avoir une version locale, jamais publiée. Elle a une seule intervention de discussion. Les traces sont insuffisantes et la confiance est faible. Son évaluation est jugée non concluante. Plusieurs axes sont notés « indéterminé ».
 
 ### Trocellier Stacy (`stacytrocellier48-ux`)
 
